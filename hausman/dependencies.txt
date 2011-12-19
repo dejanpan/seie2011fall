@@ -1,0 +1,7 @@
+simple_robot_control
+apt-get install ros-electric-pr2-common-actions
+comment cloth_segmentation
+comment in CMake_list.txt OpencvtoRos
+change eigen2 transform3d to Affine3d
+change using namespace std
+add dependency camera_self_filter
