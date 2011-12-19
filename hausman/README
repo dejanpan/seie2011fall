@@ -1,0 +1,30 @@
+1) roslaunch simple_robot_control simple_robot_control_without_collision_checking.launch
+roslaunch pr2_interactive_segmentation prosilica.launch
+roslaunch pr2_interactive_segmentation camera_self_filter_server_prosilica.launch
+
+
+2) Optionally the camera self filter - however that only works with a hack on the prosilica. I never checked that in because it was really ugly, but I have a copy on some backup drive. I only have to find it :) 
+For now you can just comment in main() of c_track_features.cpp the following
+ros::ServiceClient svc = nh.serviceClient<camera_self_filter::mask>("self_mask"); to cv::Mat mask(ipl_mask);
+and add cv::Mat mask = cv::Mat::zeros(img.rows, img.cols, CV_8U);
+
+3) rosrun pr2_interactive_segmentation find_poke_point
+This node takes a depth image and puts virtual camera above the table. It extracts the contours of the objects on the table and creates a 2D binary image of the topview. This is passed to the .py script below which finds the corners and return the push directions w.r.t the 2d image. The returned push directions are then retranslated into the 3d frame.
+
+4) rosrun pr2_interactive_segmentation find_corners.py
+searches for corners and directions in 2d
+
+5) And here is the horrible part: IIRC i ran it the commands for the move arm and the segmentation manually:
+So do in pr2_inter...:
+ipython
+run -n src/execute_grasps.py (i was missing the file in the attachment so put into src)
+rospy.init_node('blub')
+self.goToPregrasp(2)
+self._initialPush()
+self._push() (several times if you are not close to the object)
+
+run in another terminal c_track_features
+and than alternatingly do self._initialPush() twice and hit a key in c_track_features
+you may want to rosbag the prosilica images (and masks) for later analyis
+
+
