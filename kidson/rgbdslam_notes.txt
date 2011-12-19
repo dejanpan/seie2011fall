@@ -1,0 +1,37 @@
+rgbdslam notes:
+
+1. functionality in openni_listener
+kinectCallback
+cameraCallback
+callProcessing
+processNode etc.
+OpenNIListener listener in main
+
+
+1.  Find & Extract features
+-Occurs in Node constructor
+-Node created by OpenNIListener::cameraCallback, when pause is set false
+-when USE_SIFT_GPU=0 openCV FeatureDetector and DescriptorExtractor objects are used
+-when USE_SIFT_GPU=1 SiftGPU::RunSIFT()
+
+OpenNIListener::retrieveTransformations - what does this do exactly
+
+2. RANSAC for finding a transformation from feature associations
+Done in Node::getRelativeTransformationTo
+OpenNIListener::callProcessing -> 
+	OpenNIListener::processNode -> 
+		GraphManager::addNode -> 
+			Node::MatchPairNode -> 
+				Node::getRelativeTransformationTo
+
+
+3. GICP fallback if features are not matching
+Done in Node::getRelativeTransformationTo after RANSAC
+getRelativeTransformationTo_ICP_code - not implemented
+getRelativeTransformationTo_ICP_bin - not implemented
+
+4. Put transformations into g2o (has its own paper) -> optimized trajectory
+
+5. Combine trajectory with original point clouds and use the octomap library
+not implemented here (ask felix)
+
