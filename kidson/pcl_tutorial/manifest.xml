@@ -1,0 +1,18 @@
+<package>
+  <description brief="pcl_tutorial">
+
+     pcl_tutorial
+
+  </description>
+  <author>Ross</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pcl_tutorial</url>
+  <depend package="pcl"/>
+  <depend package="pcl_ros"/>
+  <depend package="roscpp"/>
+  <depend package="sensor_msgs"/>
+
+</package>
+
+
