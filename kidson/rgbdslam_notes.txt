@@ -1,3 +1,9 @@
+Installation:
+1. Edit g2o manifest.xml add dependencies:
+    <cpp cflags="-I${prefix}/include/ -I/usr/include/suitesparse" lflags="-L${prefix}/lib/ -lcsparse -Wl,-rpath,${prefix}/lib/ -lg2o_core -lg2o_stuff -lcholmod" />
+
+2. openni-kinect must be installed
+
 rgbdslam notes:
 
 1. functionality in openni_listener
