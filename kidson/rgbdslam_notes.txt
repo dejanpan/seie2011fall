@@ -1,17 +1,33 @@
+----------------
 Installation:
+----------------
 1. Edit g2o manifest.xml add dependencies:
     <cpp cflags="-I${prefix}/include/ -I/usr/include/suitesparse" lflags="-L${prefix}/lib/ -lcsparse -Wl,-rpath,${prefix}/lib/ -lg2o_core -lg2o_stuff -lcholmod" />
 
 2. openni-kinect must be installed
 
-rgbdslam notes:
+----------------
+Running
+----------------
 
-1. functionality in openni_listener
+roslaunch rgbdslam kinect+rgbdslam.launch
+
+or
+
+roslaunch openni_camera openni_node.launch
+rosrun rgbdslam rgbdslam
+
+
+----------------
+Code notes
+----------------
+
+Main flow of code
+-----------------
 kinectCallback
-cameraCallback
-callProcessing
-processNode etc.
-OpenNIListener listener in main
+cameraCallback -> here node is created, matching is done
+callProcessing 
+processNode -> GraphManager::addNode -> most of the code is in here
 
 
 1.  Find & Extract features
@@ -27,7 +43,7 @@ Done in Node::getRelativeTransformationTo
 OpenNIListener::callProcessing -> 
 	OpenNIListener::processNode -> 
 		GraphManager::addNode -> 
-			Node::MatchPairNode -> 
+			Node::matchNodePair -> 
 				Node::getRelativeTransformationTo
 
 
@@ -37,6 +53,9 @@ getRelativeTransformationTo_ICP_code - not implemented
 getRelativeTransformationTo_ICP_bin - not implemented
 
 4. Put transformations into g2o (has its own paper) -> optimized trajectory
+
+GraphManager::addNode -> addEdgeToG2O
+all stuff with object optimizer_
 
 5. Combine trajectory with original point clouds and use the octomap library
 not implemented here (ask felix)
