@@ -19,16 +19,24 @@ int main(int argc, char** argv){
         ros::Time::now(),"base_link","doesnt_matter");
     robot.right_arm.moveGrippertoPose(tf_init);
 
-//+++++++++++++++++++++++++++++++++TEST++++++++++++++++++++++++++++++++++++++++
+
     for(int i=0;i<=360;i+=20){
 			float r,x,y;
 
             // radius of the circle trajectory
-            r=0.1;
+            r=0.08;
+
+//            //x value for circle trajectory
+//            x= ((cos((M_PI*i)/180))*r)+0.53;
+//            //y value for circle trajectory
+//            y= ((sin((M_PI*i)/180))*r)-0.17;
+//
+
+
             //x value for circle trajectory
-            x= ((cos((M_PI*i)/180))*r)+0.46;
+            x= ((sin((M_PI*i)/180))*r)+0.53;
             //y value for circle trajectory
-            y= ((sin((M_PI*i)/180))*r)-0.15;
+            y= ((cos((M_PI*i)/180))*r)-0.17;
 
             tf::Transform trans;
             tf::Quaternion axis;
@@ -43,9 +51,11 @@ int main(int argc, char** argv){
             //transformation to the new pose (wrt. base_link)
             tf::StampedTransform update (tf::Transform(axis,tf::Vector3(x,y,0.5)),
             ros::Time::now(),"base_link","doesnt_matter");
+            robot.right_arm.moveGrippertoPose(update, 10);
+
             cout<<"degree = "<<i << endl;
             cout<<"pitch = "<<pitch_angle <<"  yaw = "<<yaw_angle<< endl;
-            robot.right_arm.moveGrippertoPose(update, 10);
+
 
     }
 
