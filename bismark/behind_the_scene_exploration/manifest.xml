@@ -1,0 +1,16 @@
+<package>
+  <description brief="behind_the_scene_exploration">
+
+     behind_the_scene_exploration
+
+  </description>
+  <author>Ronny</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/behind_the_scene_exploration</url>
+  <depend package="roscpp"/>
+  <depend package="simple_robot_control"/>
+
+</package>
+
+
