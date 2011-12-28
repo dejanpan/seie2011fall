@@ -1,8 +1,0 @@
-<launch>
-	
-	
-<!-- load all needed launch files -->
-  
-<include file="$(find pr2_gazebo)/pr2_empty_world.launch"/>
-<include file="$(find simple_robot_control)/launch/simple_robot_control_without_collision_checking.launch"/>
-</launch>
