@@ -69,5 +69,10 @@
 
  <node pkg="tf" type="static_transform_publisher" name="static_transform_publisher" args="-0.0952337 -0.0228546 -0.0528775 1.59457 0.00331969  1.5839 r_gripper_tool_frame eye_in_hand_rgb_optical_frame 100" output="screen" /> 
 
+ 
+
+ <node pkg="dynamic_reconfigure" type="dynparam" name="dynparam" args="set /camera/driver depth_registration true" />
+
+
 
 </launch>
