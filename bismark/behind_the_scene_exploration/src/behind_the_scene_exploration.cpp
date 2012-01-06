@@ -15,15 +15,27 @@ int main(int argc, char** argv){
 
 
 
-    float r,x,y,z,yaw_angle, pitch_angle;
+    float r,x,y,z,yaw_angle, pitch_angle,roll ;
     //radius of the circle trajectory
     r=0.2;
 
     //z offset of the trajectory (wrt. base_link)
-    z=0.75;
+    z=1.0;
+    roll = M_PI;
 
     tf::Transform trans;
     tf::Quaternion axis;
+
+//+++++++++++++inital pose++++++++++++++++++++++++++++++++
+
+    robot.torso.move(0.4);
+
+    double init_pos_right[]
+           = { -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52,
+               -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52 };
+        std::vector<double> init_pos_vec(init_pos_right, init_pos_right+14);
+        robot.right_arm.goToJointPos(init_pos_vec);
+
 
 
 
@@ -41,7 +53,7 @@ int main(int argc, char** argv){
             pitch_angle = 0.1*M_PI;
 
             //converting angles into quaternions
-            axis.setRPY(0.0,pitch_angle,yaw_angle);
+            axis.setRPY(roll,pitch_angle,yaw_angle);
 
             //transformation to the new pose (wrt. base_link)
             tf::StampedTransform poses_on_rightside (tf::Transform(axis,tf::Vector3(x,y,z)),
@@ -56,43 +68,43 @@ int main(int argc, char** argv){
 
 //+++++++++++++top view of the scene++++++++++++++++++++++++++++++++
 
-        yaw_angle = 0;
-        pitch_angle = 0.3*M_PI;
-        axis.setRPY(0.0,pitch_angle,yaw_angle);
-
-
-        tf::StampedTransform topview_pose (tf::Transform(axis,
-        	tf::Vector3(0.9,-0.1,0.9)), ros::Time::now(),"base_link","doesnt_matter");
-        robot.right_arm.moveGrippertoPose(topview_pose, 20);
+//        yaw_angle = 0;
+//        pitch_angle = 0.5*M_PI;
+//        axis.setRPY(0.0,pitch_angle,yaw_angle);
+//
+//
+//        tf::StampedTransform topview_pose (tf::Transform(axis,
+//        	tf::Vector3(0.9,-0.1,0.9)), ros::Time::now(),"base_link","doesnt_matter");
+//        robot.right_arm.moveGrippertoPose(topview_pose, 20);
 
 
 
 //+++++++++++++exploring left side of the scene++++++++++++++++++++++++++++++++
 
-    for(int i=60;i<=140;i+=20){
-
-            //x value for circle trajectory
-            x= ((cos((M_PI*i)/180))*r)+0.5;
-            //y value for circle trajectory
-            y= ((sin((M_PI*i)/180))*r)-0.25;
+//    for(int i=60;i<=140;i+=20){
+//
+//            //x value for circle trajectory
+//            x= ((cos((M_PI*i)/180))*r)+0.5;
+//            //y value for circle trajectory
+//            y= ((sin((M_PI*i)/180))*r)-0.25;
 
             //angles in radians (gripper looks to the center of the circle)
-            yaw_angle = 1.5*M_PI;
-            pitch_angle = 0.1*M_PI;
-
-            //converting angles into quaternions
-            axis.setRPY(0.0,pitch_angle,yaw_angle);
-
-            //transformation to the new pose (wrt. base_link)
-            tf::StampedTransform poses_on_leftside (tf::Transform(axis,tf::Vector3(x,y,z)),
-            ros::Time::now(),"base_link","doesnt_matter");
-            robot.right_arm.moveGrippertoPose(poses_on_leftside, 20);
-
-            cout<<"degree = "<<i << endl;
-            cout<<"pitch = "<<pitch_angle <<"  yaw = "<<yaw_angle<< endl;
-
-
-    }
+//            yaw_angle = 1.5*M_PI;
+//            pitch_angle = 0.1*M_PI;
+//
+//            //converting angles into quaternions
+//            axis.setRPY(roll,pitch_angle,yaw_angle);
+//
+//            //transformation to the new pose (wrt. base_link)
+//            tf::StampedTransform poses_on_leftside (tf::Transform(axis,tf::Vector3(x,y,z)),
+//            ros::Time::now(),"base_link","doesnt_matter");
+//            robot.right_arm.moveGrippertoPose(poses_on_leftside, 20);
+//
+//            cout<<"degree = "<<i << endl;
+//            cout<<"pitch = "<<pitch_angle <<"  yaw = "<<yaw_angle<< endl;
+//
+//
+//    }
 
 
 
