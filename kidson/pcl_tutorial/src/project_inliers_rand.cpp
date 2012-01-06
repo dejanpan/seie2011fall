@@ -11,7 +11,7 @@ int
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_projected (new pcl::PointCloud<pcl::PointXYZ>);
 
   // Fill in the cloud data
-  cloud->width  = 5;
+  cloud->width  = 5000;
   cloud->height = 1;
   cloud->points.resize (cloud->width * cloud->height);
 
@@ -31,8 +31,9 @@ int
   // Create a set of planar coefficients with X=Y=0,Z=1
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
   coefficients->values.resize (4);
-  coefficients->values[0] = coefficients->values[1] = 0;
-  coefficients->values[2] = 1.0;
+  coefficients->values[0] = 2.0;
+  coefficients->values[1] = 1.0;
+  coefficients->values[2] = 1.5;
   coefficients->values[3] = 0;
 
   // Create the filtering object
@@ -41,6 +42,9 @@ int
   proj.setInputCloud (cloud);
   proj.setModelCoefficients (coefficients);
   proj.filter (*cloud_projected);
+
+  pcl::PCDWriter writer;
+  writer.write<pcl::PointXYZ> ("sampled_projected_plane.pcd", *cloud_projected, false);
 
   std::cerr << "Cloud after projection: " << std::endl;
   for (size_t i = 0; i < cloud_projected->points.size (); ++i)
