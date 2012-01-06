@@ -71,7 +71,7 @@
 
  
 
- <node pkg="dynamic_reconfigure" type="dynparam" name="dynparam" args="set /(arg camera)/driver depth_registration true" />
+ <node pkg="dynamic_reconfigure" type="dynparam" name="dynparam" args="set /eye_in_hand/driver depth_registration true" />
 
 
 
