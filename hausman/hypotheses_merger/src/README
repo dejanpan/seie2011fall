@@ -1,0 +1,5 @@
+Basically, the class ObservationManager manages all the ObservationNodes. 
+
+Each detection components are implemented as a inherited class of ObservationNode and ObservationManager manages/merges the confidences of each modules. Also, ObservationManager compute the projection onto the image plane given camera model to find the corresponding image region given 3D location of a person. 
+
+You can look at the getConfidence function to see how I merge them... It's very simple summation of each components. 

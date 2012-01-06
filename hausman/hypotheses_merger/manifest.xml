@@ -1,0 +1,14 @@
+<package>
+  <description brief="hypotheses_merger">
+
+     hypotheses_merger
+
+  </description>
+  <author>Dejan Pangercic</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/hypotheses_merger</url>
+
+</package>
+
+
