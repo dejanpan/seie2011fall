@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.6)
+cmake_minimum_required(VERSION 2.8)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 # Set the build type.  Options are:
@@ -40,3 +40,5 @@ rosbuild_add_executable (pcd_read src/pcd_read.cpp)
 rosbuild_add_executable (pcd_write src/pcd_write.cpp)
 rosbuild_add_executable (concatenate_clouds src/concatenate_clouds.cpp)
 rosbuild_add_executable (planar_segmentation src/planar_segmentation.cpp)
+#rosbuild_add_executable (cylinder_segmentation src/cylinder_segmentation.cpp)
+#rosbuild_add_executable (cluster_extraction src/cluster_extraction.cpp)
