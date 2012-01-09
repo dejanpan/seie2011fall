@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
-
 # Set the build type.  Options are:
 #  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
 #  Debug          : w/ debug symbols, w/o optimization
@@ -43,3 +42,4 @@ rosbuild_add_executable (planar_segmentation src/planar_segmentation.cpp)
 #rosbuild_add_executable (cylinder_segmentation src/cylinder_segmentation.cpp)
 #rosbuild_add_executable (cluster_extraction src/cluster_extraction.cpp)
 rosbuild_add_executable (icp_pcl src/icp_pcl.cpp)
+#rosbuild_add_executable (view_pcd src/view_pcd.cpp)
