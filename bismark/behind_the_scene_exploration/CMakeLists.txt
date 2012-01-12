@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.6)
+cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 # Set the build type.  Options are:
@@ -30,3 +30,4 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_executable(behind_the_scene_exploration src/behind_the_scene_exploration.cpp)
+

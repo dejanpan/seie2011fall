@@ -10,6 +10,10 @@
   <url>http://ros.org/wiki/behind_the_scene_exploration</url>
   <depend package="roscpp"/>
   <depend package="simple_robot_control"/>
+  <depend package="pcl" />
+	<depend package="pcl_ros" />
+	<depend package="sensor_msgs" />
+
 
 </package>
 
