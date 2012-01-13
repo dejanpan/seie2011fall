@@ -31,10 +31,12 @@ int main(int argc, char** argv){
     tf::Quaternion axis;
     tf::TransformListener tf_;
 
-    sensor_msgs::PointCloud2 input_pc, transformed_pc;
+//    sensor_msgs::PointCloud2 input_pc, transformed_pc;
 
+    sensor_msgs::PointCloud2::Ptr input_pc (new sensor_msgs::PointCloud2 ());
+    sensor_msgs::PointCloud2::Ptr transformed_pc (new sensor_msgs::PointCloud2 ());
     sensor_msgs::PointCloud2::Ptr output_pc (new sensor_msgs::PointCloud2 ());
-	sensor_msgs::PointCloud2::Ptr output_pc_filtered (new sensor_msgs::PointCloud2 ());
+
 
 //+++++++++++++inital pose++++++++++++++++++++++++++++++++
 
@@ -59,27 +61,34 @@ int main(int argc, char** argv){
 //++++++++++++++++++Pointcloud processing++++++++++++++++++++++++++++++++++++++++
 
 
-    	bool found_transform = tf_.waitForTransform("eye_in_hand_rgb_optical_frame", "base_link",
-													ros::Time::now(), ros::Duration(10.0));
 
+
+		  //transformation of Pointcloud
+		  bool found_transform = tf_.waitForTransform("eye_in_hand_rgb_optical_frame", "base_link",
+													ros::Time::now(), ros::Duration(10.0));
 
     	  if (found_transform)
     	  {
     	    tf::StampedTransform transform;
     	    tf_.lookupTransform("base_link","eye_in_hand_rgb_optical_frame", ros::Time::now(), transform);
-    	    pcl_ros::transformPointCloud("base_link", transform, input_pc, transformed_pc);
+    	    pcl_ros::transformPointCloud("base_link", transform, *input_pc, *transformed_pc);
     	  }
 
-    	  output_pc += transformed_pc;
 
+    	  //Convert PC2 to PointXYZ and concatenate the Pointclouds
+    	  pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_transformed_pc (new pcl::PointCloud<pcl::PointXYZ>);
+    	  pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_concat_pc (new pcl::PointCloud<pcl::PointXYZ>);
+    	  pcl::fromROSMsg(*transformed_pc, *pcl_transformed_pc);
+    	  *pcl_concat_pc += *pcl_transformed_pc;
 
-    	  // Create the filtering object
+    	  //Filtering of Pointcloud
+    	  sensor_msgs::PointCloud2::Ptr output_pc_filtered (new sensor_msgs::PointCloud2 ());
     	  pcl::VoxelGrid<sensor_msgs::PointCloud2> sor;
-    	  sor.setInputCloud (output_pc);
+    	  sor.setInputCloud (pcl_concat_pc);
     	  sor.setLeafSize (0.01f, 0.01f, 0.01f);
     	  sor.filter (*output_pc_filtered);
 
-
+    	  //Save to pcd file
     	  pcl::PCDWriter writer;
     	  writer.write ("eye_in_hand_scene_downsampled.pcd", *output_pc_filtered,
     	         Eigen::Vector4f::Zero (), Eigen::Quaternionf::Identity (), false);
