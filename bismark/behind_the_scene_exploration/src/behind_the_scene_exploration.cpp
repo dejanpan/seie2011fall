@@ -22,7 +22,6 @@ int main(int argc, char** argv){
 
 
     float r,x,y,z,yaw_angle, pitch_angle,roll ;
-
     r=0.2;			//radius of the circle trajectory
     z=1.0;			//z offset of the trajectory (wrt. base_link)
     roll = M_PI;
@@ -31,12 +30,8 @@ int main(int argc, char** argv){
     tf::Quaternion axis;
     tf::TransformListener tf_;
 
-//    sensor_msgs::PointCloud2 input_pc, transformed_pc;
-
     sensor_msgs::PointCloud2::Ptr input_pc (new sensor_msgs::PointCloud2 ());
     sensor_msgs::PointCloud2::Ptr transformed_pc (new sensor_msgs::PointCloud2 ());
-    sensor_msgs::PointCloud2::Ptr output_pc (new sensor_msgs::PointCloud2 ());
-
 
 //+++++++++++++inital pose++++++++++++++++++++++++++++++++
 
