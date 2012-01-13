@@ -6,16 +6,16 @@
 int
 main (int argc, char** argv)
 {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+  sensor_msgs::PointCloud2::Ptr cloud (new sensor_msgs::PointCloud2 ());
+  sensor_msgs::PointCloud2::Ptr cloud_filtered (new sensor_msgs::PointCloud2 ());
 
   // Fill in the cloud data
   pcl::PCDReader reader;
   // Replace the path below with the path where you saved your file
-  reader.read<pcl::PointXYZ> ("kitchen_bench.pcd", *cloud);
+  reader.read ("kitchen_bench1_2.pcd", *cloud); // Remember to download the file first!
 
-  std::cerr << "Cloud before filtering: " << std::endl;
-  std::cerr << *cloud << std::endl;
+  std::cerr << "PointCloud before filtering: " << cloud->width * cloud->height
+       << " data points (" << pcl::getFieldsList (*cloud) << ").";
 
   // Create the filtering object
   pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
@@ -23,16 +23,13 @@ main (int argc, char** argv)
   sor.setMeanK (50);
   sor.setStddevMulThresh (1.0);
   sor.filter (*cloud_filtered);
-
-  std::cerr << "Cloud after filtering: " << std::endl;
-  std::cerr << *cloud_filtered << std::endl;
+  std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height
+       << " data points (" << pcl::getFieldsList (*cloud_filtered) << ").";
 
   pcl::PCDWriter writer;
-  writer.write<pcl::PointXYZ> ("kitchen_bench_inliers.pcd", *cloud_filtered, false);
-
-  sor.setNegative (true);
-  sor.filter (*cloud_filtered);
-  writer.write<pcl::PointXYZ> ("kitchen_bench:outliers.pcd", *cloud_filtered, false);
+  writer.write ("kitchen_bench_noOutliers.pcd", *cloud_filtered,
+         Eigen::Vector4f::Zero (), Eigen::Quaternionf::Identity (), false);
 
   return (0);
 }
+

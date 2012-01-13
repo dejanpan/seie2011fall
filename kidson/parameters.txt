@@ -1,0 +1,32 @@
+
+to look at
+
+-what exactly the algorithm outputs
+-what is the data in the bag file - set of poses?
+
+-need the set of pointclouds and respective images and transforms for surface reconstruction (dejan)
+
+
+ground_truth_frame_name		used for evaluation
+
+fixed_camera
+min_matches	print out matches
+
+    config["min_translation_meter"]         = static_cast<double> (0.05);
+    config["min_rotation_degree"]           = static_cast<int> (2.5);
+    config["min_time_reported"]  
+    config["squared_meshing_threshold"] 
+    config["connectivity"]                  = static_cast<int> (10);
+    config["max_connections"] 
+
+    config["concurrent_node_construction"]  = static_cast<bool> (true);
+    config["concurrent_edge_construction"]
+    config["voxelfilter_size"]  
+
+    config["wide_queue_size"]    
+    config["optimizer_skip_step"] 
+    config["data_skip_step"]   
+
+    config["depth_scaling_factor"]  - or ask felix
+
+    config["keep_all_nodes"]       optimization
