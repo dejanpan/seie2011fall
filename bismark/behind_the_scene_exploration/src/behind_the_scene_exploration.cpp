@@ -88,10 +88,7 @@ int main(int argc, char** argv){
     	  sor.setLeafSize (0.01f, 0.01f, 0.01f);
     	  sor.filter (*output_pc_filtered);
 
-    	  //Save to pcd file
-    	  pcl::PCDWriter writer;
-    	  writer.write ("eye_in_hand_scene_downsampled.pcd", *output_pc_filtered,
-    	         Eigen::Vector4f::Zero (), Eigen::Quaternionf::Identity (), false);
+
 
 
 
@@ -121,6 +118,10 @@ int main(int argc, char** argv){
 
     }
 
+	  //Save observed scene to pcd file
+	  pcl::PCDWriter writer;
+	  writer.write ("eye_in_hand_scene_downsampled.pcd", *output_pc_filtered,
+	         Eigen::Vector4f::Zero (), Eigen::Quaternionf::Identity (), false);
 
 
         return 0;
