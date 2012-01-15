@@ -3,20 +3,29 @@ to look at
 
 -what exactly the algorithm outputs
 -what is the data in the bag file - set of poses?
-
 -need the set of pointclouds and respective images and transforms for surface reconstruction (dejan)
 
+parameters to play with or investigate
 
-ground_truth_frame_name		used for evaluation
-
-fixed_camera
-min_matches	print out matches
+    config["min_matches"]                   = static_cast<int> (25);           //if using SiftGPU and GLSL you should use max. 60 matches
+	//usually many matches, over 100
 
     config["min_translation_meter"]         = static_cast<double> (0.05);
     config["min_rotation_degree"]           = static_cast<int> (2.5);
-    config["min_time_reported"]  
-    config["squared_meshing_threshold"] 
+    // If a transform is too small (as specified by the parameters above) It will not be added to the graph
+    // this means going too slow will not improve performance
+    
+    config["min_time_reported"]  	=1e9	// reports the runtime to rxlogger when time exceeds this value.  In this case never
+    config["squared_meshing_threshold"] 	//something to do with the visualizer
     config["connectivity"]                  = static_cast<int> (10);
+    // Number of nodes for the current node to match against to find edges
+    // used as parameter max_targets in getPotentialEdgeTargets  
+    /// max_targets determines how many potential edges are wanted
+	/// max_targets < 0: No limit
+	/// max_targets = 0: Compare to first frame only
+	/// max_targets = 1: Compare to previous frame only
+	/// max_targets > 1: Select intelligently (TODO: rather stupid at the moment)
+    
     config["max_connections"] 
 
     config["concurrent_node_construction"]  = static_cast<bool> (true);
