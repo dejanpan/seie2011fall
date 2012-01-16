@@ -11,6 +11,12 @@ to look at
 	
 -what is the data in the bag file - set of poses?		---- look at data at the end of edges
 	- the optimizer - all vertices (nodes) and edges (transforms) between them
+	- cannot determine what the values after the edges are. I believe it is something to do with the nodes
+	- however these files can be used to load an optimizer object with vertices and edges.  
+	//! load the graph from a stream. Uses the Factory singleton for creating the vertices and edges.
+    virtual bool load(std::istream& is, bool createEdges=true);
+    - the difference between before and after is the difference between before and after optimization function has run 
+    -(normally run every time a node is added to the graph)
 
 -need the set of pointclouds and respective images and transforms for surface reconstruction (dejan)
 	- All the nodes have their original pointclouds.  Function to write them all individually to disk (GraphManager::saveIndividualCloudsToFile)  

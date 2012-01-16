@@ -1,7 +1,3 @@
-investigate output bag files
-	- what is the diffence between before and after
-	- what is the data after the edges
-
 email felix
 	-min matches dilemma - too many = less edges but better edges
 	-depth scaling factor - how to set that.  Is there any calibration thing
