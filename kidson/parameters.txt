@@ -6,19 +6,22 @@ to look at
 	- save			-saves entire point cloud.  If a file name is already specified then use that, instead bin/quicksave.pcd 
 	- save as		-saves entire point cloud.  Asks for filename.  Allows ability to save as .ply
 	- save node wise-saves all individual point clouds (not transformed)
-	- send model	-broadcasts point clouds to a topic (doesn't seem to work)
+	- send model	-broadcasts point clouds to a topic (does it just once)
 	- trajectory output - text file of trajectory, poses for each node
 	
--what is the data in the bag file - set of poses?
+-what is the data in the bag file - set of poses?		---- look at data at the end of edges
 	- the optimizer - all vertices (nodes) and edges (transforms) between them
+
 -need the set of pointclouds and respective images and transforms for surface reconstruction (dejan)
-	- All the nodes have their original pointclouds.  Each node has a respective transform from the optimizer
+	- All the nodes have their original pointclouds.  Function to write them all individually to disk (GraphManager::saveIndividualCloudsToFile)  
+	- Each node has a respective transform from the optimizer, also easily obtained (GraphManager::getAllPosesAsMatrixList, GraphManager::saveTrajectory)
 
 parameters to play with or investigate
 
     config["min_matches"]                   = static_cast<int> (25);           //if using SiftGPU and GLSL you should use max. 60 matches
-	//usually many matches, over 100
+	//usually many matches, over 100									------write to felix about this
 	// increasing this number seems like a good idea, however it also reduces the number of edges in the graph.
+	// also, min translation and rotation should be decreased if this is increased
 
     config["min_translation_meter"]         = static_cast<double> (0.05);
     config["min_rotation_degree"]           = static_cast<int> (2.5);
@@ -38,7 +41,7 @@ parameters to play with or investigate
     
     config["max_connections"] // max number of edges a node may have
 
-    config["concurrent_node_construction"]  = static_cast<bool> (true);		// allows multiple nodes to be processed (ransac matching etc) simultaneously
+    config["concurrent_node_construction"]  = static_cast<bool> (true);		// allows next node to be created (feature detection) whilst the current undergoes ransac etc.
     config["concurrent_edge_construction"]  = static_cast<bool> (true);
     	// Allows simultaneous processing of node matching to add edges.  Comment from code:
             //First compile a qlist of the nodes to be compared, then run the comparisons in parallel,
@@ -51,7 +54,8 @@ parameters to play with or investigate
     config["data_skip_step"]   		
     	// skips 1 out of x camera frames (at callback level). set to 1 to turn off.  This only applies for stereo and no cloud data callbacks
 
-    config["depth_scaling_factor"] 		// scales the Z values of the point cloud.  Used when mapping features to point clouds
+    config["depth_scaling_factor"]			---- felix.  how to set that 		
+    // scales the Z values of the point cloud.  Used when mapping features to point clouds
 
     config["keep_all_nodes"]  
       // if a node is added to the graph, but no edges are found, setting this value to true
