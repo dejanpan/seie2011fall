@@ -2,8 +2,13 @@
 to look at
 
 -what exactly the algorithm outputs
-	- also trajectory output
-	- save node wise/send model, needs investigation
+	Various save options
+	- save			-saves entire point cloud.  If a file name is already specified then use that, instead bin/quicksave.pcd 
+	- save as		-saves entire point cloud.  Asks for filename.  Allows ability to save as .ply
+	- save node wise-saves all individual point clouds (not transformed)
+	- send model	-broadcasts point clouds to a topic (doesn't seem to work)
+	- trajectory output - text file of trajectory, poses for each node
+	
 -what is the data in the bag file - set of poses?
 	- the optimizer - all vertices (nodes) and edges (transforms) between them
 -need the set of pointclouds and respective images and transforms for surface reconstruction (dejan)
