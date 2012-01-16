@@ -2,8 +2,12 @@
 to look at
 
 -what exactly the algorithm outputs
+	- also trajectory output
+	- save node wise/send model, needs investigation
 -what is the data in the bag file - set of poses?
+	- the optimizer - all vertices (nodes) and edges (transforms) between them
 -need the set of pointclouds and respective images and transforms for surface reconstruction (dejan)
+	- All the nodes have their original pointclouds.  Each node has a respective transform from the optimizer
 
 parameters to play with or investigate
 
