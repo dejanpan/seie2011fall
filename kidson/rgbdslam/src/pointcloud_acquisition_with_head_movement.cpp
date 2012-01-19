@@ -45,17 +45,25 @@ class PointCloudCapturer
   //message_filters::Connection sync_connection_;
   sensor_msgs::CameraInfoConstPtr cam_info_;
 public:
-  PointCloudCapturer(ros::NodeHandle &n)
-	:  nh_(n)
+  PointCloudCapturer() //ros::NodeHandle &n
+	//:  nh_(n)
   {
-    nh_.param("input_cloud_topic", input_cloud_topic_, std::string("/camera/rgb/points"));
+    /*nh_.param("input_cloud_topic", input_cloud_topic_, std::string("/camera/rgb/points"));
     nh_.param("input_image_topic", input_image_topic_, std::string("/camera/rgb/image_color"));
     nh_.param("input_camera_info_topic", input_camera_info_topic_, std::string("/camera/rgb/camera_info"));
 
     nh_.param("bag_name", bag_name_, std::string("bosch_kitchen_tr.bag"));
     nh_.param("to_frame", to_frame_, std::string("base_link"));
-    nh_.param("rate", rate_, 1.0);
-    bag_.open(bag_name_, rosbag::bagmode::Write);
+    nh_.param("rate", rate_, 1.0);*/
+
+	  input_cloud_topic_ = "/camera/rgb/points";
+	  input_image_topic_ = "/camera/rgb/image_color";
+	  input_camera_info_topic_ = "/camera/rgb/camera_info";
+	  bag_name_ = "bosch_kitchen_tr.bag";
+	  to_frame_ = "base_link";
+	  rate_ = 1.0;
+
+	  bag_.open(bag_name_, rosbag::bagmode::Write);
   }
 
   ~PointCloudCapturer()
