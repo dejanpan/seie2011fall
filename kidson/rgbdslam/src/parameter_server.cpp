@@ -46,7 +46,7 @@ void ParameterServer::defaultConfig() {
     config["fixed_frame_name"]              = std::string("/map");
     config["ground_truth_frame_name"]       = std::string("");                  //use empty string if no ground truth tf frame available
     config["base_frame_name"]               = std::string("/openni_camera");    //if the camera is articulated use robot base
-    config["bagfile_name"]                  = std::string("");                  //will be processed if given
+    config["bagfile_name"]                  = std::string("/home/ross/ros_workspace/rgbdslam/rgbd_dataset_freiburg2_desk-2hz-with-pointclouds.bag");                  //will be processed if given
     config["batch_processing"]              = static_cast<bool> (false);        //store results and close after bagfile has been processed
     config["fixed_camera"]                  = static_cast<bool> (true);         //is camera fixed relative to base?
     config["feature_detector_type"]         = std::string("SURF");              //SURF, SIFT, FAST, ... see misc.cpp
