@@ -1281,9 +1281,9 @@ void GraphManager::sendAllClouds(){
 
         sensor_msgs::CameraInfoConstPtr cam_info_;
 		std::string bag_name_ = "RecordedGraph.bag";
-        std::string cloud_topic_ = "bagfile/camera/rgb/points";
-        std::string image_topic_ = "bagfile/camera/rgb/image_color";
-        std::string camera_info_topic_ = "bagfile/camera/rgb/camera_info";
+        std::string cloud_topic_ = "/camera/rgb/points";
+        std::string image_topic_ = "/camera/rgb/image_color";
+        std::string camera_info_topic_ = "/camera/rgb/camera_info";
         rosbag::Bag bag_;
         bag_.open(bag_name_, rosbag::bagmode::Write);
 
