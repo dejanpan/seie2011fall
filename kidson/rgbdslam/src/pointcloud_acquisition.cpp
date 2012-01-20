@@ -1,16 +1,8 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
-//boost
-//#include <boost/thread/mutex.hpp>
-
-//for writting to bag
 #include <rosbag/bag.h>
 #include "node.h"
-
 #include "pcl_ros/transforms.h"
-#include <tf/transform_listener.h>
-
-#include "sensor_msgs/CameraInfo.h"
 #include "sensor_msgs/Image.h"
 
 class PointCloudCapturer
@@ -22,14 +14,13 @@ class PointCloudCapturer
   std::string bag_name_;
   tf::TransformListener tf_;
   std::string to_frame_;
-  //ros::Subscriber camera_sub_;
 
   std::string input_cloud_topic_, input_image_topic_, input_camera_info_topic_;
   bool cloud_and_image_received_, move_head_;
 
   sensor_msgs::CameraInfoConstPtr cam_info_;
 public:
-  PointCloudCapturer() //ros::NodeHandle &n
+  PointCloudCapturer()
   {
 	  input_cloud_topic_ = "/camera/rgb/points";
 	  input_image_topic_ = "/camera/rgb/image_color";
@@ -46,7 +37,6 @@ public:
    // delete point_head_client_;
   }
 
-//  void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& pc)
   void saveCloudsToBagfile(Node* node_, tf::Transform nodeTransform){
   	sensor_msgs::CameraInfoConstPtr cam_info_;
   	std::string bag_name_ = "RecordedGraph.bag";
