@@ -73,7 +73,7 @@ public:
   }
 
 //  void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& pc)
-  void callback (const sensor_msgs::PointCloud2ConstPtr& pc, const sensor_msgs::ImageConstPtr& im)
+  void saveCloudToBag (const sensor_msgs::PointCloud2ConstPtr& pc, const sensor_msgs::ImageConstPtr& im)
   {
       //Write cloud
       //transform to target frame

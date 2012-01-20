@@ -40,6 +40,8 @@
 #include "g2o/solvers/cholmod/linear_solver_cholmod.h"
 //#include "g2o/solvers/pcg/linear_solver_pcg.h"
 
+#include "pointcloud_acquisition.cpp"
+
 //typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<6, 3> >  SlamBlockSolver;
 typedef g2o::LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
@@ -1236,6 +1238,8 @@ void GraphManager::sendAllClouds(){
         ROS_WARN("No Subscribers: Sending of clouds cancelled");
         return;
     }
+
+    PointCloudCapturer dataCapturer;
 
     ROS_INFO("Sending out all clouds");
     batch_processing_runs_ = true;
