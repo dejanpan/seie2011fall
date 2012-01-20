@@ -1,29 +1,17 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 //boost
-#include <boost/thread/mutex.hpp>
-
-//for moving of the head
-//#include <actionlib/client/simple_action_client.h>
-//#include <pr2_controllers_msgs/PointHeadAction.h>
+//#include <boost/thread/mutex.hpp>
 
 //for writting to bag
 #include <rosbag/bag.h>
-
-//msg synchronisation
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
-
+#include "node.h"
 
 #include "pcl_ros/transforms.h"
 #include <tf/transform_listener.h>
 
 #include "sensor_msgs/CameraInfo.h"
 #include "sensor_msgs/Image.h"
-// Our Action interface type, provided as a typedef for convenience
-//typedef actionlib::SimpleActionClient<pr2_controllers_msgs::PointHeadAction> PointHeadClient;
-//typedef message_filters::sync_policies::ApproximateTime< sensor_msgs::PointCloud2, sensor_msgs::Image > MySyncPolicy;
 
 class PointCloudCapturer
 {
@@ -39,30 +27,16 @@ class PointCloudCapturer
   std::string input_cloud_topic_, input_image_topic_, input_camera_info_topic_;
   bool cloud_and_image_received_, move_head_;
 
-  //message_filters::Subscriber<sensor_msgs::Image> camera_sub_;
-  //message_filters::Subscriber<sensor_msgs::PointCloud2> cloud_sub_;
-  //message_filters::Synchronizer<MySyncPolicy> synchronizer_;
-  //message_filters::Connection sync_connection_;
   sensor_msgs::CameraInfoConstPtr cam_info_;
 public:
   PointCloudCapturer() //ros::NodeHandle &n
-	//:  nh_(n)
   {
-    /*nh_.param("input_cloud_topic", input_cloud_topic_, std::string("/camera/rgb/points"));
-    nh_.param("input_image_topic", input_image_topic_, std::string("/camera/rgb/image_color"));
-    nh_.param("input_camera_info_topic", input_camera_info_topic_, std::string("/camera/rgb/camera_info"));
-
-    nh_.param("bag_name", bag_name_, std::string("bosch_kitchen_tr.bag"));
-    nh_.param("to_frame", to_frame_, std::string("base_link"));
-    nh_.param("rate", rate_, 1.0);*/
-
 	  input_cloud_topic_ = "/camera/rgb/points";
 	  input_image_topic_ = "/camera/rgb/image_color";
 	  input_camera_info_topic_ = "/camera/rgb/camera_info";
-	  bag_name_ = "bosch_kitchen_tr.bag";
+	  bag_name_ = "RGBD_Output.bag";
 	  to_frame_ = "base_link";
 	  rate_ = 1.0;
-
 	  bag_.open(bag_name_, rosbag::bagmode::Write);
   }
 
@@ -73,52 +47,38 @@ public:
   }
 
 //  void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& pc)
-  void saveCloudToBag (const sensor_msgs::PointCloud2ConstPtr& pc, const sensor_msgs::ImageConstPtr& im)
-  {
-      //Write cloud
-      //transform to target frame
-      bool found_transform = tf_.waitForTransform(pc->header.frame_id, to_frame_,
-                                                  pc->header.stamp, ros::Duration(10.0));
-      tf::StampedTransform transform;
-      if (found_transform)
-      {
-        //ROS_ASSERT_MSG(found_transform, "Could not transform to camera frame");
-        tf_.lookupTransform(to_frame_,pc->header.frame_id, pc->header.stamp, transform);
-        ROS_DEBUG("[TransformPointcloudNode:] Point cloud published in frame %s", pc->header.frame_id.c_str());
-      }
-      else
-      {
-        ROS_ERROR("No transform for pointcloud found!!!");
-        return;
-      }
-      //bag_.write(input_cloud_topic_, pc->header.stamp, *pc);
-      geometry_msgs::TransformStamped transform_msg;
-      tf::transformStampedTFToMsg(transform, transform_msg);
-     //bag_.write(input_cloud_topic_ + "/transform", transform_msg.header.stamp, transform_msg);
-      ROS_INFO("Wrote cloud to %s", bag_name_.c_str());
+  void saveCloudsToBagfile(Node* node_, tf::Transform nodeTransform){
+  	sensor_msgs::CameraInfoConstPtr cam_info_;
+  	std::string bag_name_ = "RecordedGraph.bag";
+  	std::string cloud_topic_ = "/camera/rgb/points";
+  	std::string image_topic_ = "/camera/rgb/image_color";
+  	std::string camera_info_topic_ = "/camera/rgb/camera_info";
+  	ros::Time now = ros::Time::now(); //makes sure things have a corresponding timestamp
 
-      //Write image
-      found_transform = tf_.waitForTransform(im->header.frame_id, to_frame_,
-                                                  im->header.stamp, ros::Duration(10.0));
-      if (found_transform)
-      {
-        //ROS_ASSERT_MSG(found_transform, "Could not transform to camera frame");
-        tf_.lookupTransform(to_frame_,im->header.frame_id, im->header.stamp, transform);
-        ROS_DEBUG("[TransformPointcloudNode:] Point cloud published in frame %s", im->header.frame_id.c_str());
-      }
-      else
-      {
-        ROS_ERROR("No transform for image found!!!");
-        return;
-      }
-      bag_.write(input_image_topic_, im->header.stamp, im);
-      tf::transformStampedTFToMsg(transform, transform_msg);
-      bag_.write(input_image_topic_ + "/transform", transform_msg.header.stamp, transform_msg);
-      ROS_INFO("Wrote image to %s", bag_name_.c_str());
+  	/***********Write data to a bag file ******************/
+  	// todo:move to a function
 
-      cam_info_ = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(input_camera_info_topic_);
-      bag_.write(input_camera_info_topic_, cam_info_->header.stamp, cam_info_);
-      ROS_INFO("Wrote Camera Info to %s", bag_name_.c_str());
-      cloud_and_image_received_ = true;
+  	//Writing cloud to bagfile
+  	sensor_msgs::PointCloud2 cloudMessage;
+  	pcl::toROSMsg(*(node_->pc_col),cloudMessage);
+  	cloudMessage.header.frame_id = "/openni_rgb_optical_frame"; //?????
+  	cloudMessage.header.stamp = now;
+  	bag_.write(cloud_topic_, cloudMessage.header.stamp, cloudMessage);
+  	ROS_INFO("Wrote cloud to %s", bag_name_.c_str());
+
+  	//Writing pointcloud transform to bag file
+  	geometry_msgs::Transform transform_msg;
+  	tf::transformTFToMsg(nodeTransform, transform_msg);
+  	bag_.write(cloud_topic_ + "/transform", cloudMessage.header.stamp, transform_msg);
+
+  	//writing image transform to bag file
+  	//bag_.write(image_topic_ + "/transform", transform_msg.header.stamp, transform_msg);
+  	//bag_.write(image_topic_, im->header.stamp, im);
+  	//ROS_INFO("Wrote image to %s", bag_name_.c_str());
+
+  	//writing camera image to bag file
+  	cam_info_ = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(camera_info_topic_);
+  	bag_.write(camera_info_topic_, cam_info_->header.stamp, cam_info_);
+  	ROS_INFO("Wrote Camera Info to %s", bag_name_.c_str());
   }
 };

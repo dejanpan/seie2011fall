@@ -40,7 +40,7 @@
 #include "g2o/solvers/cholmod/linear_solver_cholmod.h"
 //#include "g2o/solvers/pcg/linear_solver_pcg.h"
 
-#include <rosbag/bag.h>
+#include "pointcloud_acquisition.cpp"
 
 //typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<6, 3> >  SlamBlockSolver;
@@ -1240,6 +1240,8 @@ void GraphManager::sendAllClouds(){
         return;
     }*/
 
+    PointCloudCapturer dataCapturer;
+
     ROS_INFO("Sending out all clouds");
     batch_processing_runs_ = true;
     ros::Rate r(5); //slow down a bit, to allow for transmitting to and processing in other nodes
@@ -1276,39 +1278,7 @@ void GraphManager::sendAllClouds(){
         QString message;
         Q_EMIT setGUIInfo(message.sprintf("Sending pointcloud and map transform (%i/%i) on topics %s and /tf", (int)i+1, (int)optimizer_->vertices().size(), ParameterServer::instance()->get<std::string>("individual_cloud_out_topic").c_str()) );
 
-        /***********Write data to a bag file ******************/
-        // todo:move to a function
-
-        sensor_msgs::CameraInfoConstPtr cam_info_;
-		std::string bag_name_ = "RecordedGraph.bag";
-        std::string cloud_topic_ = "/camera/rgb/points";
-        std::string image_topic_ = "/camera/rgb/image_color";
-        std::string camera_info_topic_ = "/camera/rgb/camera_info";
-        rosbag::Bag bag_;
-        bag_.open(bag_name_, rosbag::bagmode::Write);
-
-        //Writing cloud to bagfile
-        sensor_msgs::PointCloud2 cloudMessage;
-        pcl::toROSMsg(*(graph_[i]->pc_col),cloudMessage);
-        cloudMessage.header.frame_id = "/openni_rgb_optical_frame"; //?????
-        cloudMessage.header.stamp = now;
-        bag_.write(cloud_topic_, cloudMessage.header.stamp, cloudMessage);
-        ROS_INFO("Wrote cloud to %s", bag_name_.c_str());
-
-        //Writing pointcloud transform to bag file
-        geometry_msgs::Transform transform_msg;
-        tf::transformTFToMsg(world2base, transform_msg);
-        bag_.write(cloud_topic_ + "/transform", cloudMessage.header.stamp, transform_msg);
-
-        //writing image transform to bag file
-        //bag_.write(image_topic_ + "/transform", transform_msg.header.stamp, transform_msg);
-        //bag_.write(image_topic_, im->header.stamp, im);
-        //ROS_INFO("Wrote image to %s", bag_name_.c_str());
-
-        //writing camera image to bag file
-        cam_info_ = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(camera_info_topic_);
-        bag_.write(camera_info_topic_, cam_info_->header.stamp, cam_info_);
-        ROS_INFO("Wrote Camera Info to %s", bag_name_.c_str());
+        dataCapturer.saveCloudsToBagfile(graph_[i], world2base);
 
         r.sleep();
     }
