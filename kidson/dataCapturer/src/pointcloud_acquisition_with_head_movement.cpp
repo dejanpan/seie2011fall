@@ -161,26 +161,26 @@ public:
   {
     //the goal message we will be sending
     pr2_controllers_msgs::PointHeadGoal goal;
-    
+
     //the target point, expressed in the requested frame
     geometry_msgs::PointStamped point;
     point.header.frame_id = frame_id;
     point.point.x = x; point.point.y = y; point.point.z = z;
     goal.target = point;
-    
-    //we are pointing the wide_stereo camera frame 
+
+    //we are pointing the wide_stereo camera frame
     //(pointing_axis defaults to X-axis)
     goal.pointing_frame = "narrow_stereo_optical_frame";
-    
+
     //take at least 2 seconds to get there
     goal.min_duration = ros::Duration(1);
-    
+
     //and go no faster than 0.1 rad/s
     goal.max_velocity = 0.5;
-    
+
     //send the goal
     point_head_client_->sendGoal(goal);
-    
+
     //wait for it to get there
     bool finished_within_time = point_head_client_->waitForResult(ros::Duration(20.0));
     if (!finished_within_time)
@@ -208,17 +208,17 @@ public:
           // swing left to right and right to left by increasing y step
           if ( (((move_offset_y_min_ < current_position_y_) && (current_position_y_ < move_offset_y_max_))
                 || (fabs(current_position_y_ - move_offset_y_min_) < EPS) || (fabs(current_position_y_ - move_offset_y_max_) < EPS))
-               && 
-               ((current_position_z_ < move_offset_z_max_) 
+               &&
+               ((current_position_z_ < move_offset_z_max_)
                 || (fabs(current_position_z_ - move_offset_z_min_) < EPS) || (fabs(current_position_z_ - move_offset_z_max_) < EPS)) )
           {
             current_position_y_ += step_y_;
             ROS_INFO("in left to right");
           }
-     
+
           // increase z step
-          else if ( ((current_position_y_ < move_offset_y_min_) || (current_position_y_ > move_offset_y_max_)) 
-                    && 
+          else if ( ((current_position_y_ < move_offset_y_min_) || (current_position_y_ > move_offset_y_max_))
+                    &&
                     (current_position_z_ < move_offset_z_max_) )
           {
             current_position_z_ += step_z_;
@@ -228,8 +228,8 @@ public:
           }
 
           // check if we are done
-          else if ( ((current_position_y_ < move_offset_y_min_) || (current_position_y_ > move_offset_y_max_)) 
-                    && 
+          else if ( ((current_position_y_ < move_offset_y_min_) || (current_position_y_ > move_offset_y_max_))
+                    &&
                     ((current_position_z_ > move_offset_z_max_) || (fabs(current_position_z_ - move_offset_z_max_) < EPS)) )
           {
             ROS_INFO("DONE - exiting");
@@ -240,7 +240,7 @@ public:
             ROS_INFO("Not an option");
           }
           //move_head("base_link", current_position_x_, current_position_y_, current_position_z_);
-          cloud_and_image_received_ = false; 
+          cloud_and_image_received_ = false;
         }
         ros::spinOnce();
         loop_rate.sleep();
