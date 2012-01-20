@@ -1296,7 +1296,7 @@ void GraphManager::sendAllClouds(){
         ROS_INFO("Wrote cloud to %s", bag_name_.c_str());
 
         //Writing pointcloud transform to bag file
-        geometry_msgs::Transform transform_msg; //TransformStamped
+        geometry_msgs::Transform transform_msg;
         tf::transformTFToMsg(world2base, transform_msg);
         bag_.write(cloud_topic_ + "/transform", cloudMessage.header.stamp, transform_msg);
 

@@ -121,12 +121,14 @@ Node::Node(const cv::Mat& visual,
 
 
 Node::Node(const cv::Mat visual,
+		   const cv::Mat visualColour,
            cv::Ptr<cv::FeatureDetector> detector,
            cv::Ptr<cv::DescriptorExtractor> extractor,
            pointcloud_type::Ptr point_cloud,
            const cv::Mat detection_mask)
 : id_(0),
   pc_col(point_cloud),
+  cameraImageColour(visualColour),
   flannIndex(NULL),
   base2points_(tf::Transform::getIdentity(), point_cloud->header.stamp,ParameterServer::instance()->get<std::string>("base_frame_name"), point_cloud->header.frame_id),
   ground_truth_transform_(tf::Transform::getIdentity(), point_cloud->header.stamp, ParameterServer::instance()->get<std::string>("ground_truth_frame_name"), ParameterServer::instance()->get<std::string>("base_frame_name")),

@@ -70,6 +70,7 @@ public:
 	///detection_mask must be CV_8UC1 with non-zero 
 	///at potential keypoint locations
 	Node(const cv::Mat visual,
+			const cv::Mat visualColour,
 			 cv::Ptr<cv::FeatureDetector> detector,
 			 cv::Ptr<cv::DescriptorExtractor> extractor,
 			 pointcloud_type::Ptr point_cloud,
@@ -144,6 +145,8 @@ public:
 	///pointcloud_type centrally defines what the pc is templated on
 	unsigned int id_; ///must correspond to the g2o vertex id
   pointcloud_type::Ptr pc_col;
+
+  const cv::Mat cameraImageColour;
   ///descriptor definitions
 	cv::Mat feature_descriptors_;         
 

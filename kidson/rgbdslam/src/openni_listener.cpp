@@ -444,7 +444,7 @@ void OpenNIListener::cameraCallback(cv::Mat visual_img,
 
   //######### Main Work: create new node ##############################################################
   Q_EMIT setGUIStatus("Computing Keypoints and Features");
-  Node* node_ptr = new Node(gray_img, detector_, extractor_, point_cloud, depth_mono8_img);
+  Node* node_ptr = new Node(gray_img, visual_img, detector_, extractor_, point_cloud, depth_mono8_img);
 
   retrieveTransformations(point_cloud->header, node_ptr);
   callProcessing(visual_img, node_ptr);
