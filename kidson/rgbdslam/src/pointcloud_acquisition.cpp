@@ -91,10 +91,10 @@ public:
         ROS_ERROR("No transform for pointcloud found!!!");
         return;
       }
-      bag_.write(input_cloud_topic_, pc->header.stamp, *pc);
+      //bag_.write(input_cloud_topic_, pc->header.stamp, *pc);
       geometry_msgs::TransformStamped transform_msg;
       tf::transformStampedTFToMsg(transform, transform_msg);
-      bag_.write(input_cloud_topic_ + "/transform", transform_msg.header.stamp, transform_msg);
+     //bag_.write(input_cloud_topic_ + "/transform", transform_msg.header.stamp, transform_msg);
       ROS_INFO("Wrote cloud to %s", bag_name_.c_str());
 
       //Write image
