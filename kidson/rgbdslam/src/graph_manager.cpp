@@ -1234,10 +1234,11 @@ void GraphManager::saveTrajectory(QString filebasename){
 
 void GraphManager::sendAllClouds(){
     struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);
+    /*
     if (batch_cloud_pub_.getNumSubscribers() == 0){
         ROS_WARN("No Subscribers: Sending of clouds cancelled");
         return;
-    }
+    }*/
 
     ROS_INFO("Sending out all clouds");
     batch_processing_runs_ = true;
@@ -1279,10 +1280,10 @@ void GraphManager::sendAllClouds(){
         // todo:move to a function
 
         sensor_msgs::CameraInfoConstPtr cam_info_;
-		std::string bag_name_ = "RecordedGraph";
-        std::string cloud_topic_ = "/camera/rgb/points";
-        std::string image_topic_ = "/camera/rgb/image_color";
-        std::string camera_info_topic_ = "/camera/rgb/camera_info";
+		std::string bag_name_ = "RecordedGraph.bag";
+        std::string cloud_topic_ = "bagfile/camera/rgb/points";
+        std::string image_topic_ = "bagfile/camera/rgb/image_color";
+        std::string camera_info_topic_ = "bagfile/camera/rgb/camera_info";
         rosbag::Bag bag_;
         bag_.open(bag_name_, rosbag::bagmode::Write);
 
