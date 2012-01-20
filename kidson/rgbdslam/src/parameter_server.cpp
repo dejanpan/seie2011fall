@@ -35,18 +35,18 @@ ParameterServer* ParameterServer::instance() {
     return _instance;
 }
 void ParameterServer::defaultConfig() {
-    config["topic_image_mono"]              = std::string("/camera/rgb/image_color");
-    config["topic_image_depth"]             = std::string("/camera/depth/image");
-    config["topic_points"]                  = std::string("/camera/rgb/points"); //If omitted, xyz will be computed from depth image. 
+    config["topic_image_mono"]              = std::string("/camera/rgb/image_color");	//record
+    config["topic_image_depth"]             = std::string("/camera/depth/image");		//record
+    config["topic_points"]                  = std::string("/camera/rgb/points"); 		//record
     config["wide_topic"]                    = std::string("/wide_stereo/left/image_mono");
     config["wide_cloud_topic"]              = std::string("/wide_stereo/points2");
-    config["camera_info_topic"]             = std::string("/camera/rgb/camera_info");
+    config["camera_info_topic"]             = std::string("/camera/rgb/camera_info");	//record
     config["individual_cloud_out_topic"]    = std::string("/rgbdslam/batch_clouds");
     config["aggregate_cloud_out_topic"]     = std::string("/rgbdslam/aggregate_clouds");
     config["fixed_frame_name"]              = std::string("/map");
     config["ground_truth_frame_name"]       = std::string("");                  //use empty string if no ground truth tf frame available
     config["base_frame_name"]               = std::string("/openni_camera");    //if the camera is articulated use robot base
-    config["bagfile_name"]                  = std::string("");                  //will be processed if given
+    config["bagfile_name"]                  = std::string("/home/ross/ros_workspace/bagfiles/2012-01-20-18-03-36.bag");                  //will be processed if given
     config["batch_processing"]              = static_cast<bool> (false);        //store results and close after bagfile has been processed
     config["fixed_camera"]                  = static_cast<bool> (true);         //is camera fixed relative to base?
     config["feature_detector_type"]         = std::string("SURF");              //SURF, SIFT, FAST, ... see misc.cpp

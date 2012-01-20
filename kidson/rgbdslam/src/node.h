@@ -146,7 +146,7 @@ public:
 	unsigned int id_; ///must correspond to the g2o vertex id
   pointcloud_type::Ptr pc_col;
 
-  const cv::Mat cameraImageColour;
+  cv::Mat cameraImageColour;
   ///descriptor definitions
 	cv::Mat feature_descriptors_;         
 

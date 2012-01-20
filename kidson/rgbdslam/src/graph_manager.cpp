@@ -128,7 +128,7 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
     const double pi_fourth = 3.14159265358979323846 / 4.0;
     const int line_thickness = 1;
     const int circle_radius = 6;
-    const int CV_AA = 16;
+    const int CVV_AA = 16;  //was called CV_AA
     if(graph_.size() == 0) {
       ROS_WARN("Feature Flow for empty graph requested. Bug?");
       return;
@@ -168,18 +168,18 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
 
         double angle;    angle = atan2( (double) p.y - q.y, (double) p.x - q.x );
         double hypotenuse = cv::norm(p-q);
-            cv::line(canvas, p, q, line_color, line_thickness, CV_AA);
+            cv::line(canvas, p, q, line_color, line_thickness, CVV_AA);
         if(hypotenuse > 1.5){  //only larger motions larger than one pix get an arrow tip
-            cv::line( canvas, p, q, line_color, line_thickness, CV_AA );
+            cv::line( canvas, p, q, line_color, line_thickness, CVV_AA );
             /* Now draw the tips of the arrow.  */
             p.x =  (q.x + 4 * cos(angle + pi_fourth));
             p.y =  (q.y + 4 * sin(angle + pi_fourth));
-            cv::line( canvas, p, q, line_color, line_thickness, CV_AA );
+            cv::line( canvas, p, q, line_color, line_thickness, CVV_AA );
             p.x =  (q.x + 4 * cos(angle - pi_fourth));
             p.y =  (q.y + 4 * sin(angle - pi_fourth));
-            cv::line( canvas, p, q, line_color, line_thickness, CV_AA );
+            cv::line( canvas, p, q, line_color, line_thickness, CVV_AA );
         } else { //draw a smaller circle into the bigger one 
-            cv::circle(canvas, p, circle_radius-2, circle_color, line_thickness, CV_AA);
+            cv::circle(canvas, p, circle_radius-2, circle_color, line_thickness, CVV_AA);
         }
     }
     clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
