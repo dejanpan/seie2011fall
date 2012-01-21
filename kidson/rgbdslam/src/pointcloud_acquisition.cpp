@@ -18,6 +18,7 @@ class PointCloudCapturer
 
   std::string cloud_topic_, image_topic_, camera_info_topic_;
   bool cloud_and_image_received_, move_head_;
+  sensor_msgs::CvBridge bridge;
 
   sensor_msgs::CameraInfoConstPtr cam_info_;
 public:
@@ -61,10 +62,14 @@ public:
   	//writing image transform to bag file
     //Get images into message format
 
-    sensor_msgs::CvBridge bridge;
-    IplImage iplimg = node_->cameraImageColour;
-    sensor_msgs::ImageConstPtr im =  bridge.cvToImgMsg(&iplimg, "mono8");
-  	bag_.write(image_topic_, im->header.stamp, im);
+  	//sensor_msgs::ImageConstPtr im = Mat2Image(node_->cameraImageColour);
+  	cv::Mat aMat = node_->cameraImageColour;
+  	ROS_INFO("made aMat");
+    IplImage iplimg = aMat;
+    ROS_INFO("converted aMat to ipl");
+    sensor_msgs::ImageConstPtr im =  bridge.cvToImgMsg(&iplimg, "passthrough");
+    ROS_INFO("converted mat to rosmsg");
+  	bag_.write(image_topic_, cloudMessage.header.stamp, im);
   	ROS_INFO("Wrote image to %s", bag_name_.c_str());
   	bag_.write(image_topic_ + "/transform", cloudMessage.header.stamp, transform_msg);
 
