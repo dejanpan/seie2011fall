@@ -69,6 +69,7 @@ public:
     ROS_INFO("converted aMat to ipl");
     sensor_msgs::ImageConstPtr im =  bridge.cvToImgMsg(&iplimg, "passthrough");
     ROS_INFO("converted mat to rosmsg");
+    //im->header.frame_id = "/openni_rgb_optical_frame"; //?????
   	bag_.write(image_topic_, cloudMessage.header.stamp, im);
   	ROS_INFO("Wrote image to %s", bag_name_.c_str());
   	bag_.write(image_topic_ + "/transform", cloudMessage.header.stamp, transform_msg);
