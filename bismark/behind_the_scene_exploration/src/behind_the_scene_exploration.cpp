@@ -102,8 +102,8 @@ int main(int argc, char** argv){
 //    	sor.filter (*output_pc_filtered);
 
     	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-    	icp.setInputCloud(boost::make_shared< pcl::PointCloud < pcl::PointXYZRGB> > (pcl_concat_pc));
-    	icp.setInputTarget(boost::make_shared<pcl::PointCloud < pcl::PointXYZRGB> > (pcl_transformed_pc));
+    	icp.setInputCloud(boost::make_shared< pcl::PointCloud < pcl::PointXYZRGB> > (*pcl_concat_pc));
+    	icp.setInputTarget(boost::make_shared<pcl::PointCloud < pcl::PointXYZRGB> > (*pcl_transformed_pc));
     	pcl::PointCloud<pcl::PointXYZRGB> Final;
     	icp.align(Final);
 
