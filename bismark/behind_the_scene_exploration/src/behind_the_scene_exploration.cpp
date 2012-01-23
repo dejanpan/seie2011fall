@@ -101,11 +101,11 @@ int main(int argc, char** argv){
 //    	sor.setLeafSize (0.01f, 0.01f, 0.01);
 //    	sor.filter (*output_pc_filtered);
 
-//    	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-//    	icp.setInputCloud(*pcl_concat_pc);  // boost shared pointer ??!?
-//    	icp.setInputTarget(*pcl_transformed_pc); // boost shared pointer ??!?
-//    	pcl::PointCloud<pcl::PointXYZRGB> Final;
-//    	icp.align(Final);
+    	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+    	icp.setInputCloud(boost::make_shared< pcl::PointCloud < pcl::PointXYZRGB> > (*pcl_concat_pc));
+    	icp.setInputTarget(boost::make_shared<pcl::PointCloud < pcl::PointXYZRGB> > (*pcl_transformed_pc));
+    	pcl::PointCloud<pcl::PointXYZRGB> Final;
+    	icp.align(Final);
 
 //++++++++++++++++++END processing Pointcloud++++++++++++++++++++++++++++++++++++++++
 
