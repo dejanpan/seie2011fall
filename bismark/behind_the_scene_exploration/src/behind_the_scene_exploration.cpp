@@ -63,8 +63,8 @@ int main(int argc, char** argv){
 //++++++++++++++++++Pointcloud processing++++++++++++++++++++++++++++++++++++++++
 
     	//get input pointcloud from rosbag
-    	// input_pc = ros::topic::waitForMessage<sensor_msgs::PointCloud2>("eye_in_hand/depth_registered/points");
-    	input_pc = ros::topic::waitForMessage<sensor_msgs::PointCloud2>("eye_in_hand/depth_registered/points_throttle");
+    	input_pc = ros::topic::waitForMessage<sensor_msgs::PointCloud2>("eye_in_hand/depth_registered/points");
+    	//input_pc = ros::topic::waitForMessage<sensor_msgs::PointCloud2>("eye_in_hand/depth_registered/points_throttle");
 
     	//converting input pointcloud into pcl XYZRGB
     	pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_input_pc (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -72,8 +72,8 @@ int main(int argc, char** argv){
 
 
     	//transformation of Pointcloud
-		//bool found_transform = tf_.waitForTransform("eye_in_hand_rgb_optical_frame", "base_link", ros::Time::now(), ros::Duration(10.0));
-    	bool found_transform = tf_.waitForTransform( "base_link", "eye_in_hand_rgb_optical_frame", ros::Time::now()-ros::Duration(1), ros::Duration(10.0));
+		bool found_transform = tf_.waitForTransform("base_link","eye_in_hand_rgb_optical_frame", ros::Time::now(), ros::Duration(10.0));
+    	//bool found_transform = tf_.waitForTransform( "base_link", "eye_in_hand_rgb_optical_frame", ros::Time::now()-ros::Duration(5), ros::Duration(10.0));
 
 
     	if (found_transform)
