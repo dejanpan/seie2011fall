@@ -90,6 +90,8 @@ int main(int argc, char** argv){
     		continue;
     	}
 
+
+
     	if(first_concat){
     		pcl_concat_pc->header = pcl_transformed_pc->header;
     		*pcl_concat_pc = *pcl_transformed_pc;
@@ -154,8 +156,10 @@ int main(int argc, char** argv){
     }
 
     //Save observed scene to pcd file
-    pcl::PCDWriter writer;
-    writer.write ("eye_in_hand_scene_downsampled.pcd", *output_pc_filtered, false);
+    pcl::PCDWriter writer_down;
+    writer_down.write ("eye_in_hand_scene_downsampled.pcd", *output_pc_filtered, true);
+    pcl::PCDWriter writer_ori;
+    writer_ori.write ("eye_in_hand_scene_original.pcd", *pcl_concat_pc, true);
 
     //Save observed scene without filtering
     //writer.write ("eye_in_hand_scene_downsampled.pcd", *pcl_concat_pc);
