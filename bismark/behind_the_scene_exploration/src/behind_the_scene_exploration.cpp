@@ -90,8 +90,6 @@ int main(int argc, char** argv){
     		continue;
     	}
 
-
-
     	if(first_concat){
     		pcl_concat_pc->header = pcl_transformed_pc->header;
     		*pcl_concat_pc = *pcl_transformed_pc;
@@ -99,22 +97,22 @@ int main(int argc, char** argv){
 
     	else{
 
-//    		//icp alignment of the transformed cloud
-//    		//pcl::IterativeClosestPointNonLinear<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-//        	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-//			icp.setInputCloud(pcl_transformed_pc);
-//        	icp.setInputTarget(pcl_concat_pc);
-//        	icp.setMaximumIterations (100);
-//        	//icp.setTransformationEpsilon(1e-8);
-//        	pcl::PointCloud<pcl::PointXYZRGB> pcl_transformed_aligned_pc;
-//
-//        	//register
-//        	icp.align(pcl_transformed_aligned_pc);
-//        	cerr << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() <<endl;
+    		//icp alignment of the transformed cloud
+    		//pcl::IterativeClosestPointNonLinear<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+        	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+			icp.setInputCloud(pcl_transformed_pc);
+        	icp.setInputTarget(pcl_concat_pc);
+        	icp.setMaximumIterations (100);
+        	//icp.setTransformationEpsilon(1e-8);
+        	pcl::PointCloud<pcl::PointXYZRGB> pcl_transformed_aligned_pc;
+
+        	//register
+        	icp.align(pcl_transformed_aligned_pc);
+        	cerr << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() <<endl;
 
         	//concatenation of clouds
-        	//*pcl_concat_pc += pcl_transformed_aligned_pc; 		//with icp
-        	*pcl_concat_pc += *pcl_transformed_pc;			//without icp alignment
+        	*pcl_concat_pc += pcl_transformed_aligned_pc; 		//with icp
+        	//*pcl_concat_pc += *pcl_transformed_pc;			//without icp alignment
     	}
 
     	cerr<<"concat frame id: "<<pcl_concat_pc->header.frame_id<<endl;
