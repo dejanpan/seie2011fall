@@ -16,100 +16,59 @@
 
 package org.ros.android.tutorial.image_transport;
 
-import android.app.Activity;
-import android.content.Intent;
-import android.os.Bundle;
 import org.ros.address.InetAddressFactory;
 import org.ros.android.BitmapFromCompressedImage;
-import org.ros.android.MasterChooser;
+import org.ros.android.RosActivity;
 import org.ros.android.views.RosImageView;
 import org.ros.message.sensor_msgs.CompressedImage;
-import org.ros.node.DefaultNodeRunner;
 import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeRunner;
-import org.ros.tutorials.image_transport.R;
+import org.ros.node.NodeMainExecutor;
 
-import com.google.common.collect.Lists;
-
-import java.net.URI;
-import java.net.URISyntaxException;
+import android.os.Bundle;
 
 /**
  * @author ethan.rublee@gmail.com (Ethan Rublee)
  * @author damonkohler@google.com (Damon Kohler)
  */
-public class MainActivity extends Activity {
+public class MainActivity extends RosActivity {
 
-  private final NodeRunner nodeRunner;
-  private NodeConfiguration nodeConfiguration;
-  private URI masterUri;
   private RosImageView<CompressedImage> image;
-
+  private Talker talker; 
   public MainActivity() {
-    nodeRunner = DefaultNodeRunner.newDefault();
+    super("ImageTransportTutorial", "ImageTransportTutorial");
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    setContentView(R.layout.main);
-    RosImageView<CompressedImage> image = (RosImageView<CompressedImage>) findViewById(R.id.image);
-    image.setTopicName("/camera/image_raw/compressed");
-    image.setMessageType("sensor_msgs/CompressedImage");
-    image.setMessageToBitmapCallable(new BitmapFromCompressedImage());
-    try {
-      // TODO(damonkohler): The master needs to be set via some sort of
-      // NodeConfiguration builder.
-    	nodeConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostAddress());
-	    java.net.URI master_uri = new java.net.URI("http://192.168.1.8:11311");
-	    nodeConfiguration.setMasterUri(master_uri);
-    	//nodeConfiguration =Lists.newArrayList("Compressed", "__ip:=192.168.1.14", "__master:=http://192.168.1.8:11311/");
-      nodeRunner.run(image,nodeConfiguration);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-  /*
-  @SuppressWarnings("unchecked")
-  @Override
-  public void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    setContentView(R.layout.main);
-    image = (RosImageView<CompressedImage>) findViewById(R.id.image);
+    setContentView(org.ros.android.R.layout.main);
+    image = (RosImageView<CompressedImage>) findViewById(org.ros.android.R.id.image);
     image.setTopicName("/usb_cam/image_raw/compressed");
     image.setMessageType("sensor_msgs/CompressedImage");
     image.setMessageToBitmapCallable(new BitmapFromCompressedImage());
-    startActivityForResult(new Intent(this, MasterChooser.class), 0);
   }
-*/
+
+  /*@Override
+  protected void init(NodeMainExecutor nodeMainExecutor) {
+    NodeConfiguration nodeConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostAddress().toString(), getMasterUri());
+    nodeMainExecutor.executeNodeMain(image, nodeConfiguration.setNodeName("android/video_view"));
+  }*/
+
   @Override
-  protected void onResume() {
-    super.onResume();
-    if (masterUri != null) {
-      NodeConfiguration nodeConfiguration =
-          NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostName(), masterUri);
-      nodeRunner.run(image, nodeConfiguration);
-    }
+  protected void init(NodeRunner nodeRunner) {
+    // TODO Auto-generated method stub
+    NodeConfiguration nodeConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostAddress());
+    java.net.URI master_uri = getMasterUri();
+    nodeConfiguration.setMasterUri(master_uri);
+    talker = new Talker();
+    nodeRunner.run(talker, nodeConfiguration.setDefaultNodeName("pubsub_android"));
+    nodeRunner.run(rosTextView, nodeConfiguration);
   }
 
   @Override
-  protected void onPause() {
-    super.onPause();
-    if (masterUri != null) {
-      nodeRunner.shutdownNodeMain(image);
-    }
+  protected void init(NodeMainExecutor nodeMainExecutor) {
+    // TODO Auto-generated method stub
+    
   }
-
-  @Override
-  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    if (requestCode == 0 && resultCode == RESULT_OK) {
-      try {
-        masterUri = new URI(data.getStringExtra("ROS_MASTER_URI"));
-      } catch (URISyntaxException e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
 }
