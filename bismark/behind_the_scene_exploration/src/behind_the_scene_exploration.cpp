@@ -84,6 +84,7 @@ int main(int argc, char** argv){
     		//tf_.lookupTransform("eye_in_hand_rgb_optical_frame","base_link", ros::Time::now()-ros::Duration(5), transform);
     		pcl_ros::transformPointCloud("base_link", *pcl_input_pc, *pcl_transformed_pc, tf_);
     		cerr<<"TRANSFORMATION SUCCESS"<<endl;
+
     	}
 
     	else{
@@ -97,23 +98,27 @@ int main(int argc, char** argv){
 
     	else{
 
-    		//icp alignment of the transformed cloud
-    		//pcl::IterativeClosestPointNonLinear<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-        	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-			icp.setInputCloud(pcl_transformed_pc);
-        	icp.setInputTarget(pcl_concat_pc);
-        	icp.setMaximumIterations (100);
-        	//icp.setTransformationEpsilon(1e-8);
-        	pcl::PointCloud<pcl::PointXYZRGB> pcl_transformed_aligned_pc;
-
-        	//register
-        	icp.align(pcl_transformed_aligned_pc);
-        	cerr << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() <<endl;
+//    		//icp alignment of the transformed cloud
+//    		//pcl::IterativeClosestPointNonLinear<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+//        	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+//			icp.setInputCloud(pcl_concat_pc);
+//        	icp.setInputTarget(pcl_transformed_pc);
+//        	icp.setMaximumIterations (100);
+//        	//icp.setTransformationEpsilon(1e-8);
+//        	pcl::PointCloud<pcl::PointXYZRGB> pcl_transformed_aligned_pc;
+//
+//        	//register
+//        	icp.align(pcl_transformed_aligned_pc);
+//        	cerr << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() <<endl;
 
         	//concatenation of clouds
-        	*pcl_concat_pc += pcl_transformed_aligned_pc; 		//with icp
-        	//*pcl_concat_pc += *pcl_transformed_pc;			//without icp alignment
+        	//*pcl_concat_pc += pcl_transformed_aligned_pc; 		//with icp
+        	*pcl_concat_pc += *pcl_transformed_pc;			//without icp alignment
     	}
+    	std::stringstream ss;
+    	ss<<i;
+	    pcl::PCDWriter writer_single;
+	    writer_single.write (ss.str()+"_degree.pcd",*pcl_transformed_pc, true);
 
     	cerr<<"concat frame id: "<<pcl_concat_pc->header.frame_id<<endl;
     	cerr<<"transformed frame id: "<<pcl_transformed_pc->header.frame_id<<endl;
