@@ -6,7 +6,7 @@ index 948de6f..04012d2 100644
  #target_link_libraries(example ${PROJECT_NAME})
  
  #rosbuild_add_executable(uvc_stereo src/uvc_stereo.cpp src/uvc_cam.cpp)
-+include_directories(/usr/include/glib-2.0 /usr/lib/x86_64-linux-gnu/glib-2.0/include)
++include_directories(/usr/include/glib-2.0 /usr/lib/x86_64-linux-gnu/glib-2.0/include /usr/lib/glib-2.0/include)
  rosbuild_add_library(nodelet_uvc_camera src/nodelets.cpp src/camera.cpp src/stereo.cpp src/uvc_cam.cpp)
  
 -rosbuild_add_executable(camera_node src/camera_node.cpp src/camera.cpp src/uvc_cam.cpp)
