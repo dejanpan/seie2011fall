@@ -37,11 +37,11 @@ int main(int argc, char** argv){
 
 
     sensor_msgs::PointCloud2::ConstPtr input_pc;
-    //sensor_msgs::PointCloud2::Ptr output_pc_filtered (new sensor_msgs::PointCloud2 ());
+    //sensor_msgs::PointCloud2::Ptr voxel_cloud (new sensor_msgs::PointCloud2 ());
     //sensor_msgs::PointCloud2::Ptr concat_pc (new sensor_msgs::PointCloud2 ());
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_concat_pc (new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_transformed_pc (new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_pc_filtered  (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr concat_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr voxel_cloud  (new pcl::PointCloud<pcl::PointXYZRGB>);
 //+++++++++++++inital pose++++++++++++++++++++++++++++++++
 
 
@@ -67,8 +67,8 @@ int main(int argc, char** argv){
     	//input_pc = ros::topic::waitForMessage<sensor_msgs::PointCloud2>("eye_in_hand/depth_registered/points_throttle");
 
     	//converting input pointcloud into pcl XYZRGB
-    	pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_input_pc (new pcl::PointCloud<pcl::PointXYZRGB>);
-    	pcl::fromROSMsg(*input_pc, *pcl_input_pc);
+    	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+    	pcl::fromROSMsg(*input_pc, *cloud);
 
 
     	//transformation of Pointcloud
@@ -82,7 +82,7 @@ int main(int argc, char** argv){
 
     		tf::StampedTransform transform;
     		//tf_.lookupTransform("eye_in_hand_rgb_optical_frame","base_link", ros::Time::now()-ros::Duration(5), transform);
-    		pcl_ros::transformPointCloud("base_link", *pcl_input_pc, *pcl_transformed_pc, tf_);
+    		pcl_ros::transformPointCloud("base_link", *cloud, *transformed_cloud, tf_);
     		cerr<<"TRANSFORMATION SUCCESS"<<endl;
 
     	}
@@ -92,8 +92,8 @@ int main(int argc, char** argv){
     	}
 
     	if(first_concat){
-    		pcl_concat_pc->header = pcl_transformed_pc->header;
-    		*pcl_concat_pc = *pcl_transformed_pc;
+    		concat_cloud->header = transformed_cloud->header;
+    		*concat_cloud = *transformed_cloud;
     	}
 
     	else{
@@ -101,35 +101,35 @@ int main(int argc, char** argv){
 //    		//icp alignment of the transformed cloud
 //    		//pcl::IterativeClosestPointNonLinear<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
 //        	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-//			icp.setInputCloud(pcl_concat_pc);
-//        	icp.setInputTarget(pcl_transformed_pc);
+//			icp.setInputCloud(concat_cloud);
+//        	icp.setInputTarget(transformed_cloud);
 //        	icp.setMaximumIterations (100);
 //        	//icp.setTransformationEpsilon(1e-8);
-//        	pcl::PointCloud<pcl::PointXYZRGB> pcl_transformed_aligned_pc;
+//        	pcl::PointCloud<pcl::PointXYZRGB> icp_cloud;
 //
 //        	//register
-//        	icp.align(pcl_transformed_aligned_pc);
+//        	icp.align(icp_cloud);
 //        	cerr << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() <<endl;
 
         	//concatenation of clouds
-        	//*pcl_concat_pc += pcl_transformed_aligned_pc; 		//with icp
-        	*pcl_concat_pc += *pcl_transformed_pc;			//without icp alignment
+        	//*concat_cloud += icp_cloud; 		//with icp
+        	*concat_cloud += *transformed_cloud;			//without icp alignment
     	}
     	std::stringstream ss;
     	ss<<i;
 	    pcl::PCDWriter writer_single;
-	    writer_single.write (ss.str()+"_degree.pcd",*pcl_transformed_pc, true);
+	    writer_single.write (ss.str()+"_degree.pcd",*transformed_cloud, true);
 
-    	cerr<<"concat frame id: "<<pcl_concat_pc->header.frame_id<<endl;
-    	cerr<<"transformed frame id: "<<pcl_transformed_pc->header.frame_id<<endl;
+    	cerr<<"concat frame id: "<<concat_cloud->header.frame_id<<endl;
+    	cerr<<"transformed frame id: "<<transformed_cloud->header.frame_id<<endl;
     	first_concat=false;
 
 
     	//Filtering of Pointcloud
     	pcl::VoxelGrid<pcl::PointXYZRGB> filter;
-    	filter.setInputCloud (pcl_concat_pc);
+    	filter.setInputCloud (concat_cloud);
     	filter.setLeafSize (0.01f, 0.01f, 0.01);
-    	filter.filter (*output_pc_filtered);
+    	filter.filter (*voxel_cloud);
 
 
 //++++++++++++++++++END processing Pointcloud++++++++++++++++++++++++++++++++++++++++
@@ -160,12 +160,12 @@ int main(int argc, char** argv){
 
     //Save observed scene to pcd file
     pcl::PCDWriter writer_down;
-    writer_down.write ("eye_in_hand_scene_downsampled.pcd", *output_pc_filtered, true);
+    writer_down.write ("eye_in_hand_scene_downsampled.pcd", *voxel_cloud, true);
     pcl::PCDWriter writer_ori;
-    writer_ori.write ("eye_in_hand_scene_original.pcd", *pcl_concat_pc, true);
+    writer_ori.write ("eye_in_hand_scene_original.pcd", *concat_cloud, true);
 
     //Save observed scene without filtering
-    //writer.write ("eye_in_hand_scene_downsampled.pcd", *pcl_concat_pc);
+    //writer.write ("eye_in_hand_scene_downsampled.pcd", *concat_cloud);
 
         return 0;
 
