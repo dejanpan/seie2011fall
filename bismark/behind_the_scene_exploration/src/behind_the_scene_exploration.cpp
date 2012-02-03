@@ -27,7 +27,7 @@ int main(int argc, char** argv){
 
     float r,x,y,z,yaw_angle, pitch_angle,roll ;
     r=0.2;			//radius of the circle trajectory
-    z=1.0;			//z offset of the trajectory (wrt. base_link)
+    z=0.3;			//z offset of the trajectory (wrt. base_link)
     roll = M_PI;
     bool first_concat = true;
 
@@ -46,19 +46,26 @@ int main(int argc, char** argv){
 
 
 
-    robot.torso.move(0.4);
-    robot.left_arm.tuck();
+//    robot.torso.move(0.4);
+//    robot.left_arm.tuck();
+//
+//    double init_pos_right[]
+//           = { -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52,
+//               -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52 };
+//        std::vector<double> init_pos_vec(init_pos_right, init_pos_right+14);
+//        robot.right_arm.goToJointPos(init_pos_vec);
 
-    double init_pos_right[]
-           = { -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52,
-               -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52 };
+
+        double init_pos_right[]
+             = {-1.92, 0.70, -2.00, -1.78, -0.28, -0.08, -2.15,
+               -1.92, 0.70, -2.00, -1.78, -0.28, -0.08, -2.15 };
         std::vector<double> init_pos_vec(init_pos_right, init_pos_right+14);
         robot.right_arm.goToJointPos(init_pos_vec);
 
-
 //+++++++++++++exploring right side of the scene++++++++++++++++++++++++++++++++
 
-    for(int i=220;i<=320;i+=20){
+    //for(int i=220;i<=320;i+=20){
+    for(int i=160;i<=280;i+=20){
 
 //++++++++++++++++++Pointcloud processing++++++++++++++++++++++++++++++++++++++++
 
@@ -73,7 +80,7 @@ int main(int argc, char** argv){
 
     	//transformation of Pointcloud
 		bool found_transform = tf_.waitForTransform("base_link","eye_in_hand_rgb_optical_frame", ros::Time::now(), ros::Duration(10.0));
-    	//bool found_transform = tf_.waitForTransform( "base_link", "eye_in_hand_rgb_optical_frame", ros::Time::now()-ros::Duration(5), ros::Duration(10.0));
+    	//bool found_transform = tf_.waitForTransform( "base_link", "eye_in_hand_rgb_optical_frame", ros::Time::now()-ros::Duration(5), 		ros::Duration(10.0));
 
 
     	if (found_transform)
@@ -84,7 +91,6 @@ int main(int argc, char** argv){
     		//tf_.lookupTransform("eye_in_hand_rgb_optical_frame","base_link", ros::Time::now()-ros::Duration(5), transform);
     		pcl_ros::transformPointCloud("base_link", *cloud, *transformed_cloud, tf_);
     		cerr<<"TRANSFORMATION SUCCESS"<<endl;
-
     	}
 
     	else{
@@ -98,18 +104,7 @@ int main(int argc, char** argv){
 
     	else{
 
-//    		//icp alignment of the transformed cloud
-//    		//pcl::IterativeClosestPointNonLinear<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-//        	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-//			icp.setInputCloud(concat_cloud);
-//        	icp.setInputTarget(transformed_cloud);
-//        	icp.setMaximumIterations (100);
-//        	//icp.setTransformationEpsilon(1e-8);
-//        	pcl::PointCloud<pcl::PointXYZRGB> icp_cloud;
-//
-//        	//register
-//        	icp.align(icp_cloud);
-//        	cerr << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() <<endl;
+
 
         	//concatenation of clouds
         	//*concat_cloud += icp_cloud; 		//with icp
@@ -118,7 +113,7 @@ int main(int argc, char** argv){
     	std::stringstream ss;
     	ss<<i;
 	    pcl::PCDWriter writer_single;
-	    writer_single.write (ss.str()+"_degree.pcd",*transformed_cloud, true);
+	    writer_single.write ("data/coffee/"+ss.str()+"_degree.pcd",*transformed_cloud, true);
 
     	cerr<<"concat frame id: "<<concat_cloud->header.frame_id<<endl;
     	cerr<<"transformed frame id: "<<transformed_cloud->header.frame_id<<endl;
@@ -140,8 +135,12 @@ int main(int argc, char** argv){
         //y value for circle trajectory
         y= ((sin((M_PI*i)/180))*r)-0.2;
 
-        //angles in radians (gripper looks to the center of the circle)
-        yaw_angle = ((float)i/600)*M_PI;
+        //angles in radians (gripper)
+//        yaw_angle = ((float)i/600)*M_PI;
+//        pitch_angle = 0.1*M_PI;
+
+        //angles in radians (gripper)
+        yaw_angle = ((float)i/800)*M_PI;
         pitch_angle = 0.1*M_PI;
 
         //converting angles into quaternions
@@ -164,8 +163,7 @@ int main(int argc, char** argv){
     pcl::PCDWriter writer_ori;
     writer_ori.write ("eye_in_hand_scene_original.pcd", *concat_cloud, true);
 
-    //Save observed scene without filtering
-    //writer.write ("eye_in_hand_scene_downsampled.pcd", *concat_cloud);
+
 
         return 0;
 
