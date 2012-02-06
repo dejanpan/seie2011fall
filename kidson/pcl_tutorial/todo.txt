@@ -1,20 +1,9 @@
-email felix
-	-min matches dilemma - too many = less edges but better edges
-	-depth scaling factor - how to set that.  Is there any calibration thing
-
-Read g2o paper.  Look into optimizer code (when motivated)
-
-Incorporate Dejan's code into rgbdslam
-	-link: http://code.in.tum.de/indefero/index.php//p/mapping/source/tree/master/pr2_data_acquisition_tools/src/pointcloud_acquisition_with_head_movement.cpp
-
-record bag files of benches etc.
-	-offline processing
-	-change parameters for algorithm optimization
-
--------------------------------------------------------------
-
-other
+todo
 -----
 
+get updated rgbdslam code from felix
+look into surfel stuff
+bug in bagfile generator rgbdslam: rgbdslam requires camera info as a published topic whilst writing bag file with transforms
+look more into g2o
 svn tutorials (still many commands I don't know)
 remaining pcl tutorials

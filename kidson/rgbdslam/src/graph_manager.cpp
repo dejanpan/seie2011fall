@@ -309,7 +309,7 @@ void GraphManager::resetGraph(){
 }
 
 // returns true, iff node could be added to the cloud
-bool GraphManager::addNode(Node* new_node) {
+bool GraphManager::	(Node* new_node) {
     /// \callergraph
     struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);
     process_node_runs_ = true;
@@ -371,6 +371,9 @@ bool GraphManager::addNode(Node* new_node) {
     Node* prev_frame = graph_[graph_.size()-1];
     ROS_INFO("Comparing new node (%i) with previous node %i", new_node->id_, prev_frame->id_);
     MatchingResult mr = new_node->matchNodePair(prev_frame);
+
+    //rgbd-icp code goes here.  MatchingResult mr should contain everything needed to start
+
     if(mr.edge.id1 >= 0 && !isBigTrafo(mr.edge.mean)){
         ROS_WARN("Transformation not relevant. Did not add as Node");
         process_node_runs_ = false;
