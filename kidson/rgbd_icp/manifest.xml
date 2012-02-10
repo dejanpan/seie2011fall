@@ -1,0 +1,16 @@
+<package>
+  <description brief="rgbd_icp">
+
+     rgbd_icp
+
+  </description>
+  <author>Ross</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rgbd_icp</url>
+  <depend package="rgbdslam"/>
+  <depend package="pcl"/>
+
+</package>
+
+
