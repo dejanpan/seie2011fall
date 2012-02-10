@@ -309,7 +309,7 @@ void GraphManager::resetGraph(){
 }
 
 // returns true, iff node could be added to the cloud
-bool GraphManager::	(Node* new_node) {
+bool GraphManager::addNode(Node* new_node) {
     /// \callergraph
     struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);
     process_node_runs_ = true;
