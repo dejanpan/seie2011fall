@@ -41,6 +41,8 @@
 //#include "g2o/solvers/pcg/linear_solver_pcg.h"
 
 #include "pointcloud_acquisition.cpp"
+#include "rgbdslam/featureMatch.h"
+#include "transform_publisher.h"
 
 //typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<6, 3> >  SlamBlockSolver;
@@ -84,6 +86,10 @@ GraphManager::GraphManager(ros::NodeHandle nh) :
                                                                 ps->get<int>("publisher_queue_size"));
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("/rgbdslam/pose_graph_markers",
                                                          ps->get<int>("publisher_queue_size"));
+
+  feature_match_pub = nh.advertise<rgbdslam::featureMatch>(ps->get<std::string>("feature_match_out_topic"),
+                                                            ps->get<int>("publisher_queue_size"));
+
   computed_motion_ = tf::Transform::getIdentity();
   init_base_pose_  = tf::Transform::getIdentity();
   base2points_     = tf::Transform::getIdentity();
@@ -372,13 +378,14 @@ bool GraphManager::addNode(Node* new_node) {
     ROS_INFO("Comparing new node (%i) with previous node %i", new_node->id_, prev_frame->id_);
     MatchingResult mr = new_node->matchNodePair(prev_frame);
 
-    //rgbd-icp code goes here.  MatchingResult mr should contain everything needed to start
-
     if(mr.edge.id1 >= 0 && !isBigTrafo(mr.edge.mean)){
         ROS_WARN("Transformation not relevant. Did not add as Node");
         process_node_runs_ = false;
         return false;
     } else if(mr.edge.id1 >= 0){
+
+    	//code to publish transform data here
+    	publish_transform(mr, new_node, prev_frame, feature_match_pub);
 
         //mr.edge.informationMatrix *= geodesicDiscount(hypdij, mr); 
         ROS_DEBUG_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
