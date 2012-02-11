@@ -1,0 +1,8 @@
+publishing of the pose
+3d clustering
+making the launch file
+document the things in the code
+random pushing
+experiments
+tutorials
+
