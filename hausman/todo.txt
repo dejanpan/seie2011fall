@@ -5,4 +5,8 @@ document the things in the code
 random pushing
 experiments
 tutorials
-
+implement integration of new features (when the object e.g. becomes
+unoccluded again)
+implement push point determination manually (by e.g. clicking on the
+depth image)
+implement grasping of an object out of segmented points
