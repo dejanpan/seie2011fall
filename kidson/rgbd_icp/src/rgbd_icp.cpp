@@ -1,6 +1,15 @@
+/*
+ * rgbd.cpp
+ *
+ *  Created on: Feb 13, 2012
+ *      Author: ross
+ */
+
 #include "rgbd_icp.h"
 
-void processRGBD_ICP(const rgbdslam::featureMatch& msg)
+
+
+void rgbd_icp::processRGBD_ICP(const rgbdslam::featureMatch& msg)
 {
 	//ROS_INFO("translation %f %f %f", msg.featureTransform.translation.x, msg.featureTransform.translation.y, msg.featureTransform.translation.z);
 	std::vector<rgbdslam::match> local_matches = msg.matches;
@@ -15,13 +24,3 @@ void processRGBD_ICP(const rgbdslam::featureMatch& msg)
   	//add node to datastrct
 }
 
-
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, "listener");
-  ros::NodeHandle n;
-  ros::Subscriber sub = n.subscribe("/feature_match_out_topic", 1000, processRGBD_ICP);
-  ros::spin();
-
-  return 0;
-}

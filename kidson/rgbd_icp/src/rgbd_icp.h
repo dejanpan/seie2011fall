@@ -17,7 +17,14 @@
 #include <vector>
 #include "graphnode.h"
 
-void processRGBD_ICP(const rgbdslam::featureMatch& msg);
+class rgbd_icp
+{
+public:
+
+	void processRGBD_ICP(const rgbdslam::featureMatch& msg);
+
+};
+
 
 
 #endif /* RGBD_ICP_H_ */
