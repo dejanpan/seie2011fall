@@ -40,13 +40,13 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	msg.sourcePointcloud = sourceCloudMessage;
   	msg.targetPointcloud = targetCloudMessage;
 
-  	for(std::vector<DMatch>::iterator iterator_ = mr.inlier_matches.begin(); iterator_ != mr.inlier_matches.end(); ++iterator_) {
+  	for(std::vector<cv::DMatch>::iterator iterator_ = mr.inlier_matches.begin(); iterator_ != mr.inlier_matches.end(); ++iterator_) {
   	    rgbdslam::match matchmsg;
   	    matchmsg.queryId = iterator_->queryIdx;
-  	    //matchmsg.trainId = iterator_->queryIdx;
-  	    //matchmsg.imgId = iterator_->queryIdx;
-  	    //matchmsg.distance = iterator_->queryIdx;
-
+  	    matchmsg.trainId = iterator_->trainIdx;
+  	    matchmsg.imgId = iterator_->imgIdx;
+  	    matchmsg.distance = iterator_->distance;
+  	    msg.matches.push_back(matchmsg);
   	}
 
   	//msg.matches

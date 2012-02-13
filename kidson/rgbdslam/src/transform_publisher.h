@@ -12,6 +12,7 @@
 #include "rgbdslam/featureMatch.h"
 #include "rgbdslam/match.h"
 #include "pcl_ros/transforms.h"
+#include <opencv2/features2d/features2d.hpp>
 
 /** @brief Helper function to convert Eigen transformation to tf -- thanks to Garret Gallagher */
 tf::Transform tfFromEigen(Eigen::Matrix4f trans);
