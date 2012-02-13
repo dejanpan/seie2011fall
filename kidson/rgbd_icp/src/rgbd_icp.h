@@ -15,6 +15,7 @@
 #include "pcl_ros/transforms.h"
 #include <opencv2/features2d/features2d.hpp>
 #include <vector>
+#include "graphnode.h"
 
 void processRGBD_ICP(const rgbdslam::featureMatch& msg);
 
