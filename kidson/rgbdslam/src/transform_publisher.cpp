@@ -31,6 +31,7 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	trans = tfFromEigen(mr.final_trafo);
   	tf::transformTFToMsg(trans, transform_msg);
   	msg.featureTransform = transform_msg;
+  	//ROS_INFO("trans: %f, %f, %f", mr.final_trafo(0,3), mr.final_trafo(1,3), mr.final_trafo(2,3));
 
   	//convert pcl::PointCloud<pcl::PointXYZRGB> to sensor messages point cloud 2
   	sensor_msgs::PointCloud2 sourceCloudMessage;
@@ -47,6 +48,7 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	    matchmsg.imgId = iterator_->imgIdx;
   	    matchmsg.distance = iterator_->distance;
   	    msg.matches.push_back(matchmsg);
+  	    //ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryIdx, iterator_->trainIdx, iterator_->imgIdx, iterator_->distance);
   	}
 
   	//msg.matches

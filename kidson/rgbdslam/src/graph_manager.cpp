@@ -87,7 +87,7 @@ GraphManager::GraphManager(ros::NodeHandle nh) :
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("/rgbdslam/pose_graph_markers",
                                                          ps->get<int>("publisher_queue_size"));
 
-  feature_match_pub = nh.advertise<rgbdslam::featureMatch>(ps->get<std::string>("feature_match_out_topic"),
+  feature_match_pub = nh.advertise<rgbdslam::featureMatch>("/feature_match_out_topic",
                                                             ps->get<int>("publisher_queue_size"));
 
   computed_motion_ = tf::Transform::getIdentity();
@@ -386,6 +386,9 @@ bool GraphManager::addNode(Node* new_node) {
 
     	//code to publish transform data here
     	publish_transform(mr, new_node, prev_frame, feature_match_pub);
+    	// everything after this point (optimizer, etc) is no longer required.
+    	// left in because it doesn't seem to affect performance and it may be useful to compare with
+    	// rgbd_icp optimizer
 
         //mr.edge.informationMatrix *= geodesicDiscount(hypdij, mr); 
         ROS_DEBUG_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
@@ -503,6 +506,7 @@ bool GraphManager::addNode(Node* new_node) {
 //        }
 //    }
     //END OF MAIN LOOP: Compare node pairs ######################################################################
+
     if(ParameterServer::instance()->get<bool>("keep_all_nodes")){
       if (optimizer_->edges().size() == num_edges_before) { //Failure: Create Bogus edge
         ROS_WARN("Node %u could not be matched. Adding with constant motion assumption", (unsigned int)graph_.size());
@@ -512,7 +516,7 @@ bool GraphManager::addNode(Node* new_node) {
         virtual_edge.mean = edge_to_previous_node_;
         latest_transform_ = g2o2QMatrix(edge_to_previous_node_);
         last_matching_node_ = virtual_edge.id1;
-        virtual_edge.informationMatrix = Eigen::Matrix<double,6,6>::Identity();//*(1e-6); 
+        virtual_edge.informationMatrix = Eigen::Matrix<double,6,6>::Identity();// *(1e-6);
         addEdgeToG2O(virtual_edge, true,true) ;
       }
     }

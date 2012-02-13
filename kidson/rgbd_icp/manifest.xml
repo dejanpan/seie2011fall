@@ -1,14 +1,17 @@
 <package>
   <description brief="rgbd_icp">
-
-     rgbd_icp
-
+	RGBD_ICP:
+	This package takes point clouds, along with visual feature and a guess of the 
+	transformation between respective point clouds, and computes ICP based on 
+	feature matches AND depth point clouds to generate a new transform.
+	The output is a g2o graph of transforms
   </description>
-  <author>Ross</author>
+  <author>Ross Kidosn</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/rgbd_icp</url>
   <depend package="rgbdslam"/>
+  <depend package="g2o"/>
   <depend package="pcl"/>
 
 </package>

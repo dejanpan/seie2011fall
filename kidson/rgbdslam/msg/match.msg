@@ -1,5 +1,5 @@
 # single feature match.  Contains two points
-uint64 queryId
-uint64 trainId
+int32 queryId
+int32 trainId
 float64 distance
-uint64 imgId
+int32 imgId
