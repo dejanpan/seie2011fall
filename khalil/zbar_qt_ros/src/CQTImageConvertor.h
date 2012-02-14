@@ -30,6 +30,8 @@ public:
 	static void IplImage2QImage(const IplImage *iplImg, QImage* qimg);
 
 	static void IplImage2QImage(cv::Mat iplImg, QImage* qimg);
+
+	static void showQTImage(const IplImage* image, QPixmap &pixmap);
 };
 
 #endif /* CQTIMAGECONVERTOR_H_ */

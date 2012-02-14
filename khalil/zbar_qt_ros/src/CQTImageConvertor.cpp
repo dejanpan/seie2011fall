@@ -30,20 +30,42 @@ void CQTImageConvertor::showQTImage(QImage* image, QLabel* label)
 
 void CQTImageConvertor::showQTImage(const IplImage* image, QLabel* label)
 {
-	std::cerr << "111\n";
-	QImage *qimg = new QImage(image->width, image->height, QImage::Format_Mono);
-	std::cerr << "222\n";
+
+	QImage *qimg = new QImage(image->width, image->height, QImage::Format_RGB32);
+
 	IplImage2QImage(image, qimg);
-	std::cerr << "333\n";
+
 	showQTImage(qimg, label);
-	std::cerr << "444\n";
+
 	delete qimg;
-	std::cerr << "555\n";
+
+}
+
+void CQTImageConvertor::showQTImage(const IplImage* image, QPixmap &pixmap)
+{
+
+	QImage *qimg = new QImage(image->width, image->height, QImage::Format_RGB32);
+	std::cerr <<"part 1\n";
+	IplImage2QImage(image, qimg);
+	std::cerr <<"part 2\n";
+
+	if(!qimg->isNull())
+	{
+		std::cerr << "before picmap\n";
+		pixmap = QPixmap::fromImage(*qimg);
+		std::cerr << "*pixmap = QPixmap::fromImage(*qimg);\n";
+		pixmap.scaled(image->width, image->height, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+		std::cerr << "pixmap->scaled(image->width, image->height, Qt::KeepAspectRatio, Qt::SmoothTransformation);\n";
+	}
+
+	std::cerr <<"part 3\n";
+	//delete qimg;
+
 }
 
 void CQTImageConvertor::showQTImage(cv::Mat image, QLabel* label)
 {
-	QImage *qimg = new QImage(image.rows, image.cols, QImage::Format_ARGB32);
+	QImage *qimg = new QImage(image.rows, image.cols, QImage::Format_RGB32);
 
 	IplImage2QImage(image, qimg);
 

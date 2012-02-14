@@ -31,9 +31,13 @@ public:
 //private:
 //    Ui::zbarGui *ui;
 
+signals:
+    	void SIG_updateImage(const IplImage*);
+
 public slots:
     void doStart();
     void doQuit();
+    void SLT_updateImage(const IplImage* pIplImage);
 };
 
 

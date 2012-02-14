@@ -21,13 +21,14 @@ int main(int argc, char *argv[])
 	ros::init(argc, argv, "Zbar_QT");
 	ros::AsyncSpinner spinner(1); // Use 4 threads
 	spinner.start();
-	cerr<< "11111";
+	cerr<< "spinner start\n";
 	QApplication app(argc, argv);
-	cerr<< "2222";
-	zbarGui();
-	cerr<< "333333333";
+	cerr<< "QApplication\n";
+	zbarGui zbarGui;
+	cerr<< "Zbargui instantiation\n";
+	zbarGui.show();
 	app.exec();
-	cerr<< "44444";
+	cerr<< "app.exec\n";
 
 	return 0;
 }
