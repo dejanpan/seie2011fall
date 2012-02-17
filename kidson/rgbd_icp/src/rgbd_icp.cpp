@@ -2,7 +2,7 @@
  * rgbd.cpp
  *
  *  Created on: Feb 13, 2012
- *      Author: ross
+ *      Author: Ross
  */
 
 #include "rgbd_icp.h"
@@ -49,7 +49,12 @@ void rgbd_icp::processRGBD_ICP(const rgbdslam::featureMatch& msg)
 	newNode.pointCloud = msg.targetPointcloud;
 	graphNodes.push_back(newNode);
 
+	LoadedEdge3D edge;
+    edge.id1 = newNode.id-1;//and we have a valid transformation
+    edge.id2 = newNode.id; //since there are enough matching features,
+    //edge.mean = eigen2G2O(   (msg.featureTransform) This is geometry msg.  convert to eigenmatrix   .cast<double>());//we insert an edge between the frames
 
+    addEdgeToG2O(edge, true, true);
 }
 
 
@@ -95,7 +100,7 @@ bool rgbd_icp::addEdgeToG2O(const LoadedEdge3D& edge, bool largeEdge, bool set_e
     g2o_edge->vertices()[1] = v2;
     g2o_edge->setMeasurement(edge.mean);
     g2o_edge->setInverseMeasurement(edge.mean.inverse());
-    g2o_edge->setInformation(edge.informationMatrix);
+    //g2o_edge->setInformation(edge.informationMatrix);
     optimizer_->addEdge(g2o_edge);
     return true;
 }
