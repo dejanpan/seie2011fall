@@ -9,13 +9,13 @@
 #define RGBD_ICP_H_
 
 #include "ros/ros.h"
-//#include "std_msgs/String.h"
 #include "rgbdslam/featureMatch.h"
 #include "rgbdslam/match.h"
 #include "pcl_ros/transforms.h"
 #include <opencv2/features2d/features2d.hpp>
 #include <vector>
 #include "graphnode.h"
+#include "edge.h"
 
 #include "g2o/core/graph_optimizer_sparse.h"
 #include "g2o/core/hyper_dijkstra.h"
@@ -34,6 +34,10 @@ public:
 
 	// Callback that processes data
 	void processRGBD_ICP(const rgbdslam::featureMatch& msg);
+
+	bool addEdgeToG2O(const LoadedEdge3D& edge, bool largeEdge, bool set_estimate);
+
+	void optimizeGraph(int iter);
 
 private:
 
