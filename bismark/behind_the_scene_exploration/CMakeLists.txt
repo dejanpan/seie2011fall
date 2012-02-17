@@ -29,6 +29,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
-rosbuild_add_executable(behind_the_scene_exploration src/behind_the_scene_exploration.cpp)
+#rosbuild_add_executable(behind_the_scene_exploration src/behind_the_scene_exploration.cpp)
 #rosbuild_add_executable(pcd_icp src/pcd_icp.cpp)
+rosbuild_add_executable(icp_without_robot src/icp_without_robot.cpp)
 

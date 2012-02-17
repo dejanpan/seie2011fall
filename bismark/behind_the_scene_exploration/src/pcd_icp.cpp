@@ -25,32 +25,36 @@ using namespace std;
 int main(int argc, char** argv){
 
 
-	ros::init(argc, argv, "behind_the_scene_exploration");
-	ros::NodeHandle n;
-
     bool first_concat = true;
 
-    tf::Transform trans;
-    tf::Quaternion axis;
-    tf::TransformListener tf_;
 
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr concat_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr input  (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr nan_input  (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr voxel_cloud  (new pcl::PointCloud<pcl::PointXYZRGB>);
+	pcl::IterativeClosestPointNonLinear<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+	//pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
 
-    for(int i=220;i<=320;i+=20){
+	//get default values for icp
+	cerr << "max correspondence distance:" << icp.getMaxCorrespondenceDistance() <<endl;
+	cerr << "max iterations:" << icp.getMaximumIterations()<<endl;
+	cerr << "RANSAC outlier rejection threshold:" << icp.getRANSACOutlierRejectionThreshold()<<endl;
+	cerr << "transformation epsilon:" << icp.getTransformationEpsilon() <<endl;
 
+//    for(int i=220;i<=320;i+=20){
+   	for(int i=160;i<=280;i+=20){
     	std::stringstream ss;
     	ss<<i;
     	pcl::PCDReader reader;
-    	reader.read(("data/coffee/"+ss.str()+"_degree.pcd"),*input);
+    	reader.read(("data/low_shelf/"+ss.str()+"_degree.pcd"),*nan_input);
 
 
 
     	// remove NaN values and uninteresting data from Point cloud
     	std::vector<int> indices;
-    	pcl::removeNaNFromPointCloud(*input,*transformed_cloud,indices);
+    	pcl::removeNaNFromPointCloud(*nan_input,*input,indices);
 
     	pcl::PassThrough<pcl::PointXYZRGB> pass_x;
     	pass_x.setInputCloud(input);
@@ -61,7 +65,7 @@ int main(int argc, char** argv){
     	pcl::PassThrough<pcl::PointXYZRGB> pass_y;
     	pass_y.setInputCloud(transformed_cloud);
         pass_y.setFilterFieldName("y");
-        pass_y.setFilterLimits(FILTER_MIN,FILTER_MAX);
+        pass_y.setFilterLimits(-1,1.3);
         pass_y.filter(*transformed_cloud);
 
     	pcl::PassThrough<pcl::PointXYZRGB> pass_z;
@@ -78,8 +82,6 @@ int main(int argc, char** argv){
     	else{
 
     		//icp alignment of the transformed cloud
-    		//pcl::IterativeClosestPointNonLinear<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-        	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
 			icp.setInputCloud(transformed_cloud);
         	icp.setInputTarget(concat_cloud);
             icp.setMaxCorrespondenceDistance(MAX_DIST);
@@ -100,16 +102,21 @@ int main(int argc, char** argv){
 
     	first_concat=false;
 
-//    	//VoxelGrid filter to downsample the cloud
-//    	pcl::VoxelGrid<pcl::PointXYZRGB> filter;
-//    	filter.setInputCloud (concat_cloud);
-//    	filter.setLeafSize (0.01f, 0.01f, 0.01);
-//    	filter.filter (*voxel_cloud);
+
     }
 
     //Save observed scene to pcd file
     pcl::PCDWriter writer_icp;
-    writer_icp.write ("icp.pcd", *concat_cloud, true);
+    writer_icp.write ("data/low_shelf/icp.pcd", *concat_cloud, true);
+
+//    //VoxelGrid filter to downsample the cloud
+//    pcl::VoxelGrid<pcl::PointXYZRGB> filter;
+//    filter.setInputCloud (concat_cloud);
+//    filter.setLeafSize (0.01f, 0.01f, 0.01);
+//    filter.filter (*voxel_cloud);
+//
+//    pcl::PCDWriter writer_voxel_icp;
+//    writer_voxel_icp.write ("voxel_icp.pcd", *voxel_cloud, true);
 
 
         return 0;
