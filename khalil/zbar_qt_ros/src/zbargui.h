@@ -27,17 +27,20 @@ public:
     void cameraDisplay(const sensor_msgs::ImageConstPtr& msg_ptr);
     ros::Subscriber uvc_sub;
     sensor_msgs::CvBridge bridge_;
+    ros::ServiceClient client;
 
 //private:
 //    Ui::zbarGui *ui;
 
 signals:
     	void SIG_updateImage(const IplImage*);
+    	void SIG_updateImage2(const IplImage*);
 
 public slots:
     void doStart();
     void doQuit();
     void SLT_updateImage(const IplImage* pIplImage);
+    void SLT_updateImage2(const IplImage* pIplImage);
 };
 
 

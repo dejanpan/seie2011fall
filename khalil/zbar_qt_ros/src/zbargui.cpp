@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <opencv/highgui.h>
 #include "CQTImageConvertor.h"
+#include <zbar_barcode_reader_node/enable_barcode_reader.h>
 
 zbarGui::zbarGui(QWidget *parent) :
     QMainWindow(parent)
@@ -17,6 +18,9 @@ zbarGui::zbarGui(QWidget *parent) :
     connect( pushButton_2, SIGNAL( clicked() ), this, SLOT( doQuit() ));
 
     connect(this, SIGNAL( SIG_updateImage(const IplImage*) ), this, SLOT( SLT_updateImage(const IplImage*) ) );
+    connect(this, SIGNAL( SIG_updateImage2(const IplImage*) ), this, SLOT( SLT_updateImage2(const IplImage*) ) );
+     client = n_.serviceClient<zbar_barcode_reader_node::enable_barcode_reader>("/barcode_reader_node/enable_barcode_reader_service");
+
 }
 
 zbarGui::~zbarGui()
@@ -26,25 +30,35 @@ zbarGui::~zbarGui()
 
 void zbarGui::doStart()
 {
-	/*//sensor_msgs::CvBridge bridge_;
-	sensor_msgs::ImageConstPtr imgmasg_ptr = ros::topic::waitForMessage<sensor_msgs::Image>("/image_raw", ros::Duration(5.0));
-	IplImage* cv_image = NULL;
 
+	  zbar_barcode_reader_node::enable_barcode_reader srv;
+	  srv.request.enable = 1;
+	  std::cerr << "hello\n";
+	  if (client.call(srv))
+	  {
+		  product_name->setText(QApplication::translate("zbarGui",srv.response.title.data.c_str() , 0, QApplication::UnicodeUTF8));
+		  product_producer->setText(QApplication::translate("zbarGui",srv.response.subtitle.data.c_str() , 0, QApplication::UnicodeUTF8));
+		  product_category->setText(QApplication::translate("zbarGui",srv.response.category_key.data.c_str() , 0, QApplication::UnicodeUTF8));
+	  }
+	  else
+	  {
+	    ROS_ERROR("Failed to call service ");
+	    return;
+	  }
 
-		//ROS_INFO("[BarcodeReaderNode: ] HElloooooooooo");
+	  IplImage* cv_image = NULL;
+	  try
+	  {
+		//sensor_msgs::Image_<std::allocator<void> >*
+		sensor_msgs::ImageConstPtr img_msg_ptr(new sensor_msgs::Image(srv.response.image_msg));
+	  	cv_image = bridge_.imgMsgToCv(img_msg_ptr, "passthrough");
+	  }
+	  catch (sensor_msgs::CvBridgeException error)
+	  {
+	  	ROS_ERROR("error");
+	  }
 
-		try
-		{
-			cv_image = bridge_.imgMsgToCv(imgmasg_ptr, "mono8");
-		}
-		catch (sensor_msgs::CvBridgeException error)
-		{
-			ROS_ERROR("error");
-		}
-		QImage* siImage;
-		CQTImageConvertor::showQTImage(cv_image, label);
-		label->show();
-		*/
+	  emit SIG_updateImage2(cv_image);
 }
 
 
@@ -81,6 +95,20 @@ void zbarGui::SLT_updateImage(const IplImage* pIplImage)
 	label->setPixmap(QPixmap::fromImage(*qimg));
 
 	delete qimg;
-	//std::cerr <<"image recievedddd\n";
+
 	label->show();
+}
+
+void zbarGui::SLT_updateImage2(const IplImage* pIplImage)
+{
+	QImage *qimg = new QImage(pIplImage->width, pIplImage->height, QImage::Format_RGB32);
+
+	CQTImageConvertor::IplImage2QImage(pIplImage, qimg);
+
+
+	label_2->setPixmap(QPixmap::fromImage(*qimg));
+
+	delete qimg;
+
+	label_2->show();
 }
