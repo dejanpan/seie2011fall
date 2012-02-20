@@ -98,6 +98,7 @@ void rgbd_icp::processRGBD_ICP(const rgbdslam::featureMatch& msg)
     edge.mean = eigen2G2O(tempTrafo.cast<double>());//we insert an edge between the frames
 
     addEdgeToG2O(edge, true, true);
+    optimizeGraph();
 }
 
 
@@ -157,7 +158,7 @@ bool rgbd_icp::addEdgeToG2O(const LoadedEdge3D& edge, bool largeEdge, bool set_e
     return true;
 }
 
-void rgbd_icp::optimizeGraph(int iter){
+void rgbd_icp::optimizeGraph(){
     int iterations = 2;
 
     ROS_WARN("Starting Optimization");

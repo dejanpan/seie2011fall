@@ -39,7 +39,7 @@ public:
 
 	bool addEdgeToG2O(const LoadedEdge3D& edge, bool largeEdge, bool set_estimate);
 
-	void optimizeGraph(int iter);
+	void optimizeGraph();
 
 
 private:
