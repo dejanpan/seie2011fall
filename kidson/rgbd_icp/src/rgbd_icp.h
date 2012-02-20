@@ -14,6 +14,8 @@
 #include "pcl_ros/transforms.h"
 #include <opencv2/features2d/features2d.hpp>
 #include <vector>
+#include "eigen_conversions/eigen_msg.h"
+#include "pcl_ros/transforms.h"
 #include "graphnode.h"
 #include "edge.h"
 
@@ -39,6 +41,7 @@ public:
 
 	void optimizeGraph(int iter);
 
+
 private:
 
 	std::vector<graphnode> graphNodes;
@@ -47,6 +50,10 @@ private:
 
 };
 
+
+Eigen::Matrix4f EigenfromTf(tf::Transform trans);
+
+g2o::SE3Quat eigen2G2O(const Eigen::Matrix4d eigen_mat);
 
 
 #endif /* RGBD_ICP_H_ */

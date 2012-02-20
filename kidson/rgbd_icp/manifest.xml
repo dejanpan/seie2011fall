@@ -13,6 +13,7 @@
   <depend package="rgbdslam"/>
   <depend package="g2o"/>
   <depend package="pcl"/>
+  <depend package="eigen_conversions"/>
 
 </package>
 

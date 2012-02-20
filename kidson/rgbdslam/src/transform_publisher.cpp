@@ -6,10 +6,11 @@
  */
 #include "transform_publisher.h"
 
-/** @brief Helper function to convert Eigen transformation to tf -- thanks to Garret Gallagher */
+/** @brief Helper function to convert Eigen transformation to tf */
 tf::Transform tfFromEigen(Eigen::Matrix4f trans)
 {
     btMatrix3x3 btm;
+    //ROS_INFO("trans: %f, %f, %f %f | %f, %f, %f %f | %f, %f, %f %f", trans(0,0), trans(0,1), trans(0,2), trans(0,3), trans(1,0), trans(1,1), trans(1,2), trans(1,3), trans(2,0), trans(2,1), trans(2,2), trans(2,3));
     btm.setValue(trans(0,0),trans(0,1),trans(0,2),
                trans(1,0),trans(1,1),trans(1,2),
                trans(2,0),trans(2,1),trans(2,2));

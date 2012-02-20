@@ -28,6 +28,36 @@ rgbd_icp::rgbd_icp()
 	optimizer_->setSolver(solver);
 }
 
+/** @brief Helper function to convert Eigen transformation to tf */
+Eigen::Matrix4f EigenfromTf(tf::Transform trans)
+{
+	Eigen::Matrix4f eignMat;
+	eignMat(0,3) = trans.getOrigin().getX();
+	eignMat(1,3) = trans.getOrigin().getY();
+	eignMat(2,3) = trans.getOrigin().getZ();
+	eignMat(0,0) = trans.getBasis().getRow(0).getX();
+	eignMat(0,1) = trans.getBasis().getRow(0).getY();
+	eignMat(0,2) = trans.getBasis().getRow(0).getZ();
+	eignMat(1,0) = trans.getBasis().getRow(1).getX();
+	eignMat(1,1) = trans.getBasis().getRow(1).getY();
+	eignMat(1,2) = trans.getBasis().getRow(1).getZ();
+	eignMat(2,0) = trans.getBasis().getRow(2).getX();
+	eignMat(2,1) = trans.getBasis().getRow(2).getY();
+	eignMat(2,2) = trans.getBasis().getRow(2).getZ();
+	eignMat(3,3) = 1;
+	//ROS_INFO("trans: %f, %f, %f %f | %f, %f, %f %f | %f, %f, %f %f", eignMat(0,0), eignMat(0,1), eignMat(0,2), eignMat(0,3), eignMat(1,0), eignMat(1,1), eignMat(1,2), eignMat(1,3), eignMat(2,0), eignMat(2,1), eignMat(2,2), eignMat(2,3));
+    return eignMat;
+}
+
+g2o::SE3Quat eigen2G2O(const Eigen::Matrix4d eigen_mat) {
+  Eigen::Affine3d eigen_transform(eigen_mat);
+  Eigen::Quaterniond eigen_quat(eigen_transform.rotation());
+  Eigen::Vector3d translation(eigen_mat(0, 3), eigen_mat(1, 3), eigen_mat(2, 3));
+  g2o::SE3Quat result(eigen_quat, translation);
+
+  return result;
+}
+
 
 void rgbd_icp::processRGBD_ICP(const rgbdslam::featureMatch& msg)
 {
@@ -41,9 +71,17 @@ void rgbd_icp::processRGBD_ICP(const rgbdslam::featureMatch& msg)
   	graphnode newNode;
   	if(graphNodes.size() == 0)		// first node
   	{
+  		//init graph node structure
   		newNode.id = 0;
   		newNode.pointCloud = msg.sourcePointcloud;
   		graphNodes.push_back(newNode);
+
+  		//init optimizer
+  		g2o::VertexSE3* reference_pose = new g2o::VertexSE3;
+  		reference_pose->setId(0);
+  		reference_pose->setEstimate(g2o::SE3Quat());
+  		reference_pose->setFixed(true);//fix at origin
+  		optimizer_->addVertex(reference_pose);
   	}
   	newNode.id = graphNodes.size();
 	newNode.pointCloud = msg.targetPointcloud;
@@ -52,7 +90,12 @@ void rgbd_icp::processRGBD_ICP(const rgbdslam::featureMatch& msg)
 	LoadedEdge3D edge;
     edge.id1 = newNode.id-1;//and we have a valid transformation
     edge.id2 = newNode.id; //since there are enough matching features,
-    //edge.mean = eigen2G2O(   (msg.featureTransform) This is geometry msg.  convert to eigenmatrix   .cast<double>());//we insert an edge between the frames
+
+
+    tf::Transform trans;
+    tf::transformMsgToTF(msg.featureTransform,trans);
+    Eigen::Matrix4f tempTrafo = EigenfromTf(trans);
+    edge.mean = eigen2G2O(tempTrafo.cast<double>());//we insert an edge between the frames
 
     addEdgeToG2O(edge, true, true);
 }
