@@ -98,8 +98,7 @@ void rgbd_icp::computeRGBD_ICP(const rgbdslam::featureMatch& msg)
 	//-------------Run RGBD ICP-------------------
 	Eigen::Matrix4f transform_res_from_LM;
 	trans_est_lm.estimateRigidTransformation(*source, *target,*correspondences,transform_res_from_LM);
-	ROS_INFO_STREAM("Transform before icp: " << msg.featureTransform << "\n "
-					<< "Transform after icp:" << transform_res_from_LM);
+	ROS_INFO_STREAM("Transform after icp:" << transform_res_from_LM);
 
 }
 
