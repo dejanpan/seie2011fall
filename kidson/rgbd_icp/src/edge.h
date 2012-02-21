@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef RGBDSLAMEDGES_3D_H
-#define RGBDSLAMEDGES_3D_H
+#ifndef RGBDSLAMEDGES_3D_H_ROSS
+#define RGBDSLAMEDGES_3D_H_ROSS
 
 #include <set>
 #include <iostream>

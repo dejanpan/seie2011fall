@@ -7,6 +7,11 @@
 
 #include "rgbd_icp.h"
 
+#include "ros/ros.h"
+
+#include <pcl/registration/correspondence_estimation.h>
+#include <pcl/registration/transformation_estimation_lm.h>
+
 //typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<6, 3> >  SlamBlockSolver;
 typedef g2o::LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
@@ -61,24 +66,28 @@ g2o::SE3Quat eigen2G2O(const Eigen::Matrix4d eigen_mat) {
 
 void rgbd_icp::computeRGBD_ICP(const rgbdslam::featureMatch& msg)
 {
-	//-----First find correspondences for icp---------------------------------
+	//-----First find correspondences for icp-----------------------------------
 	pcl::PointCloud<pcl::PointXYZ> cloud_source, cloud_target, cloud_reg;
 	pcl::PointCloud<pcl::PointXYZ>::Ptr source (new pcl::PointCloud<pcl::PointXYZ>(cloud_source));
 	pcl::PointCloud<pcl::PointXYZ>::Ptr target (new pcl::PointCloud<pcl::PointXYZ>(cloud_target));
 	boost::shared_ptr<pcl::Correspondences> correspondences (new pcl::Correspondences);
+	pcl::registration::CorrespondenceEstimation<pcl::PointXYZ, pcl::PointXYZ> corr_est;
+	pcl::registration::TransformationEstimationLM<pcl::PointXYZ, pcl::PointXYZ> trans_est_lm;
 
 	pcl::fromROSMsg(msg.sourcePointcloud, *source);
 	pcl::fromROSMsg(msg.targetPointcloud, *target);
-
-	pcl::registration::CorrespondenceEstimation<pcl::PointXYZ, pcl::PointXYZ> corr_est;
 	corr_est.setInputCloud (source);
 	corr_est.setInputTarget (target);
-	corr_est.determineCorrespondences (*correspondences);
-	//ROS_INFO("No. of correspondences: %i ", (int)correspondences->size() );
+	corr_est.determineReciprocalCorrespondences(*correspondences);
+	ROS_INFO("No. of correspondences: %i ", (int)correspondences->size() );
 
 	//-------------Make correspondence object for visual features---------------
 
-	//run rgbd_icp
+	//-------------Run RGBD ICP-------------------
+	Eigen::Matrix4f transform_res_from_LM;
+	trans_est_lm.estimateRigidTransformation(*source, *target,*correspondences,transform_res_from_LM);
+	ROS_INFO_STREAM("Transform before icp: " << msg.featureTransform << "\n "
+					<< "Transform after icp:" << transform_res_from_LM);
 
 }
 

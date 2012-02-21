@@ -30,6 +30,6 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(example ${PROJECT_NAME})
 rosbuild_add_executable (listener src/listener.cpp src/rgbd_icp.cpp)
 #SET(ADDITIONAL_SOURCES src/rgbd_icp.cpp)
-SET(LIBS_LINK listener g2o_types_slam3d g2o_solver_cholmod g2o_solver_pcg g2o_solver_csparse)
+SET(LIBS_LINK g2o_types_slam3d g2o_solver_cholmod g2o_solver_pcg g2o_solver_csparse)
 
-target_link_libraries(${LIBS_LINK})
+target_link_libraries(listener ${LIBS_LINK})

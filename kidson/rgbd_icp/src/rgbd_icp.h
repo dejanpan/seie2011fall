@@ -8,7 +8,7 @@
 #ifndef RGBD_ICP_H_
 #define RGBD_ICP_H_
 
-#include "ros/ros.h"
+
 
 //local
 #include "graphnode.h"
@@ -26,9 +26,8 @@
 #include <opencv2/features2d/features2d.hpp>
 
 //pcl
-#include <pcl/point_types.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/registration/correspondence_estimation.h>
+//#include <pcl/point_types.h>
+//#include <pcl/io/pcd_io.h>
 
 //g2o
 #include "g2o/core/graph_optimizer_sparse.h"
