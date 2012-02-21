@@ -6,7 +6,7 @@
  */
 
 #include "rgbd_icp.h"
-
+#include <iostream>
 
 //typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<6, 3> >  SlamBlockSolver;
@@ -107,6 +107,13 @@ bool rgbd_icp::addEdgeToG2O(const LoadedEdge3D& edge, bool largeEdge, bool set_e
     g2o::VertexSE3* v1 = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(edge.id1));
     g2o::VertexSE3* v2 = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(edge.id2));
 
+    //std::stringstream buffer;
+    //std::streambuf * old = std::cout.rdbuf(buffer.rdbuf());
+    ROS_INFO_STREAM("edge mean:" << edge.mean);
+    //std::string text = buffer.str(); // text will now contain "Bla\n"
+
+    //ROS_INFO("edge mean: %s", edge.mean.to_homogenious_matrix().Matrix(1,2,1));
+
     // at least one vertex has to be created, assert that the transformation
     // is large enough to avoid to many vertices on the same spot
     if (!v1 || !v2){
@@ -117,17 +124,8 @@ bool rgbd_icp::addEdgeToG2O(const LoadedEdge3D& edge, bool largeEdge, bool set_e
     }
 
     if(!v1 && !v2){
-        v1 = new g2o::VertexSE3;
-        assert(v1);
-        v1->setId(edge.id1);
-        v1->setEstimate(v2->estimate() * edge.mean.inverse());
-        optimizer_->addVertex(v1);
-
-        v2 = new g2o::VertexSE3;
-        assert(v2);
-        v2->setId(edge.id2);
-        v2->setEstimate(v1->estimate() * edge.mean);
-        optimizer_->addVertex(v2);
+        ROS_ERROR("Missing both vertices: %i, %i, cannot create edge", edge.id1, edge.id2);
+        return false;
     }
     else if (!v1 && v2) {
         v1 = new g2o::VertexSE3;

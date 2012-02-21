@@ -44,6 +44,8 @@
 #include "rgbdslam/featureMatch.h"
 #include "transform_publisher.h"
 
+#include <iostream>
+
 //typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<6, 3> >  SlamBlockSolver;
 typedef g2o::LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
@@ -821,6 +823,8 @@ bool GraphManager::addEdgeToG2O(const LoadedEdge3D& edge, bool largeEdge, bool s
     QMutexLocker locker(&optimizer_mutex);
     g2o::VertexSE3* v1 = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(edge.id1));
     g2o::VertexSE3* v2 = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(edge.id2));
+
+    ROS_INFO_STREAM("edge mean:" << edge.mean);
 
     // at least one vertex has to be created, assert that the transformation
     // is large enough to avoid to many vertices on the same spot
