@@ -12,15 +12,23 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration buildProperties="" id="org.eclipse.cdt.msvc.toolchain.dll.debug.1878283505" name="Debug" parent="org.eclipse.cdt.build.core.emptycfg">
+				<configuration buildProperties="" description="" id="org.eclipse.cdt.msvc.toolchain.dll.debug.1878283505" name="Debug" parent="org.eclipse.cdt.build.core.emptycfg">
 					<folderInfo id="org.eclipse.cdt.msvc.toolchain.dll.debug.1878283505.322071984" name="/" resourcePath="">
 						<toolChain id="org.eclipse.cdt.msvc.toolchain.dll.debug.842640756" name="org.eclipse.cdt.msvc.toolchain.dll.debug" superClass="org.eclipse.cdt.msvc.toolchain.dll.debug">
 							<targetPlatform id="org.eclipse.cdt.msvc.targetPlatform.dll.debug.785610536" superClass="org.eclipse.cdt.msvc.targetPlatform.dll.debug"/>
-							<builder buildPath="${workspace_loc:/zbar_qt_ros/Debug}" id="org.eclipse.cdt.msvc.builder.1329290087" managedBuildOn="false" name="CDT Internal Builder.Debug" superClass="org.eclipse.cdt.msvc.builder"/>
-							<tool id="org.eclipse.cdt.msvc.cl.c.dll.debug.622278957" name="C Compiler (cl)" superClass="org.eclipse.cdt.msvc.cl.c.dll.debug"/>
-							<tool id="org.eclipse.cdt.msvc.cl.dll.debug.402601773" name="C++ Compiler (cl)" superClass="org.eclipse.cdt.msvc.cl.dll.debug"/>
-							<tool id="org.eclipse.cdt.msvc.rc.dll.debug.1864259183" name="Resource Compiler (rc)" superClass="org.eclipse.cdt.msvc.rc.dll.debug"/>
-							<tool id="org.eclipse.cdt.msvc.link.dll.debug.1273669861" name="Linker (link)" superClass="org.eclipse.cdt.msvc.link.dll.debug"/>
+							<builder buildPath="${workspace_loc:/zbar_qt_ros/Debug}" id="org.eclipse.cdt.msvc.builder.1329290087" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="CDT Internal Builder" superClass="org.eclipse.cdt.msvc.builder"/>
+							<tool id="org.eclipse.cdt.msvc.cl.c.dll.debug.622278957" name="C Compiler (cl)" superClass="org.eclipse.cdt.msvc.cl.c.dll.debug">
+								<inputType id="org.eclipse.cdt.msvc.cl.inputType.c.1249731064" superClass="org.eclipse.cdt.msvc.cl.inputType.c"/>
+							</tool>
+							<tool id="org.eclipse.cdt.msvc.cl.dll.debug.402601773" name="C++ Compiler (cl)" superClass="org.eclipse.cdt.msvc.cl.dll.debug">
+								<inputType id="org.eclipse.cdt.msvc.cl.inputType.1175211731" superClass="org.eclipse.cdt.msvc.cl.inputType"/>
+							</tool>
+							<tool id="org.eclipse.cdt.msvc.rc.dll.debug.1864259183" name="Resource Compiler (rc)" superClass="org.eclipse.cdt.msvc.rc.dll.debug">
+								<inputType id="org.eclipse.cdt.msvc.rc.inputType.2076452934" superClass="org.eclipse.cdt.msvc.rc.inputType"/>
+							</tool>
+							<tool id="org.eclipse.cdt.msvc.link.dll.debug.1273669861" name="Linker (link)" superClass="org.eclipse.cdt.msvc.link.dll.debug">
+								<inputType id="org.eclipse.cdt.msvc.link.inputType.682358848" superClass="org.eclipse.cdt.msvc.link.inputType"/>
+							</tool>
 							<tool id="org.eclipse.cdt.msvc.lib.2055824838" name="Library Manager (lib)" superClass="org.eclipse.cdt.msvc.lib"/>
 						</toolChain>
 					</folderInfo>
@@ -446,5 +454,13 @@
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="zbar_qt_ros.null.1965333594" name="zbar_qt_ros"/>
+	</storageModule>
+	<storageModule moduleId="refreshScope" versionNumber="1">
+		<resource resourceType="PROJECT" workspacePath="/zbar_qt_ros"/>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings">
+		<doc-comment-owner id="org.eclipse.cdt.ui.doxygen">
+			<path value=""/>
+		</doc-comment-owner>
 	</storageModule>
 </cproject>

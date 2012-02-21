@@ -67,4 +67,22 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<variableList>
+		<variable>
+			<name>PATH</name>
+			<value>file:/opt/ros/electric/ros/bin:/usr/lib/lightdm/lightdm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games</value>
+		</variable>
+		<variable>
+			<name>PYTHONPATH</name>
+			<value>file:/opt/ros/electric/ros/core/roslib/src:</value>
+		</variable>
+		<variable>
+			<name>ROS_PACKAGE_PATH</name>
+			<value>echo%20$ROS_PACKAGE_PATH</value>
+		</variable>
+		<variable>
+			<name>ROS_ROOT</name>
+			<value>file:/opt/ros/electric/ros</value>
+		</variable>
+	</variableList>
 </projectDescription>

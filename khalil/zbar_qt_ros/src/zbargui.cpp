@@ -9,18 +9,14 @@
 zbarGui::zbarGui(QWidget *parent) :
     QMainWindow(parent)
 {
-	std::cerr<<"Construtor called\n";
     setupUi(this);
     uvc_sub = n_.subscribe("/image_raw", 1, &zbarGui::cameraDisplay, this);
-    //show();
-    std::cerr<<"subscribed to topic\n";
     connect( pushButton, SIGNAL( clicked() ), this, SLOT( doStart() ));
     connect( pushButton_2, SIGNAL( clicked() ), this, SLOT( doQuit() ));
 
     connect(this, SIGNAL( SIG_updateImage(const IplImage*) ), this, SLOT( SLT_updateImage(const IplImage*) ) );
     connect(this, SIGNAL( SIG_updateImage2(const IplImage*) ), this, SLOT( SLT_updateImage2(const IplImage*) ) );
      client = n_.serviceClient<zbar_barcode_reader_node::enable_barcode_reader>("/barcode_reader_node/enable_barcode_reader_service");
-
 }
 
 zbarGui::~zbarGui()
@@ -33,7 +29,7 @@ void zbarGui::doStart()
 
 	  zbar_barcode_reader_node::enable_barcode_reader srv;
 	  srv.request.enable = 1;
-	  std::cerr << "hello\n";
+
 	  if (client.call(srv))
 	  {
 		  product_name->setText(QApplication::translate("zbarGui",srv.response.title.data.c_str() , 0, QApplication::UnicodeUTF8));
@@ -49,9 +45,9 @@ void zbarGui::doStart()
 	  IplImage* cv_image = NULL;
 	  try
 	  {
-		//sensor_msgs::Image_<std::allocator<void> >*
 		sensor_msgs::ImageConstPtr img_msg_ptr(new sensor_msgs::Image(srv.response.image_msg));
 	  	cv_image = bridge_.imgMsgToCv(img_msg_ptr, "passthrough");
+
 	  }
 	  catch (sensor_msgs::CvBridgeException error)
 	  {
@@ -70,7 +66,6 @@ void zbarGui::doQuit()
 void zbarGui::cameraDisplay(const sensor_msgs::ImageConstPtr& msg_ptr)
 {
 	IplImage* cv_image = NULL;
-	//ROS_INFO("[BarcodeReaderNode: ] HElloooooooooo");
 	try
 	{
 		cv_image = bridge_.imgMsgToCv(msg_ptr, "mono8");
@@ -79,9 +74,6 @@ void zbarGui::cameraDisplay(const sensor_msgs::ImageConstPtr& msg_ptr)
 	{
 		ROS_ERROR("error");
 	}
-
-	//QImage* siImage;
-	//CQTImageConvertor::showQTImage(cv_image, label);
 
 	emit SIG_updateImage(cv_image);
 }
@@ -105,9 +97,12 @@ void zbarGui::SLT_updateImage2(const IplImage* pIplImage)
 
 	CQTImageConvertor::IplImage2QImage(pIplImage, qimg);
 
+	//QPixmap q = QPixmap::fromImage(*qimg);
+	//q = q.scaled ( 251, 271, Qt::IgnoreAspectRatio, Qt::FastTransformation );
+	std::cerr << "you are hereee\n";
 
-	label_2->setPixmap(QPixmap::fromImage(*qimg));
-
+	label_2->setPixmap((QPixmap::fromImage(*qimg)).scaled ( 251, 271, Qt::IgnoreAspectRatio, Qt::FastTransformation ));
+	std::cerr << "nowwwww\n";
 	delete qimg;
 
 	label_2->show();
