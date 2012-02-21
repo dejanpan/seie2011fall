@@ -18,6 +18,8 @@
 #include "pcl_ros/transforms.h"
 #include "graphnode.h"
 #include "edge.h"
+#include <opencv2/features2d/features2d.hpp>
+#include <iostream>
 
 #include "g2o/core/graph_optimizer_sparse.h"
 #include "g2o/core/hyper_dijkstra.h"

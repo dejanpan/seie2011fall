@@ -6,7 +6,6 @@
  */
 
 #include "rgbd_icp.h"
-#include <iostream>
 
 //typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<6, 3> >  SlamBlockSolver;
@@ -17,6 +16,7 @@ typedef std::set<g2o::HyperGraph::Edge*> EdgeSet;
 
 rgbd_icp::rgbd_icp()
 {
+	graphNodes.resize(0);
 	// allocating the optimizer
 	optimizer_ = new g2o::SparseOptimizer();
 	optimizer_->setVerbose(true);
@@ -61,9 +61,17 @@ g2o::SE3Quat eigen2G2O(const Eigen::Matrix4d eigen_mat) {
 
 void rgbd_icp::processRGBD_ICP(const rgbdslam::featureMatch& msg)
 {
+	std::vector<cv::DMatch> inliers;
 	//ROS_INFO("translation %f %f %f", msg.featureTransform.translation.x, msg.featureTransform.translation.y, msg.featureTransform.translation.z);
 	std::vector<rgbdslam::match> local_matches = msg.matches;
-  	for(std::vector<rgbdslam::match>::iterator iterator_ = local_matches.begin(); iterator_ != local_matches.end(); ++iterator_) {
+  	for(std::vector<rgbdslam::match>::iterator iterator_ = local_matches.begin(); iterator_ != local_matches.end(); ++iterator_)
+  	{
+  		cv::DMatch oneMatch;
+  		oneMatch.queryIdx = iterator_->queryId;
+  		oneMatch.trainIdx = iterator_->trainId;
+  		oneMatch.imgIdx = iterator_->imgId;
+  		oneMatch.distance = iterator_->distance;
+  		inliers.push_back(oneMatch);
   		//ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryId, iterator_->trainId, iterator_->imgId, iterator_->distance);
   	}
 
@@ -87,15 +95,17 @@ void rgbd_icp::processRGBD_ICP(const rgbdslam::featureMatch& msg)
 	newNode.pointCloud = msg.targetPointcloud;
 	graphNodes.push_back(newNode);
 
+	//Create g2o 3d edge
 	LoadedEdge3D edge;
-    edge.id1 = newNode.id-1;//and we have a valid transformation
-    edge.id2 = newNode.id; //since there are enough matching features,
-
-
+    edge.id1 = newNode.id-1;
+    edge.id2 = newNode.id;
     tf::Transform trans;
     tf::transformMsgToTF(msg.featureTransform,trans);
     Eigen::Matrix4f tempTrafo = EigenfromTf(trans);
     edge.mean = eigen2G2O(tempTrafo.cast<double>());//we insert an edge between the frames
+
+    double w = (double)inliers.size();
+    edge.informationMatrix = Eigen::Matrix<double,6,6>::Identity()*(w*w);
 
     addEdgeToG2O(edge, true, true);
     optimizeGraph();
@@ -151,7 +161,7 @@ bool rgbd_icp::addEdgeToG2O(const LoadedEdge3D& edge, bool largeEdge, bool set_e
     g2o_edge->vertices()[1] = v2;
     g2o_edge->setMeasurement(edge.mean);
     g2o_edge->setInverseMeasurement(edge.mean.inverse());
-    //g2o_edge->setInformation(edge.informationMatrix);
+    g2o_edge->setInformation(edge.informationMatrix);
     optimizer_->addEdge(g2o_edge);
     return true;
 }
