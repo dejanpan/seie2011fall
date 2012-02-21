@@ -1,0 +1,12 @@
+-Implementation of RGBD ICP as described by the paper from Peter Henry
+
+-Run generated bag files of pointclouds/poses through Dejan's code
+
+-Obtain the segmented pointcloud of the kitchen bench pointcloud from Lucians algorithm
+	-Also get the code from Lucian and find out how run it ourselves
+
+-Mapping for Fraunhoffer - find out how to map an entire room with running into memory/processing problems
+
+-KinectFusion investigation - is it feasible for our requirements, can we incorporate colour?
+
+-Think about a demo/paper for the conference in April
