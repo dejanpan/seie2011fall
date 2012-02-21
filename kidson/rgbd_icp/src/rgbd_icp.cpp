@@ -59,6 +59,29 @@ g2o::SE3Quat eigen2G2O(const Eigen::Matrix4d eigen_mat) {
 }
 
 
+void rgbd_icp::computeRGBD_ICP(const rgbdslam::featureMatch& msg)
+{
+	//-----First find correspondences for icp---------------------------------
+	pcl::PointCloud<pcl::PointXYZ> cloud_source, cloud_target, cloud_reg;
+	pcl::PointCloud<pcl::PointXYZ>::Ptr source (new pcl::PointCloud<pcl::PointXYZ>(cloud_source));
+	pcl::PointCloud<pcl::PointXYZ>::Ptr target (new pcl::PointCloud<pcl::PointXYZ>(cloud_target));
+	boost::shared_ptr<pcl::Correspondences> correspondences (new pcl::Correspondences);
+
+	pcl::fromROSMsg(msg.sourcePointcloud, *source);
+	pcl::fromROSMsg(msg.targetPointcloud, *target);
+
+	pcl::registration::CorrespondenceEstimation<pcl::PointXYZ, pcl::PointXYZ> corr_est;
+	corr_est.setInputCloud (source);
+	corr_est.setInputTarget (target);
+	corr_est.determineCorrespondences (*correspondences);
+	//ROS_INFO("No. of correspondences: %i ", (int)correspondences->size() );
+
+	//-------------Make correspondence object for visual features---------------
+
+	//run rgbd_icp
+
+}
+
 void rgbd_icp::processRGBD_ICP(const rgbdslam::featureMatch& msg)
 {
 	std::vector<cv::DMatch> inliers;

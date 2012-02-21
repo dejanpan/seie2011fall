@@ -9,18 +9,28 @@
 #define RGBD_ICP_H_
 
 #include "ros/ros.h"
-#include "rgbdslam/featureMatch.h"
-#include "rgbdslam/match.h"
-#include "pcl_ros/transforms.h"
-#include <opencv2/features2d/features2d.hpp>
-#include <vector>
-#include "eigen_conversions/eigen_msg.h"
-#include "pcl_ros/transforms.h"
+
+//local
 #include "graphnode.h"
 #include "edge.h"
-#include <opencv2/features2d/features2d.hpp>
-#include <iostream>
 
+//rgbdslam
+#include "rgbdslam/featureMatch.h"
+#include "rgbdslam/match.h"
+
+//vector/eigen
+#include <vector>
+#include "eigen_conversions/eigen_msg.h"
+
+//opencv
+#include <opencv2/features2d/features2d.hpp>
+
+//pcl
+#include <pcl/point_types.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/registration/correspondence_estimation.h>
+
+//g2o
 #include "g2o/core/graph_optimizer_sparse.h"
 #include "g2o/core/hyper_dijkstra.h"
 #include "g2o/math_groups/se3quat.h"
@@ -36,8 +46,11 @@ public:
 	// Constructor
 	rgbd_icp();
 
-	// Callback that processes data
+	// This calls computeRGBD_ICP, as well as adding the node to the graph, run optimizer etc.
 	void processRGBD_ICP(const rgbdslam::featureMatch& msg);
+
+	// This calcuates the transform
+	void computeRGBD_ICP(const rgbdslam::featureMatch& msg);
 
 	bool addEdgeToG2O(const LoadedEdge3D& edge, bool largeEdge, bool set_estimate);
 

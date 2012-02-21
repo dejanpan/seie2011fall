@@ -9,6 +9,7 @@
 #define GRAPHNODE_CPP_
 
 #include <ros/ros.h>
+#include "pcl_ros/transforms.h"
 
 struct graphnode
 {
