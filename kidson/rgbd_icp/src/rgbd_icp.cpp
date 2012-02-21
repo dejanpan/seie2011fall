@@ -9,8 +9,20 @@
 
 #include "ros/ros.h"
 
+
+#include "rgbdslam/match.h"
+#include <vector>
+
+#include <opencv2/features2d/features2d.hpp>
+
 #include <pcl/registration/correspondence_estimation.h>
 #include <pcl/registration/transformation_estimation_lm.h>
+
+#include "g2o/types/slam3d/edge_se3_quat.h"
+#include "g2o/core/block_solver.h"
+#include "g2o/solvers/csparse/linear_solver_csparse.h"
+#include "g2o/solvers/cholmod/linear_solver_cholmod.h"
+#include "g2o/core/hyper_dijkstra.h"
 
 //typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<6, 3> >  SlamBlockSolver;
