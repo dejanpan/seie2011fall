@@ -2,70 +2,75 @@
 //simply color tracking
 
 #include <iostream>
-#include <ros/ros.h>
-#include <ros/node_handle.h>
-#include "sensor_msgs/Image.h"
-#include "image_transport/image_transport.h"
-#include "cv_bridge/CvBridge.h"
+
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
-#include <string.h>
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "features_2d/features_2d.h"
 #include <iomanip>
 
 
-using namespace cv;
-using namespace std;
-namespace f2d = features_2d;
+IplImage* GetThresholdedImage(IplImage* img, int color)
+{
+// Convert the image into an HSV image
+IplImage* imgHSV = cvCreateImage(cvGetSize(img), 8, 3);
+cvCvtColor(img, imgHSV, CV_BGR2HSV);
 
+IplImage* imgThreshed = cvCreateImage(cvGetSize(img), 8, 1);
+if (color==1)
+// Values 20,100,100 to 30,255,255 working perfect for yellow at around 6pm
+cvInRangeS(imgHSV, cvScalar(20, 100, 100), cvScalar(30, 255, 255), imgThreshed);
 
-class ColorTracking {
+if (color==2)
+// Values 20,100,100 to 30,255,255 working perfect for yellow at around 6pm
+cvInRangeS(imgHSV, cvScalar(80, 100, 100), cvScalar(90, 255, 255), imgThreshed);
 
-public:
-IplImage* imgScribble;
+if (color==3)
+// Values 20,100,100 to 30,255,255 working perfect for yellow at around 6pm
+cvInRangeS(imgHSV, cvScalar(80, 100, 100), cvScalar(90, 255, 255), imgThreshed);
 
-  ColorTracking(ros::NodeHandle &n) :
-    n_(n), it_(n_)
-  {
-    
-    image_sub_ = it_.subscribe(
-                               "/camera/", 1, &ColorTracking::imageCallback, this);
-   // n_.param ("save_image", save_image_, std::string(""));
-	 //winName = "correspondences";
-	imgScribble = NULL;
-  }
+if (color==4)
+// Values 20,100,100 to 30,255,255 working perfect for yellow at around 6pm
+cvInRangeS(imgHSV, cvScalar(80, 100, 100), cvScalar(90, 255, 255), imgThreshed);
 
-  ~ColorTracking()
-  {
-    
-  }
+cvReleaseImage(&imgHSV);
 
- void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
-  {
+return imgThreshed;
+}
 
-    IplImage *frame = NULL;
-    try
-      {
-        frame = bridge_.imgMsgToCv(msg_ptr, "bgr8");
-      }
-    catch (sensor_msgs::CvBridgeException error)
-      {
-        ROS_ERROR("error");
-      }
+int main()
+{
+// Initialize capturing live feed from the camera
+CvCapture* capture = 0;
+capture = cvCaptureFromCAM(0);
+
+// Couldn't get a device? Throw an error and quit
+if(!capture)
+    {
+        printf("Could not initialize capturing...\n");
+        return -1;
+    }
 
 // The two windows we'll be using
-cvNamedWindow("video");
+    cvNamedWindow("video");
 cvNamedWindow("thresh yellow");
 cvNamedWindow("thresh green");
 //cvNamedWindow("thresh blue");
 //cvNamedWindow("thresh red");
 
+
+// This image holds the "scribble" data...
+// the tracked positions of the ball
+IplImage* imgScribble = NULL;
+
+// An infinite loop
+while(true)
+    {
+// Will hold a frame captured from the camera
+IplImage* frame = 0;
+frame = cvQueryFrame(capture);
+
 // If we couldn't grab a frame... quit
         if(!frame)
-            return ;
+            break;
 
 // If this is the first frame, we need to initialize it
 if(imgScribble == NULL)
@@ -196,13 +201,12 @@ cvShowImage("thresh green", imgGreenThresh);
 //cvShowImage("thresh red", imgRedThresh);
 cvShowImage("video", frame);
 
-// Wait for a keypressusing namespace cv;
-
+// Wait for a keypress
 int c = cvWaitKey(10);
 if(c!=-1)
 {
 // If pressed, break out of the loop
-            return ;
+            break;
 }
 
 // Release the thresholded image... we need no memory leaks.. please
@@ -217,61 +221,10 @@ delete moments_green;
 //delete moments_blue;
 //delete moments_red;
 
-    
+    }
 
 // We're done using the camera. Other applications can now use it
-
-    return ;
-	
-  }
-
-
-IplImage* GetThresholdedImage(IplImage* img, int color)
-{
-// Convert the image into an HSV image
-IplImage* imgHSV = cvCreateImage(cvGetSize(img), 8, 3);
-cvCvtColor(img, imgHSV, CV_BGR2HSV);
-
-IplImage* imgThreshed = cvCreateImage(cvGetSize(img), 8, 1);
-if (color==1)
-// Values 20,100,100 to 30,255,255 working perfect for yellow at around 6pm
-cvInRangeS(imgHSV, cvScalar(20, 100, 100), cvScalar(30, 255, 255), imgThreshed);
-
-if (color==2)
-// Values 20,100,100 to 30,255,255 working perfect for yellow at around 6pm
-cvInRangeS(imgHSV, cvScalar(80, 100, 100), cvScalar(90, 255, 255), imgThreshed);
-
-if (color==3)
-// Values 20,100,100 to 30,255,255 working perfect for yellow at around 6pm
-cvInRangeS(imgHSV, cvScalar(80, 100, 100), cvScalar(90, 255, 255), imgThreshed);
-
-if (color==4)
-// Values 20,100,100 to 30,255,255 working perfect for yellow at around 6pm
-cvInRangeS(imgHSV, cvScalar(80, 100, 100), cvScalar(90, 255, 255), imgThreshed);
-
-cvReleaseImage(&imgHSV);
-
-return imgThreshed;
-}
-
-protected:
-
-  ros::NodeHandle n_;
-  image_transport::ImageTransport it_;
-  image_transport::Subscriber image_sub_;
-  sensor_msgs::CvBridge bridge_;
-  
-
-
-};
-
-int main(int argc, char** argv)
-{
-
-ros::init(argc, argv, "ros_to_openCv");
-  ros::NodeHandle n("~");
-  ColorTracking ic(n);
-  ros::spin();
-
+cvReleaseCapture(&capture);
+    return 0;
 }
 
