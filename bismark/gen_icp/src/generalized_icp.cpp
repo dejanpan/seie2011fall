@@ -61,7 +61,7 @@ int main(int argc, char** argv){
 
 
     	std::stringstream ss;
-    	ss<<argv[i+1];
+    	ss<<argv[2];
     	pcl::PCDReader reader;
     	reader.read((ss.str()),*input);
 
