@@ -3,7 +3,7 @@
 making the launch file- improve
 document the things in the code
 
-experiments
+experiments- improve the screens
 correct the pose estimation
 tutorials
 write the one page abstract for the project
@@ -14,9 +14,9 @@ implement push point determination manually (by e.g. clicking on the
 depth image)
 new approaches for occlusions: multiple views(another camera in the hand) or modelling of unknown spaces
 
-improve the images(cotrasta nd brightness)
+improve the images(cotrast nd brightness)- more
 implement grasping of an object out of segmented points
 video
-http://www.cs.brown.edu/~pff/segment/
+compare with normal segmentation: http://www.cs.brown.edu/~pff/segment/
 GUI in Qt
 
