@@ -1,0 +1,91 @@
+all: installed
+
+SVN_DIR = build/pcl_trunk
+# Developers, please use this URL:
+#SVN_URL = http://svn.pointclouds.org/pcl/trunk # For the very latest version
+SVN_URL = http://svn.pointclouds.org/pcl/branches/pcl-1.4.x # The most recently released version
+SVN_PATCH = pcl_trunk_ros_ld_library_path.patch
+SVN_REVISION=-r3776
+include $(shell rospack find mk)/svn_checkout.mk
+
+installed: $(SVN_DIR) patched cleaned
+	mkdir -p msg/build && cd msg/build && cmake ../.. && make && cd -
+	cd $(SVN_DIR) && mkdir -p build && cd build && \
+	rm -rf ../common/include/sensor_msgs ../common/include/std_msgs \
+	../common/include/pcl/ModelCoefficients.h ../common/include/pcl/PointIndices.h ../common/include/pcl/PolygonMesh.h ../common/include/pcl/Vertices.h && \
+	`rospack find pcl`/cmake/ros_env.py \
+	cmake -DCMAKE_INSTALL_PREFIX=`pwd`/../../.. \
+				-DCMAKE_BUILD_TYPE=Release \
+				-DUSE_ROS=ON \
+        -DFLANN_INCLUDE_DIR=`rospack find flann`/include \
+        -DFLANN_LIBRARY=`rospack find flann`/lib/libflann.so \
+	-DBUILD_TESTS=OFF \
+	-DBUILD_CUDA=OFF \
+	-DBUILD_OPENNI=ON \
+	-DBUILD_apps=OFF \
+	-DBUILD_common=ON \
+	-DBUILD_features=ON \
+	-DBUILD_filters=ON \
+	-DBUILD_global_tests=OFF \
+	-DBUILD_io=ON \
+	-DBUILD_octree=ON \
+	-DBUILD_proctor=OFF \
+	-DBUILD_kdtree=ON \
+	-DBUILD_keypoints=ON \
+	-DBUILD_range_image=ON \
+	-DBUILD_registration=ON \
+	-DBUILD_sample_consensus=ON \
+	-DBUILD_segmentation=ON \
+	-DBUILD_surface=ON \
+	-DBUILD_visualization=ON \
+	-DCMAKE_VERBOSE_MAKEFILE=OFF \
+	.. && \
+	`rospack find pcl`/cmake/ros_env.py \
+	make ${ROS_PARALLEL_JOBS} install VERBOSE=1
+	touch installed
+
+myinstalled: $(SVN_DIR) patched cleaned
+	cd $(SVN_DIR) && cd build && \
+	`rospack find pcl`/cmake/ros_env.py \
+	cmake -DCMAKE_INSTALL_PREFIX=`pwd`/../../.. \
+				-DCMAKE_BUILD_TYPE=Release \
+				-DUSE_ROS=ON \
+        -DFLANN_INCLUDE_DIR=`rospack find flann`/include \
+        -DFLANN_LIBRARY=`rospack find flann`/lib/libflann.so \
+	-DBUILD_TESTS=OFF \
+	-DBUILD_CUDA=OFF \
+	-DBUILD_OPENNI=ON \
+	-DBUILD_apps=OFF \
+	-DBUILD_common=ON \
+	-DBUILD_features=ON \
+	-DBUILD_filters=ON \
+	-DBUILD_global_tests=OFF \
+	-DBUILD_io=ON \
+	-DBUILD_octree=ON \
+	-DBUILD_proctor=OFF \
+	-DBUILD_kdtree=ON \
+	-DBUILD_keypoints=ON \
+	-DBUILD_range_image=ON \
+	-DBUILD_registration=ON \
+	-DBUILD_sample_consensus=ON \
+	-DBUILD_segmentation=ON \
+	-DBUILD_surface=ON \
+	-DBUILD_visualization=ON \
+	-DCMAKE_VERBOSE_MAKEFILE=OFF \
+	.. && \
+	`rospack find pcl`/cmake/ros_env.py \
+	make ${ROS_PARALLEL_JOBS} install VERBOSE=1
+
+cleaned: Makefile
+	make clean
+	touch cleaned
+
+clean:
+	-rm -rf $(SVN_DIR)/build rospack_nosubdirs patched installed include bin lib64 msg_gen src *~
+
+wiped: Makefile
+	make wipe
+	touch wiped
+
+wipe: clean
+	rm -rf build cleaned
