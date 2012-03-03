@@ -32,7 +32,7 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	trans = tfFromEigen(mr.final_trafo);
   	tf::transformTFToMsg(trans, transform_msg);
   	msg.featureTransform = transform_msg;
-  	//ROS_INFO("trans: %f, %f, %f", mr.final_trafo(0,3), mr.final_trafo(1,3), mr.final_trafo(2,3));
+  	//ROS_INFO("translation %f, %f, %f", mr.final_trafo(0,3), mr.final_trafo(1,3), mr.final_trafo(2,3));
 
   	//convert pcl::PointCloud<pcl::PointXYZRGB> to sensor messages point cloud 2
   	sensor_msgs::PointCloud2 sourceCloudMessage;

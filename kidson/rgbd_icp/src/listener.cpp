@@ -13,7 +13,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "listener");
   ros::NodeHandle n;
   rgbd_icp rgbd_listener;
-  ros::Subscriber sub = n.subscribe("/feature_match_out_topic", 1000, &rgbd_icp::computeRGBD_ICP, &rgbd_listener);
+  ros::Subscriber sub = n.subscribe("/feature_match_out_topic", 1000, &rgbd_icp::processRGBD_ICP, &rgbd_listener);
   ros::spin();
   return 0;
 }

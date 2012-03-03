@@ -52,15 +52,12 @@ Eigen::Matrix4f EigenfromTf(tf::Transform trans)
 	eignMat(0,3) = trans.getOrigin().getX();
 	eignMat(1,3) = trans.getOrigin().getY();
 	eignMat(2,3) = trans.getOrigin().getZ();
-	eignMat(0,0) = trans.getBasis().getRow(0).getX();
-	eignMat(0,1) = trans.getBasis().getRow(0).getY();
-	eignMat(0,2) = trans.getBasis().getRow(0).getZ();
-	eignMat(1,0) = trans.getBasis().getRow(1).getX();
-	eignMat(1,1) = trans.getBasis().getRow(1).getY();
-	eignMat(1,2) = trans.getBasis().getRow(1).getZ();
-	eignMat(2,0) = trans.getBasis().getRow(2).getX();
-	eignMat(2,1) = trans.getBasis().getRow(2).getY();
-	eignMat(2,2) = trans.getBasis().getRow(2).getZ();
+	for (int i=0;i<3;i++)
+	{
+		eignMat(i,0) = trans.getBasis().getRow(i).getX();
+		eignMat(i,1) = trans.getBasis().getRow(i).getY();
+		eignMat(i,2) = trans.getBasis().getRow(i).getZ();
+	}
 	eignMat(3,3) = 1;
 	//ROS_INFO("trans: %f, %f, %f %f | %f, %f, %f %f | %f, %f, %f %f", eignMat(0,0), eignMat(0,1), eignMat(0,2), eignMat(0,3), eignMat(1,0), eignMat(1,1), eignMat(1,2), eignMat(1,3), eignMat(2,0), eignMat(2,1), eignMat(2,2), eignMat(2,3));
     return eignMat;
