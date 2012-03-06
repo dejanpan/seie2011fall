@@ -8,9 +8,13 @@ int
  main (int argc, char** argv)
 {
   if(argc != 3) return 0;
-  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_source (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_target (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+  //PointXYZRGBNormal
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_source (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_target (new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_converg (new pcl::PointCloud<pcl::PointXYZRGB>);
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr featureCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+  std::vector<int> indicies;
 
   //Fill in the cloud data
   pcl::PCDReader reader;
@@ -23,6 +27,10 @@ int
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
   icp.setInputCloud(cloud_source);
   icp.setInputTarget(cloud_target);
+  icp.setSourceFeatures (featureCloud, indicies);
+  icp.setTargetFeatures (featureCloud, indicies);
+  icp.setFeatureErrorWeight(1);
+
   pcl::PointCloud<pcl::PointXYZRGB> Final;
   Eigen::Matrix4f guess;
   guess <<   1, 0, 0, 0.1,

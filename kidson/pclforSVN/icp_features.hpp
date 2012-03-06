@@ -51,9 +51,8 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
   PointCloudTarget input_corresp;
   input_corresp.points.resize (indices_->size ());
 
-  //Set alpha and number of feature correspondences
-  transformation_estimation_->setmPointsFeatures(featureSourceIndicies.size());
-  transformation_estimation_->setFeatureErrorWeight(alpha)
+  //Set number of feature correspondences
+  transformation_estimation_->setmPointsFeatures(featureSourceIndices.size());
 
   nr_iterations_ = 0;
   converged_ = false;
@@ -168,20 +167,22 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
     //rigid_transformation_estimation_(output, source_indices_good, *target_, target_indices_good, transformation_);
 
     //Concatinate feature and pointcloud data, and also contatinate the feature indicies
-    combinedSourceCloud = output;
+    PointCloudSource combinedSourceCloud = output;
     combinedSourceCloud+= featurePointCloudSource;
-    combinedTargetCloud = *target;
+    PointCloudSource combinedTargetCloud = *target_;
     combinedTargetCloud+= featurePointCloudTarget;
 
-    combinedSourceIndicies.reserve( source_indices_good.size() + featureSourceIndicies.size() ); // preallocate memory
-    combinedSourceIndicies.insert( combinedSourceIndicies.end(), source_indices_good.size.begin(), source_indices_good.size.end() );
-    combinedSourceIndicies.insert( combinedSourceIndicies.end(), featureSourceIndicies.begin(), featureSourceIndicies.end() );
+    std::vector<int> combinedSourceIndices;
+    combinedSourceIndices.reserve( source_indices_good.size() + featureSourceIndices.size() ); // preallocate memory
+    combinedSourceIndices.insert( combinedSourceIndices.end(), source_indices_good.begin(), source_indices_good.end() );
+    combinedSourceIndices.insert( combinedSourceIndices.end(), featureSourceIndices.begin(), featureSourceIndices.end() );
 
-    combinedTargetIndicies.reserve( target_indices_good.size() + featureTargetIndicies.size() ); // preallocate memory
-    combinedTargetIndicies.insert( combinedTargetIndicies.end(), target_indices_good.size.begin(), target_indices_good.size.end() );
-    combinedTargetIndicies.insert( combinedTargetIndicies.end(), featureTargetIndicies.begin(), featureTargetIndicies.end() );
+    std::vector<int> combinedTargetIndices;
+    combinedTargetIndices.reserve( target_indices_good.size() + featureTargetIndices.size() ); // preallocate memory
+    combinedTargetIndices.insert( combinedTargetIndices.end(), target_indices_good.begin(), target_indices_good.end() );
+    combinedTargetIndices.insert( combinedTargetIndices.end(), featureTargetIndices.begin(), featureTargetIndices.end() );
 
-    transformation_estimation_->estimateRigidTransformation (combinedSourceCloud, combinedSourceIndicies, combinedTargetCloud, combinedTargetIndicies, transformation_);
+    transformation_estimation_->estimateRigidTransformation (combinedSourceCloud, combinedSourceIndices, combinedTargetCloud, combinedTargetIndices, transformation_);
 
     // Tranform the data
     transformPointCloud (output, output, transformation_);

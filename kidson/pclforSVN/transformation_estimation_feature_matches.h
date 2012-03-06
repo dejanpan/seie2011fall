@@ -81,7 +81,7 @@ namespace pcl
         	mPointsFeatures = numberPoints;
         }
 
-        void setFeatureErrorWeight(int alpha)
+        virtual void setFeatureErrorWeight(int alpha)
         {
         	featureErrorWeight = alpha;
         }
@@ -97,7 +97,7 @@ namespace pcl
           // Compute the point-to-plane distance
           Vector4fMapConst s = p_src.getVector4fMap ();
           Vector4fMapConst t = p_tgt.getVector4fMap ();
-          Vector4fMapConst n = p_tgt.getNormalVector4fMap ();
+          Vector4fMapConst n = p_tgt.getVector4fMap (); //p_tgt.getNormalVector4fMap ();
           return ((s - t).dot (n));
         }
 

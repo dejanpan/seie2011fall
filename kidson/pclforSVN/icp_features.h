@@ -110,19 +110,19 @@ namespace pcl
 	   setSourceFeatures (const PointCloudSourceConstPtr &cloud, std::vector<int> &indicies)
 	   {
     	  featurePointCloudSource = *cloud;
-    	  featureSourceIndicies = indicies;
+    	  featureSourceIndices = indicies;
 	   }
 
        void
 	   setTargetFeatures (const PointCloudSourceConstPtr &cloud, std::vector<int> &indicies)
 	   {
     	  featurePointCloudTarget = *cloud;
-    	  featureTargetIndicies = indicies;
+    	  featureTargetIndices = indicies;
 	   }
 
        void setFeatureErrorWeight(int alpha)
        {
-    	   transformation_estimation_->setFeatureErrorWeight(alpha);
+    	   /*dynamic_cast<pcl::registration::TransformationEstimationFeatureMatches*> */ transformation_estimation_->setFeatureErrorWeight(alpha);
        }
 
 
@@ -136,8 +136,8 @@ namespace pcl
       PointCloudSource featurePointCloudSource;
       PointCloudTarget featurePointCloudTarget;
 
-      std::vector<int> featureSourceIndicies;
-      std::vector<int> featureTargetIndicies;
+      std::vector<int> featureSourceIndices;
+      std::vector<int> featureTargetIndices;
 
       virtual void 
       computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess);
