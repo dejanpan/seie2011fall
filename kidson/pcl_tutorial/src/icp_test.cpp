@@ -8,8 +8,8 @@ int
  main (int argc, char** argv)
 {
   if(argc != 3) return 0;
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_source (new pcl::PointCloud<pcl::PointXYZRGB>);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_target (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_source (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_target (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_converg (new pcl::PointCloud<pcl::PointXYZRGB>);
 
   //Fill in the cloud data

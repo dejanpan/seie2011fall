@@ -51,7 +51,9 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
   PointCloudTarget input_corresp;
   input_corresp.points.resize (indices_->size ());
 
-  //load the feature indicies into the transformation_estimation_ here
+  //Set alpha and number of feature correspondences
+  transformation_estimation_->setmPointsFeatures(featureSourceIndicies.size());
+  transformation_estimation_->setFeatureErrorWeight(alpha)
 
   nr_iterations_ = 0;
   converged_ = false;
@@ -164,13 +166,22 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
   
     // Estimate the transform
     //rigid_transformation_estimation_(output, source_indices_good, *target_, target_indices_good, transformation_);
-    //transformation_estimation_->estimateRigidTransformation (output, source_indices_good, *target_, target_indices_good, transformation_);
 
-    //Combine feature and pointcloud data here:
-    // output = output + featurePointCloudSource
-    // target = target + featurePointCloudTarget
+    //Concatinate feature and pointcloud data, and also contatinate the feature indicies
+    combinedSourceCloud = output;
+    combinedSourceCloud+= featurePointCloudSource;
+    combinedTargetCloud = *target;
+    combinedTargetCloud+= featurePointCloudTarget;
 
-    transformation_estimation_->estimateRigidTransformation (output, source_indices_good, *target_, target_indices_good, transformation_);
+    combinedSourceIndicies.reserve( source_indices_good.size() + featureSourceIndicies.size() ); // preallocate memory
+    combinedSourceIndicies.insert( combinedSourceIndicies.end(), source_indices_good.size.begin(), source_indices_good.size.end() );
+    combinedSourceIndicies.insert( combinedSourceIndicies.end(), featureSourceIndicies.begin(), featureSourceIndicies.end() );
+
+    combinedTargetIndicies.reserve( target_indices_good.size() + featureTargetIndicies.size() ); // preallocate memory
+    combinedTargetIndicies.insert( combinedTargetIndicies.end(), target_indices_good.size.begin(), target_indices_good.size.end() );
+    combinedTargetIndicies.insert( combinedTargetIndicies.end(), featureTargetIndicies.begin(), featureTargetIndicies.end() );
+
+    transformation_estimation_->estimateRigidTransformation (combinedSourceCloud, combinedSourceIndicies, combinedTargetCloud, combinedTargetIndicies, transformation_);
 
     // Tranform the data
     transformPointCloud (output, output, transformation_);

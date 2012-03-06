@@ -48,7 +48,7 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget> inline void
-/*pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation (
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation (
     const pcl::PointCloud<PointSource> &cloud_src,
     const std::vector<int> &indices_src,
     const pcl::PointCloud<PointTarget> &cloud_tgt,
@@ -105,7 +105,7 @@ template <typename PointSource, typename PointTarget> inline void
   tmp_src_ = NULL;
   tmp_tgt_ = NULL;
   tmp_idx_src_ = tmp_idx_tgt_ = NULL;
-}*/
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget> int
@@ -130,8 +130,10 @@ pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarg
     PointSource p_src_warped;
     estimator_->warp_point_->warpPoint (p_src, p_src_warped);
     
-    // Estimate the distance (cost function)
-    fvec[i] = estimator_->computeDistance (p_src_warped, p_tgt);
+    if (i < (src_indices.size() - estimator_->mPointsFeatures))
+    	fvec[i] = sqrt((1 - featureErrorWeight) * (1/estimator_->mPointsDense) ) * estimator_->computeDistancePointToPlane (p_src_warped, p_tgt);
+    else
+    	fvec[i] = sqrt(featureErrorWeight * (1/estimator_->mPointsFeature) ) * estimator_->computeDistance (p_src_warped, p_tgt);
   }
   return (0);
 }

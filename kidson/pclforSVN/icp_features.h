@@ -120,6 +120,12 @@ namespace pcl
     	  featureTargetIndicies = indicies;
 	   }
 
+       void setFeatureErrorWeight(int alpha)
+       {
+    	   transformation_estimation_->setFeatureErrorWeight(alpha);
+       }
+
+
 
     protected:
       /** \brief Rigid transformation computation method  with initial guess.

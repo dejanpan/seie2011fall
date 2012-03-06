@@ -76,16 +76,39 @@ namespace pcl
         TransformationEstimationFeatureMatches () {};
         virtual ~TransformationEstimationFeatureMatches () {};
 
+        void setmPointsFeatures(int numberPoints)
+        {
+        	mPointsFeatures = numberPoints;
+        }
+
+        void setFeatureErrorWeight(int alpha)
+        {
+        	featureErrorWeight = alpha;
+        }
+
       protected:
+
+        int mPointsFeatures;
+        float featureErrorWeight;
+
         virtual double
-        computeDistance (const PointSource &p_src, const PointTarget &p_tgt)
+        computeDistancePointToPlane (const PointSource &p_src, const PointTarget &p_tgt)
         { 
           // Compute the point-to-plane distance
           Vector4fMapConst s = p_src.getVector4fMap ();
           Vector4fMapConst t = p_tgt.getVector4fMap ();
-          Vector4fMapConst n = p_tgt.getVector4fMap (); //p_tgt.getNormalVector4fMap ();
+          Vector4fMapConst n = p_tgt.getNormalVector4fMap ();
           return ((s - t).dot (n));
         }
+
+        virtual double
+        computeDistance (const PointSource &p_src, const PointTarget &p_tgt)
+        {
+		  Vector4fMapConst s = p_src.getVector4fMap ();
+		  Vector4fMapConst t = p_tgt.getVector4fMap ();
+		  return (pcl::distances::l2 (s, t));
+        }
+
         /** Generic functor for the optimization */
         template<typename _Scalar, int NX=Eigen::Dynamic, int NY=Eigen::Dynamic>
         struct Functor

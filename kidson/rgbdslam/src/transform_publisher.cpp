@@ -5,6 +5,9 @@
  *      Author: ross
  */
 #include "transform_publisher.h"
+#include "rgbdslam/featureMatch.h"
+#include "rgbdslam/match.h"
+#include "rgbdslam/featureLocation.h"
 
 /** @brief Helper function to convert Eigen transformation to tf */
 tf::Transform tfFromEigen(Eigen::Matrix4f trans)
@@ -42,6 +45,7 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	msg.sourcePointcloud = sourceCloudMessage;
   	msg.targetPointcloud = targetCloudMessage;
 
+  	//extract matching result ids
   	for(std::vector<cv::DMatch>::iterator iterator_ = mr.inlier_matches.begin(); iterator_ != mr.inlier_matches.end(); ++iterator_) {
   	    rgbdslam::match matchmsg;
   	    matchmsg.queryId = iterator_->queryIdx;
@@ -52,14 +56,23 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	    //ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryIdx, iterator_->trainIdx, iterator_->imgIdx, iterator_->distance);
   	}
 
-  	//msg.matches
-    //std::stringstream ss;
-    //ss << "hello world " << count;
-    //msg.data = ss.str();
-    //ROS_INFO("%s", msg.data.c_str());
+  	//Retrieve feature locations
+  	for(std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >::iterator iterator_ = sourcePointCloud->feature_locations_3d_.begin(); iterator_ != sourcePointCloud->feature_locations_3d_.end(); ++iterator_) {
+  		rgbdslam::featureLocation featureLocationMsg;
+  		featureLocationMsg.x = iterator_->x();
+  		featureLocationMsg.y = iterator_->y();
+  		featureLocationMsg.z = iterator_->z();
+  		featureLocationMsg.t = iterator_->w();
+  		msg.sourceFeatureLocations.push_back(featureLocationMsg);
+  	}
+  	for(std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >::iterator iterator_ = targetPointCloud->feature_locations_3d_.begin(); iterator_ != targetPointCloud->feature_locations_3d_.end(); ++iterator_) {
+  		rgbdslam::featureLocation featureLocationMsg;
+  		featureLocationMsg.x = iterator_->x();
+  		featureLocationMsg.y = iterator_->y();
+  		featureLocationMsg.z = iterator_->z();
+  		featureLocationMsg.t = iterator_->w();
+  		msg.targetFeatureLocations.push_back(featureLocationMsg);
+  	}
 
     featureMatchPub.publish(msg);
-
-    //ros::spinOnce();
-
 }
