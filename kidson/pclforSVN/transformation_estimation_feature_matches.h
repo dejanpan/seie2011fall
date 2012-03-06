@@ -65,13 +65,13 @@ namespace pcl
         typedef PointIndices::Ptr PointIndicesPtr;
         typedef PointIndices::ConstPtr PointIndicesConstPtr;
 
-        inline void
+        /*inline void
         estimateRigidTransformation (
             const pcl::PointCloud<PointSource> &cloud_src,
             const std::vector<int> &indices_src,
             const pcl::PointCloud<PointTarget> &cloud_tgt,
             const std::vector<int> &indices_tgt,
-            Eigen::Matrix4f &transformation_matrix);
+            Eigen::Matrix4f &transformation_matrix);*/
 
         TransformationEstimationFeatureMatches () {};
         virtual ~TransformationEstimationFeatureMatches () {};
@@ -83,7 +83,7 @@ namespace pcl
           // Compute the point-to-plane distance
           Vector4fMapConst s = p_src.getVector4fMap ();
           Vector4fMapConst t = p_tgt.getVector4fMap ();
-          Vector4fMapConst n = p_tgt.getNormalVector4fMap ();
+          Vector4fMapConst n = p_tgt.getVector4fMap (); //p_tgt.getNormalVector4fMap ();
           return ((s - t).dot (n));
         }
         /** Generic functor for the optimization */
