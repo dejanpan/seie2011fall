@@ -51,6 +51,8 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
   PointCloudTarget input_corresp;
   input_corresp.points.resize (indices_->size ());
 
+  //load the feature indicies into the transformation_estimation_ here
+
   nr_iterations_ = 0;
   converged_ = false;
   double dist_threshold = corr_dist_threshold_ * corr_dist_threshold_;
@@ -99,6 +101,7 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
       // Save the nn_dists[0] to a global vector of distances
       correspondence_distances_[(*indices_)[idx]] = std::min (nn_dists[0], (float)dist_threshold);
     }
+
     if (cnt < min_number_correspondences_)
     {
       PCL_ERROR ("[pcl::%s::computeTransformation] Not enough correspondences found. Relax your threshold parameters.\n", getClassName ().c_str ());
@@ -161,10 +164,17 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
   
     // Estimate the transform
     //rigid_transformation_estimation_(output, source_indices_good, *target_, target_indices_good, transformation_);
+    //transformation_estimation_->estimateRigidTransformation (output, source_indices_good, *target_, target_indices_good, transformation_);
+
+    //Combine feature and pointcloud data here:
+    // output = output + featurePointCloudSource
+    // target = target + featurePointCloudTarget
+
     transformation_estimation_->estimateRigidTransformation (output, source_indices_good, *target_, target_indices_good, transformation_);
 
     // Tranform the data
     transformPointCloud (output, output, transformation_);
+    transformPointCloud (featurePointCloudSource, featurePointCloudSource, transformation_);
 
     // Obtain the final transformation    
     final_transformation_ = transformation_ * final_transformation_;
@@ -202,4 +212,3 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
     }
   }
 }
-

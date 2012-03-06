@@ -47,8 +47,8 @@
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/*template <typename PointSource, typename PointTarget> inline void
-pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation (
+template <typename PointSource, typename PointTarget> inline void
+/*pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation (
     const pcl::PointCloud<PointSource> &cloud_src,
     const std::vector<int> &indices_src,
     const pcl::PointCloud<PointTarget> &cloud_tgt,

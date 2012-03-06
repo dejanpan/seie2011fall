@@ -106,11 +106,33 @@ namespace pcl
         transformation_estimation_.reset (new pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>);
       };
 
+       void
+	   setSourceFeatures (const PointCloudSourceConstPtr &cloud, std::vector<int> &indicies)
+	   {
+    	  featurePointCloudSource = *cloud;
+    	  featureSourceIndicies = indicies;
+	   }
+
+       void
+	   setTargetFeatures (const PointCloudSourceConstPtr &cloud, std::vector<int> &indicies)
+	   {
+    	  featurePointCloudTarget = *cloud;
+    	  featureTargetIndicies = indicies;
+	   }
+
+
     protected:
       /** \brief Rigid transformation computation method  with initial guess.
         * \param output the transformed input point cloud dataset using the rigid transformation found
         * \param guess the initial guess of the transformation to compute
         */
+
+      PointCloudSource featurePointCloudSource;
+      PointCloudTarget featurePointCloudTarget;
+
+      std::vector<int> featureSourceIndicies;
+      std::vector<int> featureTargetIndicies;
+
       virtual void 
       computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess);
 
