@@ -2,6 +2,9 @@
 geometry_msgs/Transform featureTransform
 sensor_msgs/PointCloud2 sourcePointcloud
 sensor_msgs/PointCloud2 targetPointcloud
-featureLocation[] sourceFeatureLocations
-featureLocation[] targetFeatureLocations
+#featureLocation[] sourceFeatureLocations
+#featureLocation[] targetFeatureLocations
+sensor_msgs/PointCloud2 sourceFeatureLocations
+sensor_msgs/PointCloud2 targetFeatureLocations
 match[] matches
+
