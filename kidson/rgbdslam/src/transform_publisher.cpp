@@ -25,10 +25,11 @@ tf::Transform tfFromEigen(Eigen::Matrix4f trans)
 
 void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePointCloud, ros::Publisher& featureMatchPub)
 {
-
-    //std_msgs::String msg;
+	pcl::PointCloud<pcl::PointXYZ> featuresSource,featuresTarget ;
+	//std_msgs::String msg;
 	rgbdslam::featureMatch msg;
 
+	ROS_INFO("Publish 1");
 	//need to convert mr.final_trafo from Eigen::Matrix4f to geometry_msgs::Transform
   	geometry_msgs::Transform transform_msg;
   	tf::Transform trans;
@@ -37,14 +38,12 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	msg.featureTransform = transform_msg;
   	//ROS_INFO("translation %f, %f, %f", mr.final_trafo(0,3), mr.final_trafo(1,3), mr.final_trafo(2,3));
 
+  	ROS_INFO("Publish 2");
   	//convert pcl::PointCloud<pcl::PointXYZRGB> to sensor messages point cloud 2
-  	sensor_msgs::PointCloud2 sourceCloudMessage;
-  	sensor_msgs::PointCloud2 targetCloudMessage;
-  	pcl::toROSMsg(*(sourcePointCloud->pc_col),sourceCloudMessage);
-  	pcl::toROSMsg(*(targetPointCloud->pc_col),targetCloudMessage);
-  	msg.sourcePointcloud = sourceCloudMessage;
-  	msg.targetPointcloud = targetCloudMessage;
+	pcl::toROSMsg(*(sourcePointCloud->pc_col),msg.sourcePointcloud);
+	pcl::toROSMsg(*(targetPointCloud->pc_col),msg.targetPointcloud);
 
+  	ROS_INFO("Publish 3");
   	//extract matching result ids
   	for(std::vector<cv::DMatch>::iterator iterator_ = mr.inlier_matches.begin(); iterator_ != mr.inlier_matches.end(); ++iterator_) {
   	    rgbdslam::match matchmsg;
@@ -56,23 +55,32 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	    //ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryIdx, iterator_->trainIdx, iterator_->imgIdx, iterator_->distance);
   	}
 
+  	ROS_INFO("Publish 4");
   	//Retrieve feature locations
+
+  	featuresSource.width = sourcePointCloud->feature_locations_3d_.size();
+  	featuresSource.height = 1;
+  	int i=0;
+  	float a;
   	for(std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >::iterator iterator_ = sourcePointCloud->feature_locations_3d_.begin(); iterator_ != sourcePointCloud->feature_locations_3d_.end(); ++iterator_) {
-  		rgbdslam::featureLocation featureLocationMsg;
-  		featureLocationMsg.x = iterator_->x();
-  		featureLocationMsg.y = iterator_->y();
-  		featureLocationMsg.z = iterator_->z();
-  		featureLocationMsg.t = iterator_->w();
-  		msg.sourceFeatureLocations.push_back(featureLocationMsg);
-  	}
-  	for(std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >::iterator iterator_ = targetPointCloud->feature_locations_3d_.begin(); iterator_ != targetPointCloud->feature_locations_3d_.end(); ++iterator_) {
-  		rgbdslam::featureLocation featureLocationMsg;
-  		featureLocationMsg.x = iterator_->x();
-  		featureLocationMsg.y = iterator_->y();
-  		featureLocationMsg.z = iterator_->z();
-  		featureLocationMsg.t = iterator_->w();
-  		msg.targetFeatureLocations.push_back(featureLocationMsg);
+//  		a = iterator_->
+ // 		featuresSource.points[i].x = iterator_->x();
+//  		featuresSource.points[i].y = iterator_->y();
+//  		featuresSource.points[i++].z = iterator_->z();
+  		i++;
   	}
 
+  	ROS_INFO("Publish 5");
+  	pcl::toROSMsg(featuresSource, msg.sourceFeatureLocations);
+  	featuresTarget.width = targetPointCloud->feature_locations_3d_.size();
+  	i=0;
+/*  	for(std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >::iterator iterator_ = targetPointCloud->feature_locations_3d_.begin(); iterator_ != targetPointCloud->feature_locations_3d_.end(); ++iterator_) {
+  		featuresTarget.points[i].x = iterator_->x();
+  		featuresTarget.points[i].y = iterator_->y();
+  		featuresTarget.points[i++].z = iterator_->z();
+  	}*/
+  	ROS_INFO("Publish 6");
+  	pcl::toROSMsg(featuresTarget, msg.targetFeatureLocations );
+  	ROS_INFO("Publish 7");
     featureMatchPub.publish(msg);
 }
