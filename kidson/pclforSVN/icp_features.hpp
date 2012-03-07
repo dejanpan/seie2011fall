@@ -51,8 +51,9 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
   PointCloudTarget input_corresp;
   input_corresp.points.resize (indices_->size ());
 
-  //Set number of feature correspondences
-  transformation_estimation_->setmPointsFeatures(featureSourceIndices.size());
+  //Set number of feature correspondences and feature error weight
+  pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget> * estimate_fm = dynamic_cast< pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget> *> (&(*transformation_estimation_));
+  estimate_fm->setmPointsFeatures(featureSourceIndices.size());
 
   nr_iterations_ = 0;
   converged_ = false;

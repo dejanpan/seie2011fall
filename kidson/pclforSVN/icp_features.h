@@ -120,9 +120,10 @@ namespace pcl
     	  featureTargetIndices = indicies;
 	   }
 
-       void setFeatureErrorWeight(int alpha)
+       void setFeatureErrorWeight(float alpha)
        {
-    	   /*dynamic_cast<pcl::registration::TransformationEstimationFeatureMatches*> */ transformation_estimation_->setFeatureErrorWeight(alpha);
+    	   pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget> * estimate_fm = dynamic_cast< pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget> *> (&(*transformation_estimation_));
+    	   estimate_fm->setFeatureErrorWeight(alpha);
        }
 
 

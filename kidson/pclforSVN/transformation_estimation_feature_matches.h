@@ -81,7 +81,7 @@ namespace pcl
         	mPointsFeatures = numberPoints;
         }
 
-        virtual void setFeatureErrorWeight(int alpha)
+        virtual void setFeatureErrorWeight(float alpha)
         {
         	featureErrorWeight = alpha;
         }
