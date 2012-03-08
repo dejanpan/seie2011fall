@@ -136,12 +136,12 @@ int main(int argc, char** argv){
         y= ((sin((M_PI*i)/180))*r)-0.2;
 
         //angles in radians (gripper)
-//        yaw_angle = ((float)i/600)*M_PI;
-//        pitch_angle = 0.1*M_PI;
+        yaw_angle = ((float)i/600)*M_PI;
+        pitch_angle = 0.1*M_PI;
 
         //angles in radians (gripper)
-        yaw_angle = ((float)i/800)*M_PI;
-        pitch_angle = 0.1*M_PI;
+//        yaw_angle = ((float)i/800)*M_PI;
+//        pitch_angle = 0.1*M_PI;
 
         //converting angles into quaternions
         axis.setRPY(roll,pitch_angle,yaw_angle);
