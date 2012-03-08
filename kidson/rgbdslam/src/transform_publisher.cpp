@@ -7,7 +7,6 @@
 #include "transform_publisher.h"
 #include "rgbdslam/featureMatch.h"
 #include "rgbdslam/match.h"
-#include "rgbdslam/featureLocation.h"
 
 /** @brief Helper function to convert Eigen transformation to tf */
 tf::Transform tfFromEigen(Eigen::Matrix4f trans)
