@@ -62,6 +62,10 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   		featuresSource.points[i].y = iterator_->y();
   		featuresSource.points[i++].z = iterator_->z();
   	}
+
+  	//indicies test:
+  	//ROS_INFO("EV x: %f, y: %f z: %f", sourcePointCloud->feature_locations_3d_[31].x(), sourcePointCloud->feature_locations_3d_[31].y(), sourcePointCloud->feature_locations_3d_[31].z());
+  	//ROS_INFO("PC x: %f, y: %f z: %f", featuresSource.points[31].x, featuresSource.points[31].y, featuresSource.points[31].z);
     pcl::toROSMsg(featuresSource, msg.sourceFeatureLocations);
 
     featuresTarget.width = targetPointCloud->feature_locations_3d_.size();
