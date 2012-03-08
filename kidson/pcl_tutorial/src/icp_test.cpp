@@ -95,16 +95,8 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 	bag.close();
 }
 
-int
- main (int argc, char** argv)
+int main (int argc, char** argv)
 {
-  if(argc != 3)
-  {
-	  std::cout << "Not enough arguments, please provide two point clouds \n";
-	  return 0;
-  }
-
-
   PointCloudPtr cloud_source (new PointCloud);
   PointCloudPtr cloud_target (new PointCloud);
   PointCloudPtr cloud_converg (new PointCloud);
@@ -143,13 +135,15 @@ int
 		     0, 1, 0, 0,
 		     0, 0, 1, 0.015,
 		     0, 0, 0, 1;
-  icp.align(Final, guess);
+  icp.align(Final, initialTransform);
   std::cout << "has converged:" << icp.hasConverged() << " score: " <<
   icp.getFitnessScore() << std::endl;
   std::cout << icp.getFinalTransformation() << std::endl;
 
   transformPointCloud (*cloud_source, *cloud_converg, icp.getFinalTransformation());
   pcl::PCDWriter writer;
+  writer.write ("cloud1-out.pcd", *cloud_source, false);
+  writer.write ("cloud2-out.pcd", *cloud_target, false);
   writer.write ("converged.pcd", *cloud_converg, false);
 
  return (0);
