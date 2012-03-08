@@ -46,26 +46,26 @@ int main(int argc, char** argv){
 
 
 
-//    robot.torso.move(0.4);
-//    robot.left_arm.tuck();
-//
-//    double init_pos_right[]
-//           = { -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52,
-//               -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52 };
-//        std::vector<double> init_pos_vec(init_pos_right, init_pos_right+14);
-//        robot.right_arm.goToJointPos(init_pos_vec);
+    robot.torso.move(0.4);
+    robot.left_arm.tuck();
 
-
-        double init_pos_right[]
-             = {-1.92, 0.70, -2.00, -1.78, -0.28, -0.08, -2.15,
-               -1.92, 0.70, -2.00, -1.78, -0.28, -0.08, -2.15 };
+    double init_pos_right[]
+           = { -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52,
+               -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52 };
         std::vector<double> init_pos_vec(init_pos_right, init_pos_right+14);
         robot.right_arm.goToJointPos(init_pos_vec);
 
+
+//        double init_pos_right[]
+//             = {-1.92, 0.70, -2.00, -1.78, -0.28, -0.08, -2.15,
+//               -1.92, 0.70, -2.00, -1.78, -0.28, -0.08, -2.15 };
+//        std::vector<double> init_pos_vec(init_pos_right, init_pos_right+14);
+//        robot.right_arm.goToJointPos(init_pos_vec);
+
 //+++++++++++++exploring right side of the scene++++++++++++++++++++++++++++++++
 
-    //for(int i=220;i<=320;i+=20){
-    for(int i=160;i<=280;i+=20){
+    for(int i=220;i<=320;i+=20){
+    //for(int i=160;i<=280;i+=20){
 
 //++++++++++++++++++Pointcloud processing++++++++++++++++++++++++++++++++++++++++
 
