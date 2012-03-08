@@ -68,20 +68,21 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		if( i == rosMessageNumber)
 		{
 			pcl_tutorial::featureMatch::ConstPtr fm = m.instantiate<pcl_tutorial::featureMatch>();
-			//ROS_INFO("test: %i", fm->matches[4].queryId);
 
+			ROS_INFO("Converting point cloud message to local pcl clouds");
 			pcl::fromROSMsg(fm->sourcePointcloud, *cloud_source);
 			pcl::fromROSMsg(fm->targetPointcloud, *cloud_target);
 			pcl::fromROSMsg(fm->sourceFeatureLocations, *featureCloudSource);
 			pcl::fromROSMsg(fm->targetFeatureLocations, *featureCloudTarget);
 
+			ROS_INFO("Converting geometry message to eigen4f");
 		    tf::Transform trans;
 		    tf::transformMsgToTF(fm->featureTransform,trans);
 		    initialTransform = EigenfromTf(trans);
 
+		    ROS_INFO("Extracting corresponding indices");
 		    indicesSource.resize(fm->matches.size());
 		    indicesTarget.resize(fm->matches.size());
-
 		  	for(std::vector<pcl_tutorial::match>::const_iterator iterator_ = fm->matches.begin(); iterator_ != fm->matches.end(); ++iterator_)
 		  	{
 		  		indicesSource.push_back(iterator_->queryId);
@@ -116,12 +117,15 @@ int main (int argc, char** argv)
   std::cout << "PointCloud target has: " << cloud_target->points.size () << " data points." << std::endl;
   */
 
+  ROS_INFO("Getting test data from a bag file");
   getTestDataFromBag(cloud_source, cloud_target, featureCloudSource, indicesSource, featureCloudTarget, indicesTarget, initialTransform, 5);
 
   //calculate normals
+  ROS_INFO("Calcualting normals");
   normalEstimation(cloud_source, cloud_source_normals);
   normalEstimation(cloud_target, cloud_target_normals);
 
+  ROS_INFO("Setting up icp with features");
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
   icp.setInputCloud(cloud_source_normals);
   icp.setInputTarget(cloud_target_normals);
@@ -135,11 +139,14 @@ int main (int argc, char** argv)
 		     0, 1, 0, 0,
 		     0, 0, 1, 0.015,
 		     0, 0, 0, 1;
+
+  ROS_INFO("Performing icp.....");
   icp.align(Final, initialTransform);
   std::cout << "has converged:" << icp.hasConverged() << " score: " <<
   icp.getFitnessScore() << std::endl;
   std::cout << icp.getFinalTransformation() << std::endl;
 
+  ROS_INFO("Writing output clouds...");
   transformPointCloud (*cloud_source, *cloud_converg, icp.getFinalTransformation());
   pcl::PCDWriter writer;
   writer.write ("cloud1-out.pcd", *cloud_source, false);
