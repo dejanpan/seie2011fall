@@ -5,6 +5,7 @@
 #include <pcl/registration/icp_features.h>
 #include <pcl/features/normal_3d.h>
 #include "pcl_ros/transforms.h"
+#include <pcl/filters/voxel_grid.h>
 
 //rosbag stuff:
 #include <rosbag/view.h>
@@ -48,12 +49,24 @@ Eigen::Matrix4f EigenfromTf(tf::Transform trans)
     return eignMat;
 }
 
+void voxFilterPointCloud(sensor_msgs::PointCloud2::Ptr cloudIn, sensor_msgs::PointCloud2::Ptr cloudOut)
+{
+	pcl::VoxelGrid<sensor_msgs::PointCloud2> sor;
+	sor.setInputCloud (cloudIn);
+	sor.setLeafSize (0.001f, 0.001f, 0.001f);
+	sor.filter (*cloudOut);
+}
 
 void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
-		PointCloudNormalPtr featureCloudSource, std::vector<int> &indicesSource,
-		PointCloudNormalPtr featureCloudTarget, std::vector<int> &indicesTarget,
+		PointCloudPtr featureCloudSource, std::vector<int> &indicesSource,
+		PointCloudPtr featureCloudTarget, std::vector<int> &indicesTarget,
 		Eigen::Matrix4f &initialTransform, int rosMessageNumber)
 {
+	sensor_msgs::PointCloud2::Ptr cloud_source_filtered (new sensor_msgs::PointCloud2 ());
+	sensor_msgs::PointCloud2::Ptr cloud_target_filtered (new sensor_msgs::PointCloud2 ());
+
+
+
 	rosbag::Bag bag;
 	bag.open("test.bag", rosbag::bagmode::Read);
 
@@ -70,8 +83,16 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 			pcl_tutorial::featureMatch::ConstPtr fm = m.instantiate<pcl_tutorial::featureMatch>();
 
 			ROS_INFO("Converting point cloud message to local pcl clouds");
-			pcl::fromROSMsg(fm->sourcePointcloud, *cloud_source);
-			pcl::fromROSMsg(fm->targetPointcloud, *cloud_target);
+
+			sensor_msgs::PointCloud2::Ptr cloud_source_temp_Ptr (new sensor_msgs::PointCloud2 (fm->sourcePointcloud));
+			sensor_msgs::PointCloud2::Ptr cloud_target_temp_Ptr (new sensor_msgs::PointCloud2 (fm->targetPointcloud));
+
+			voxFilterPointCloud(cloud_source_temp_Ptr, cloud_source_filtered);
+			voxFilterPointCloud(cloud_target_temp_Ptr, cloud_target_filtered);
+			ROS_INFO("Converting dense clouds");
+			pcl::fromROSMsg(*cloud_source_filtered, *cloud_source);
+			pcl::fromROSMsg(*cloud_target_filtered, *cloud_target);
+			ROS_INFO("Converting sparse clouds");
 			pcl::fromROSMsg(fm->sourceFeatureLocations, *featureCloudSource);
 			pcl::fromROSMsg(fm->targetFeatureLocations, *featureCloudTarget);
 
@@ -89,6 +110,7 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		  		indicesTarget.push_back(iterator_->trainId);
 		  		//ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryId, iterator_->trainId, iterator_->imgId, iterator_->distance);
 		  	}
+		  	i++;
 		}
 		else
 			i++;
@@ -100,6 +122,8 @@ int main (int argc, char** argv)
 {
   PointCloudPtr cloud_source (new PointCloud);
   PointCloudPtr cloud_target (new PointCloud);
+  PointCloudPtr featureCloudSourceTemp (new PointCloud);
+  PointCloudPtr featureCloudTargetTemp (new PointCloud);
   PointCloudPtr cloud_converg (new PointCloud);
   PointCloudNormalPtr cloud_source_normals (new PointCloudNormal);
   PointCloudNormalPtr cloud_target_normals (new PointCloudNormal);
@@ -118,12 +142,16 @@ int main (int argc, char** argv)
   */
 
   ROS_INFO("Getting test data from a bag file");
-  getTestDataFromBag(cloud_source, cloud_target, featureCloudSource, indicesSource, featureCloudTarget, indicesTarget, initialTransform, 5);
+  getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 1);
 
   //calculate normals
   ROS_INFO("Calcualting normals");
   normalEstimation(cloud_source, cloud_source_normals);
   normalEstimation(cloud_target, cloud_target_normals);
+
+  ROS_INFO("Converting feature point clouds");
+  pcl::copyPointCloud (*featureCloudSourceTemp, *featureCloudSource);
+  pcl::copyPointCloud (*featureCloudTargetTemp, *featureCloudTarget);
 
   ROS_INFO("Setting up icp with features");
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
@@ -131,7 +159,7 @@ int main (int argc, char** argv)
   icp.setInputTarget(cloud_target_normals);
   icp.setSourceFeatures (featureCloudSource, indicesSource);
   icp.setTargetFeatures (featureCloudTarget, indicesTarget);
-  icp.setFeatureErrorWeight(1);
+  icp.setFeatureErrorWeight(0.5);
 
   PointCloudNormal Final;
   Eigen::Matrix4f guess;

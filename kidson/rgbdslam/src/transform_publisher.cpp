@@ -24,7 +24,7 @@ tf::Transform tfFromEigen(Eigen::Matrix4f trans)
 
 void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePointCloud, ros::Publisher& featureMatchPub)
 {
-    pcl::PointCloud<pcl::PointXYZ> featuresSource,featuresTarget;
+    pcl::PointCloud<pcl::PointXYZRGB> featuresSource,featuresTarget;
     //std_msgs::String msg;
 	rgbdslam::featureMatch msg;
 
@@ -55,11 +55,15 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
     featuresSource.width = sourcePointCloud->feature_locations_3d_.size();
     featuresSource.height = 1;
     featuresSource.points.resize (featuresSource.width * featuresSource.height);
+    uint8_t col=5;
     int i=0;
   	for(std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >::iterator iterator_ = sourcePointCloud->feature_locations_3d_.begin(); iterator_ != sourcePointCloud->feature_locations_3d_.end(); ++iterator_) {
   		featuresSource.points[i].x = iterator_->x();
   		featuresSource.points[i].y = iterator_->y();
-  		featuresSource.points[i++].z = iterator_->z();
+  		featuresSource.points[i].z = iterator_->z();
+  		featuresSource.points[i].r = col;
+  		featuresSource.points[i].g = col;
+  		featuresSource.points[i++].b = col;
   	}
 
   	//indicies test:
@@ -74,7 +78,10 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	for(std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >::iterator iterator_ = targetPointCloud->feature_locations_3d_.begin(); iterator_ != targetPointCloud->feature_locations_3d_.end(); ++iterator_) {
         featuresTarget.points[i].x = iterator_->x();
 	    featuresTarget.points[i].y = iterator_->y();
-	    featuresTarget.points[i++].z = iterator_->z();
+	    featuresTarget.points[i].z = iterator_->z();
+	    featuresTarget.points[i].r = col;
+	    featuresTarget.points[i].g = col;
+	    featuresTarget.points[i++].b = col;
   	}
     pcl::toROSMsg(featuresTarget, msg.targetFeatureLocations);
 
