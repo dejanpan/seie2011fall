@@ -43,7 +43,6 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	pcl::toROSMsg(*(sourcePointCloud->pc_col),msg.sourcePointcloud);
   	pcl::toROSMsg(*(targetPointCloud->pc_col),msg.targetPointcloud);
 
-  	ROS_INFO("Publish 3");
   	//extract matching result ids
   	for(std::vector<cv::DMatch>::iterator iterator_ = mr.inlier_matches.begin(); iterator_ != mr.inlier_matches.end(); ++iterator_) {
   	    rgbdslam::match matchmsg;
@@ -55,7 +54,6 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	    //ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryIdx, iterator_->trainIdx, iterator_->imgIdx, iterator_->distance);
   	}
 
-  	ROS_INFO("Publish 4");
   	//Retrieve feature locations
     featuresSource.width = sourcePointCloud->feature_locations_3d_.size();
     featuresSource.height = 1;
@@ -78,17 +76,6 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
 	    featuresTarget.points[i++].z = iterator_->z();
   	}
     pcl::toROSMsg(featuresTarget, msg.targetFeatureLocations);
-  	ROS_INFO("Publish 5");
-  	pcl::toROSMsg(featuresSource, msg.sourceFeatureLocations);
-  	featuresTarget.width = targetPointCloud->feature_locations_3d_.size();
-  	i=0;
-/*  	for(std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >::iterator iterator_ = targetPointCloud->feature_locations_3d_.begin(); iterator_ != targetPointCloud->feature_locations_3d_.end(); ++iterator_) {
-  		featuresTarget.points[i].x = iterator_->x();
-  		featuresTarget.points[i].y = iterator_->y();
-  		featuresTarget.points[i++].z = iterator_->z();
-  	}*/
-  	ROS_INFO("Publish 6");
-  	pcl::toROSMsg(featuresTarget, msg.targetFeatureLocations );
-  	ROS_INFO("Publish 7");
+
     featureMatchPub.publish(msg);
 }
