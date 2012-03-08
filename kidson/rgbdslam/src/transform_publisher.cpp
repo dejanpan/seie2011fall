@@ -29,7 +29,6 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
     //std_msgs::String msg;
 	rgbdslam::featureMatch msg;
 
-	ROS_INFO("Publish 1");
 	//need to convert mr.final_trafo from Eigen::Matrix4f to geometry_msgs::Transform
   	geometry_msgs::Transform transform_msg;
   	tf::Transform trans;
@@ -38,7 +37,6 @@ void publish_transform(MatchingResult mr, Node* targetPointCloud, Node* sourcePo
   	msg.featureTransform = transform_msg;
   	//ROS_INFO("translation %f, %f, %f", mr.final_trafo(0,3), mr.final_trafo(1,3), mr.final_trafo(2,3));
 
-  	ROS_INFO("Publish 2");
   	//convert pcl::PointCloud<pcl::PointXYZRGB> to sensor messages point cloud 2
   	pcl::toROSMsg(*(sourcePointCloud->pc_col),msg.sourcePointcloud);
   	pcl::toROSMsg(*(targetPointCloud->pc_col),msg.targetPointcloud);
