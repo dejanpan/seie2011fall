@@ -10,6 +10,7 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #set(ROS_BUILD_TYPE RelWithDebInfo)
 
 rosbuild_init()
+rosbuild_genmsg()
 
 #set the default path for built executables to the "bin" directory
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
@@ -46,4 +47,5 @@ rosbuild_add_executable (icp_pcl src/icp_pcl.cpp)
 rosbuild_add_executable (correspond_test src/correspond_test.cpp)
 rosbuild_add_executable (icp_test src/icp_test.cpp)
 rosbuild_add_executable (normal_estimation src/normal_estimation.cpp)
+rosbuild_add_executable (readFromBag src/readFromBag.cpp)
 #rosbuild_add_executable (view_pcd src/view_pcd.cpp)

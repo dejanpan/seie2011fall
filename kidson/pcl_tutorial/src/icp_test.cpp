@@ -5,6 +5,16 @@
 #include <pcl/registration/icp_features.h>
 #include <pcl/features/normal_3d.h>
 
+//rosbag stuff:
+#include <rosbag/view.h>
+#include <boost/foreach.hpp>
+#include "pcl_tutorial/featureMatch.h"
+#include "pcl_tutorial/match.h"
+
+typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
+typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudPtr;
+typedef pcl::PointCloud<pcl::PointXYZRGBNormal> PointCloudNormal;
+typedef pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr PointCloudNormalPtr;
 
 void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr pointCloudOut)
 {
@@ -18,6 +28,30 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
 
+
+void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
+		PointCloudNormalPtr featureCloudSource, std::vector<int> &indicesSource,
+		PointCloudNormalPtr featureCloudTarget, std::vector<int> &indicesTarget,
+		Eigen::Matrix4f &initialTransform, int rosMessageNumber)
+{
+	rosbag::Bag bag;
+	bag.open("test.bag", rosbag::bagmode::Read);
+
+	std::vector<std::string> topics;
+	topics.push_back(std::string("/feature_match_out_topic"));
+
+	rosbag::View view(bag, rosbag::TopicQuery(topics));
+
+	BOOST_FOREACH(rosbag::MessageInstance const m, view)
+	{
+		pcl_tutorial::featureMatch::ConstPtr fm = m.instantiate<pcl_tutorial::featureMatch>();
+		ROS_INFO("test: %i", fm->matches[4].queryId);
+
+	}
+
+	bag.close();
+}
+
 int
  main (int argc, char** argv)
 {
@@ -26,20 +60,28 @@ int
 	  std::cout << "Not enough arguments, please provide two point clouds \n";
 	  return 0;
   }
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_source (new pcl::PointCloud<pcl::PointXYZRGB>);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_target (new pcl::PointCloud<pcl::PointXYZRGB>);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_converg (new pcl::PointCloud<pcl::PointXYZRGB>);
-  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_source_normals (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_target_normals (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr featureCloud (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-  std::vector<int> indicies;
+
+
+  PointCloudPtr cloud_source (new PointCloud);
+  PointCloudPtr cloud_target (new PointCloud);
+  PointCloudPtr cloud_converg (new PointCloud);
+  PointCloudNormalPtr cloud_source_normals (new PointCloudNormal);
+  PointCloudNormalPtr cloud_target_normals (new PointCloudNormal);
+  PointCloudNormalPtr featureCloudSource (new PointCloudNormal);
+  PointCloudNormalPtr featureCloudTarget (new PointCloudNormal);
+  Eigen::Matrix4f initialTransform;
+  std::vector<int> indicesSource;
+  std::vector<int> indicesTarget;
 
   //Fill in the cloud data
-  pcl::PCDReader reader;
+  /*pcl::PCDReader reader;
   reader.read (argv[1], *cloud_source);
   reader.read (argv[2], *cloud_target);
-  std::cout << "PointCloud source has: " << cloud_source->points.size () << " data points." << std::endl; //*
-  std::cout << "PointCloud target has: " << cloud_target->points.size () << " data points." << std::endl; //*
+  std::cout << "PointCloud source has: " << cloud_source->points.size () << " data points." << std::endl;
+  std::cout << "PointCloud target has: " << cloud_target->points.size () << " data points." << std::endl;
+  */
+
+  getTestDataFromBag(cloud_source, cloud_target, featureCloudSource, indicesSource, featureCloudTarget, indicesTarget, initialTransform, 5);
 
   //calculate normals
   normalEstimation(cloud_source, cloud_source_normals);
@@ -48,11 +90,11 @@ int
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
   icp.setInputCloud(cloud_source_normals);
   icp.setInputTarget(cloud_target_normals);
-  icp.setSourceFeatures (featureCloud, indicies);
-  icp.setTargetFeatures (featureCloud, indicies);
+  icp.setSourceFeatures (featureCloudSource, indicesSource);
+  icp.setTargetFeatures (featureCloudTarget, indicesTarget);
   icp.setFeatureErrorWeight(1);
 
-  pcl::PointCloud<pcl::PointXYZRGBNormal> Final;
+  PointCloudNormal Final;
   Eigen::Matrix4f guess;
   guess <<   1, 0, 0, 0.1,
 		     0, 1, 0, 0,
@@ -69,3 +111,5 @@ int
 
  return (0);
 }
+
+
