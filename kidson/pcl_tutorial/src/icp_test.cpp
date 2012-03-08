@@ -4,12 +4,14 @@
 #include <pcl/registration/icp.h>
 #include <pcl/registration/icp_features.h>
 #include <pcl/features/normal_3d.h>
+#include "pcl_ros/transforms.h"
 
 //rosbag stuff:
 #include <rosbag/view.h>
 #include <boost/foreach.hpp>
 #include "pcl_tutorial/featureMatch.h"
 #include "pcl_tutorial/match.h"
+
 
 typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
 typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudPtr;
@@ -28,6 +30,24 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
 
+/** @brief Helper function to convert Eigen transformation to tf */
+Eigen::Matrix4f EigenfromTf(tf::Transform trans)
+{
+	Eigen::Matrix4f eignMat;
+	eignMat(0,3) = trans.getOrigin().getX();
+	eignMat(1,3) = trans.getOrigin().getY();
+	eignMat(2,3) = trans.getOrigin().getZ();
+	for (int i=0;i<3;i++)
+	{
+		eignMat(i,0) = trans.getBasis().getRow(i).getX();
+		eignMat(i,1) = trans.getBasis().getRow(i).getY();
+		eignMat(i,2) = trans.getBasis().getRow(i).getZ();
+	}
+	eignMat(3,3) = 1;
+	//ROS_INFO("trans: %f, %f, %f %f | %f, %f, %f %f | %f, %f, %f %f", eignMat(0,0), eignMat(0,1), eignMat(0,2), eignMat(0,3), eignMat(1,0), eignMat(1,1), eignMat(1,2), eignMat(1,3), eignMat(2,0), eignMat(2,1), eignMat(2,2), eignMat(2,3));
+    return eignMat;
+}
+
 
 void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		PointCloudNormalPtr featureCloudSource, std::vector<int> &indicesSource,
@@ -42,13 +62,36 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 
 	rosbag::View view(bag, rosbag::TopicQuery(topics));
 
+	int i = 1;
 	BOOST_FOREACH(rosbag::MessageInstance const m, view)
 	{
-		pcl_tutorial::featureMatch::ConstPtr fm = m.instantiate<pcl_tutorial::featureMatch>();
-		ROS_INFO("test: %i", fm->matches[4].queryId);
+		if( i == rosMessageNumber)
+		{
+			pcl_tutorial::featureMatch::ConstPtr fm = m.instantiate<pcl_tutorial::featureMatch>();
+			//ROS_INFO("test: %i", fm->matches[4].queryId);
 
+			pcl::fromROSMsg(fm->sourcePointcloud, *cloud_source);
+			pcl::fromROSMsg(fm->targetPointcloud, *cloud_target);
+			pcl::fromROSMsg(fm->sourceFeatureLocations, *featureCloudSource);
+			pcl::fromROSMsg(fm->targetFeatureLocations, *featureCloudTarget);
+
+		    tf::Transform trans;
+		    tf::transformMsgToTF(fm->featureTransform,trans);
+		    initialTransform = EigenfromTf(trans);
+
+		    indicesSource.resize(fm->matches.size());
+		    indicesTarget.resize(fm->matches.size());
+
+		  	for(std::vector<pcl_tutorial::match>::const_iterator iterator_ = fm->matches.begin(); iterator_ != fm->matches.end(); ++iterator_)
+		  	{
+		  		indicesSource.push_back(iterator_->queryId);
+		  		indicesTarget.push_back(iterator_->trainId);
+		  		//ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryId, iterator_->trainId, iterator_->imgId, iterator_->distance);
+		  	}
+		}
+		else
+			i++;
 	}
-
 	bag.close();
 }
 
