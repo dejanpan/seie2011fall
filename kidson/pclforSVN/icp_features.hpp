@@ -175,13 +175,14 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
 
     std::vector<int> combinedSourceIndices;
     combinedSourceIndices.reserve( source_indices_good.size() + featureSourceIndices.size() ); // preallocate memory
-    combinedSourceIndices.insert( combinedSourceIndices.end(), source_indices_good.begin(), source_indices_good.end() );
-    combinedSourceIndices.insert( combinedSourceIndices.end(), featureSourceIndices.begin(), featureSourceIndices.end() );
+    combinedSourceIndices.insert( combinedSourceIndices.begin(), source_indices_good.begin(), source_indices_good.end() );
+    combinedSourceIndices.insert( combinedSourceIndices.begin()+source_indices_good.size(), featureSourceIndices.begin(), featureSourceIndices.end() );
+    //ROS_INFO_STREAM("dense size " << source_indices_good.size() << " feature size " << featureSourceIndices.size() << " total size " << combinedSourceIndices.size );
 
     std::vector<int> combinedTargetIndices;
     combinedTargetIndices.reserve( target_indices_good.size() + featureTargetIndices.size() ); // preallocate memory
-    combinedTargetIndices.insert( combinedTargetIndices.end(), target_indices_good.begin(), target_indices_good.end() );
-    combinedTargetIndices.insert( combinedTargetIndices.end(), featureTargetIndices.begin(), featureTargetIndices.end() );
+    combinedTargetIndices.insert( combinedTargetIndices.begin(), target_indices_good.begin(), target_indices_good.end() );
+    combinedTargetIndices.insert( combinedTargetIndices.begin()+target_indices_good.size(), featureTargetIndices.begin(), featureTargetIndices.end() );
 
     transformation_estimation_->estimateRigidTransformation (combinedSourceCloud, combinedSourceIndices, combinedTargetCloud, combinedTargetIndices, transformation_);
 

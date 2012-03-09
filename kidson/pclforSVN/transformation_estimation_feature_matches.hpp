@@ -47,67 +47,6 @@
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-/*template <typename PointSource, typename PointTarget> inline void
-pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation (
-    const pcl::PointCloud<PointSource> &cloud_src,
-    const std::vector<int> &indices_src,
-    const pcl::PointCloud<PointTarget> &cloud_tgt,
-    const std::vector<int> &indices_tgt,
-    Eigen::Matrix4f &transformation_matrix)
-{
-  if (indices_src.size () != indices_tgt.size ())
-  {
-    PCL_ERROR ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation] Number or points in source (%lu) differs than target (%lu)!\n", (unsigned long)indices_src.size (), (unsigned long)indices_tgt.size ());
-    return;
-  }
-
-  if (indices_src.size () < 4)     // need at least 4 samples
-  {
-    PCL_ERROR ("[pcl::IterativeClosestPointNonLinear::estimateRigidTransformationLM] ");
-    PCL_ERROR ("Need at least 4 points to estimate a transform! Source and target have %lu points!",
-               (unsigned long)indices_src.size ());
-    return;
-  }
-
-  // If no warp function has been set, use the default (WarpPointRigid6D)
-  if (!warp_point_)
-    warp_point_.reset (new WarpPointRigid6D<PointSource, PointTarget>);
-
-  int n_unknowns = warp_point_->getDimension ();  // get dimension of unknown space
-  int m = indices_src.size ();
-  Eigen::VectorXd x(n_unknowns);
-  x.setConstant (n_unknowns, 0);
-
-  // Set temporary pointers
-  tmp_src_ = &cloud_src;
-  tmp_tgt_ = &cloud_tgt;
-  tmp_idx_src_ = &indices_src;
-  tmp_idx_tgt_ = &indices_tgt;
-
-  OptimizationFunctorWithIndices functor (n_unknowns, m, this);
-  Eigen::NumericalDiff<OptimizationFunctorWithIndices> num_diff (functor);
-  Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctorWithIndices> > lm (num_diff);
-  int info = lm.minimize (x);
-
-  // Compute the norm of the residuals
-  PCL_DEBUG ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation]");
-  PCL_DEBUG ("LM solver finished with exit code %i, having a residual norm of %g. \n", info, lm.fvec.norm ());
-  PCL_DEBUG ("Final solution: [%f", x[0]);
-  for (int i = 1; i < n_unknowns; ++i) 
-    PCL_DEBUG (" %f", x[i]);
-  PCL_DEBUG ("]\n");
-
-  // Return the correct transformation
-  Eigen::VectorXf params = x.cast<float> ();
-  warp_point_->setParam (params);
-  transformation_matrix = warp_point_->getTransform ();
-
-  tmp_src_ = NULL;
-  tmp_tgt_ = NULL;
-  tmp_idx_src_ = tmp_idx_tgt_ = NULL;
-}*/
-
-//////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget> int
 pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::OptimizationFunctorWithIndices::operator() (const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
 {
