@@ -100,6 +100,7 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		    tf::Transform trans;
 		    tf::transformMsgToTF(fm->featureTransform,trans);
 		    initialTransform = EigenfromTf(trans);
+		    ROS_INFO_STREAM("\n" << transform from ransac: " << initialTransform << "\n");
 
 		    ROS_INFO("Extracting corresponding indices");
 		    indicesSource.resize(fm->matches.size());
@@ -153,33 +154,43 @@ int main (int argc, char** argv)
   pcl::copyPointCloud (*featureCloudSourceTemp, *featureCloudSource);
   pcl::copyPointCloud (*featureCloudTargetTemp, *featureCloudTarget);
 
-  ROS_INFO("Setting up icp with features");
-  pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
-  icp.setInputCloud(cloud_source_normals);
-  icp.setInputTarget(cloud_target_normals);
-  icp.setSourceFeatures (featureCloudSource, indicesSource);
-  icp.setTargetFeatures (featureCloudTarget, indicesTarget);
-  icp.setFeatureErrorWeight(0.5);
-
+  // here is a guess transform that was manually set to align point clouds, pure icp performs well with this
   PointCloudNormal Final;
   Eigen::Matrix4f guess;
-  guess <<   1, 0, 0, 0.1,
+  guess <<   1, 0, 0, 0.1, //1 0 0 0,1
 		     0, 1, 0, 0,
 		     0, 0, 1, 0.015,
 		     0, 0, 0, 1;
 
+  ROS_INFO("Setting up icp with features");
+  // custom icp
+  pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_features;
+  icp_features.setInputCloud(cloud_source_normals);
+  icp_features.setInputTarget(cloud_target_normals);
+  icp_features.setSourceFeatures (featureCloudSource, indicesSource);
+  icp_features.setTargetFeatures (featureCloudTarget, indicesTarget);
+  icp_features.setFeatureErrorWeight(1);
+
+  //normal icp for reference
+  pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+  icp.setInputCloud(cloud_source);
+  icp.setInputTarget(cloud_target);
+  pcl::PointCloud<pcl::PointXYZRGB> Final_reference;
+  icp.align(Final_reference, guess);
+
   ROS_INFO("Performing icp.....");
-  icp.align(Final, initialTransform);
-  std::cout << "has converged:" << icp.hasConverged() << " score: " <<
-  icp.getFitnessScore() << std::endl;
-  std::cout << icp.getFinalTransformation() << std::endl;
+  icp_features.align(Final, guess);
+  std::cout << "has converged:" << icp_features.hasConverged() << " score: " <<
+		  icp_features.getFitnessScore() << std::endl;
+  std::cout << icp_features.getFinalTransformation() << std::endl;
 
   ROS_INFO("Writing output clouds...");
-  transformPointCloud (*cloud_source, *cloud_converg, icp.getFinalTransformation());
+  transformPointCloud (*cloud_source, *cloud_converg, icp_features.getFinalTransformation());
   pcl::PCDWriter writer;
   writer.write ("cloud1-out.pcd", *cloud_source, false);
   writer.write ("cloud2-out.pcd", *cloud_target, false);
   writer.write ("converged.pcd", *cloud_converg, false);
+  writer.write ("converged_icp.pcd", Final_reference, false);
 
  return (0);
 }
