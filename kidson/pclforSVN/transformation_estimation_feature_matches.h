@@ -65,13 +65,13 @@ namespace pcl
         typedef PointIndices::Ptr PointIndicesPtr;
         typedef PointIndices::ConstPtr PointIndicesConstPtr;
 
-        /*inline void
+        inline void
         estimateRigidTransformation (
-            const pcl::PointCloud<PointSource> &cloud_src,
-            const std::vector<int> &indices_src,
-            const pcl::PointCloud<PointTarget> &cloud_tgt,
-            const std::vector<int> &indices_tgt,
-            Eigen::Matrix4f &transformation_matrix);*/
+        	    const pcl::PointCloud<PointSource> &cloud_src,
+        	    const std::vector<int> &indices_src,
+        	    const pcl::PointCloud<PointTarget> &cloud_tgt,
+        	    const std::vector<int> &indices_tgt,
+        	    Eigen::Matrix4f &transformation_matrix);
 
         TransformationEstimationFeatureMatches () {};
         virtual ~TransformationEstimationFeatureMatches () {};
@@ -108,6 +108,24 @@ namespace pcl
 		  Vector4fMapConst t = p_tgt.getVector4fMap ();
 		  return (pcl::distances::l2 (s, t));
         }
+
+        /** \brief The vector of residual weights. Used internall in the LM loop. */
+        std::vector<double> weights_;
+
+        /** \brief Temporary pointer to the source dataset. */
+        const PointCloudSource *tmp_src_;
+
+        /** \brief Temporary pointer to the target dataset. */
+        const PointCloudTarget  *tmp_tgt_;
+
+        /** \brief Temporary pointer to the source dataset indices. */
+        const std::vector<int> *tmp_idx_src_;
+
+        /** \brief Temporary pointer to the target dataset indices. */
+        const std::vector<int> *tmp_idx_tgt_;
+
+        /** \brief The parameterized function used to warp the source to the target. */
+        boost::shared_ptr<WarpPointRigid<PointSource, PointTarget> > warp_point_;
 
         /** Generic functor for the optimization */
         template<typename _Scalar, int NX=Eigen::Dynamic, int NY=Eigen::Dynamic>
@@ -156,6 +174,8 @@ namespace pcl
     };
   }
 }
+
+#include <pcl/registration/impl/transformation_estimation_feature_matches.hpp>
 
 #endif /* PCL_REGISTRATION_TRANSFORMATION_ESTIMATION_FEATURE_MATCHES_H_ */
 

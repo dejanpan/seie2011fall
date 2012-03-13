@@ -100,7 +100,7 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		    tf::Transform trans;
 		    tf::transformMsgToTF(fm->featureTransform,trans);
 		    initialTransform = EigenfromTf(trans);
-		    ROS_INFO_STREAM("\n" << transform from ransac: " << initialTransform << "\n");
+		    ROS_INFO_STREAM("transform from ransac: " << "\n"  << initialTransform << "\n");
 
 		    ROS_INFO("Extracting corresponding indices");
 		    indicesSource.resize(fm->matches.size());
@@ -125,7 +125,8 @@ int main (int argc, char** argv)
   PointCloudPtr cloud_target (new PointCloud);
   PointCloudPtr featureCloudSourceTemp (new PointCloud);
   PointCloudPtr featureCloudTargetTemp (new PointCloud);
-  PointCloudPtr cloud_converg (new PointCloud);
+  PointCloudPtr cloud_converg_sparse (new PointCloud);
+  PointCloudPtr cloud_converg_dense (new PointCloud);
   PointCloudNormalPtr cloud_source_normals (new PointCloudNormal);
   PointCloudNormalPtr cloud_target_normals (new PointCloudNormal);
   PointCloudNormalPtr featureCloudSource (new PointCloudNormal);
@@ -157,7 +158,7 @@ int main (int argc, char** argv)
   // here is a guess transform that was manually set to align point clouds, pure icp performs well with this
   PointCloudNormal Final;
   Eigen::Matrix4f guess;
-  guess <<   1, 0, 0, 0.1, //1 0 0 0,1
+  guess <<   1, 0, 0, 0.1,
 		     0, 1, 0, 0,
 		     0, 0, 1, 0.015,
 		     0, 0, 0, 1;
@@ -165,32 +166,50 @@ int main (int argc, char** argv)
   ROS_INFO("Setting up icp with features");
   // custom icp
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_features;
+  icp_features.setMaximumIterations (100);
+  std::cerr << "icp_features.getMaximumIterations " << icp_features.getMaximumIterations() << std::endl;
+
+  std::cerr << "icp_features.getRANSACOutlierRejectionThreshold() " << icp_features.getRANSACOutlierRejectionThreshold() << std::endl;
+
+  icp_features.setMaxCorrespondenceDistance(0.02);
+  std::cerr << "icp_features.getMaxCorrespondenceDistance() " << icp_features.getMaxCorrespondenceDistance() << std::endl;
+
+  icp_features.setTransformationEpsilon (1e-8);
+  std::cerr << "icp_features.getTransformationEpsilon () " << icp_features.getTransformationEpsilon () << std::endl;
+
+  std::cerr << "icp_features.getEuclideanFitnessEpsilon () " << icp_features.getEuclideanFitnessEpsilon () << std::endl;
+
+
   icp_features.setInputCloud(cloud_source_normals);
   icp_features.setInputTarget(cloud_target_normals);
   icp_features.setSourceFeatures (featureCloudSource, indicesSource);
   icp_features.setTargetFeatures (featureCloudTarget, indicesTarget);
-  icp_features.setFeatureErrorWeight(1);
+  icp_features.setFeatureErrorWeight(0);
 
   //normal icp for reference
   pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-  icp.setInputCloud(cloud_source);
-  icp.setInputTarget(cloud_target);
+  icp.setInputCloud(featureCloudSourceTemp);
+  icp.setInputTarget(featureCloudTargetTemp);
   pcl::PointCloud<pcl::PointXYZRGB> Final_reference;
-  icp.align(Final_reference, guess);
+  icp.align(Final_reference);
 
-  ROS_INFO("Performing icp.....");
-  icp_features.align(Final, guess);
+  ROS_INFO("Performing rgbd icp.....");
+  icp_features.align(Final, guess);  //, guess
   std::cout << "has converged:" << icp_features.hasConverged() << " score: " <<
 		  icp_features.getFitnessScore() << std::endl;
   std::cout << icp_features.getFinalTransformation() << std::endl;
 
   ROS_INFO("Writing output clouds...");
-  transformPointCloud (*cloud_source, *cloud_converg, icp_features.getFinalTransformation());
+  transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse, icp_features.getFinalTransformation());
+  transformPointCloud (*cloud_source, *cloud_converg_dense, icp_features.getFinalTransformation());
   pcl::PCDWriter writer;
   writer.write ("cloud1-out.pcd", *cloud_source, false);
   writer.write ("cloud2-out.pcd", *cloud_target, false);
-  writer.write ("converged.pcd", *cloud_converg, false);
-  writer.write ("converged_icp.pcd", Final_reference, false);
+  writer.write ("feature-source.pcd", *featureCloudSource, false);
+  writer.write ("feature-target.pcd", *featureCloudTarget, false);
+  writer.write ("converged-cloud.pcd", *cloud_converg_dense, false);
+  writer.write ("converged-feature.pcd", *cloud_converg_sparse, false);
+  writer.write ("converged-reference.pcd", Final_reference, false);
 
  return (0);
 }

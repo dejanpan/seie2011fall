@@ -72,6 +72,21 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
   std::vector<float> previous_correspondence_distances (indices_->size ());
   correspondence_distances_.resize (indices_->size ());
 
+  //std::cerr << "first feature source: " << featurePointCloudSource.points[featureSourceIndices[0]] << "\n";
+  //std::cerr << "first feature target: " << featurePointCloudTarget.points[featureTargetIndices[0]] << "\n";
+  // the features correspondence indexes will be appended to the end of the dense point clouds
+  // therefore adjust the correspondence of feature ids accordingly
+  for(std::vector<int>::iterator iterator_ = featureSourceIndices.begin(); iterator_ != featureSourceIndices.end(); ++iterator_) {
+  	*iterator_ = *iterator_ + output.size();
+  }
+  for(std::vector<int>::iterator iterator_ = featureTargetIndices.begin(); iterator_ != featureTargetIndices.end(); ++iterator_) {
+      *iterator_ = *iterator_ + target_->size();
+  }
+  //std::cerr << " \n ##########feature indices old ############# \n ";
+  //for (long index=0; index<(long)featureSourceIndices.size(); ++index) {
+  //	std::cerr << "Element " << index << ": " << featureSourceIndices.at(index) << "\n ";
+  //    }
+
   while (!converged_)           // repeat until convergence
   {
     // Save the previously estimated transformation
@@ -177,12 +192,29 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
     combinedSourceIndices.reserve( source_indices_good.size() + featureSourceIndices.size() ); // preallocate memory
     combinedSourceIndices.insert( combinedSourceIndices.begin(), source_indices_good.begin(), source_indices_good.end() );
     combinedSourceIndices.insert( combinedSourceIndices.begin()+source_indices_good.size(), featureSourceIndices.begin(), featureSourceIndices.end() );
-    //ROS_INFO_STREAM("dense size " << source_indices_good.size() << " feature size " << featureSourceIndices.size() << " total size " << combinedSourceIndices.size );
 
     std::vector<int> combinedTargetIndices;
     combinedTargetIndices.reserve( target_indices_good.size() + featureTargetIndices.size() ); // preallocate memory
     combinedTargetIndices.insert( combinedTargetIndices.begin(), target_indices_good.begin(), target_indices_good.end() );
     combinedTargetIndices.insert( combinedTargetIndices.begin()+target_indices_good.size(), featureTargetIndices.begin(), featureTargetIndices.end() );
+
+    /*std::cerr << " \n ##########dense indices ############# \n ";
+    for (long index=0; index<(long)source_indices_good.size(); ++index) {
+    	std::cerr << "Element " << index << ": " << source_indices_good.at(index) << "\n ";
+        }
+    std::cerr << " \n ##########feature indices ############# \n ";
+    for (long index=0; index<(long)featureSourceIndices.size(); ++index) {
+    	std::cerr << "Element " << index << ": " << featureSourceIndices.at(index) << "\n ";
+        }
+    std::cerr << " \n ##########combine indices ############# \n ";
+    for (long index=0; index<(long)combinedSourceIndices.size(); ++index) {
+            std::cerr << "Element " << index << ": " << combinedSourceIndices.at(index) << "\n ";
+        }*/
+
+	//std::cerr << "source ind size "  << output.size() << "\n";
+	//std::cerr << "target ind size "  << target_->size() << "\n";
+    //std::cerr << "first feature source: " << combinedSourceCloud.points[259846] << "\n";
+    //std::cerr << "first feature target: " << combinedTargetCloud.points[259839]<< "\n";
 
     transformation_estimation_->estimateRigidTransformation (combinedSourceCloud, combinedSourceIndices, combinedTargetCloud, combinedTargetIndices, transformation_);
 

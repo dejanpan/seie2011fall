@@ -39,12 +39,72 @@
 #ifndef PCL_REGISTRATION_TRANSFORMATION_ESTIMATION_FEATURE_MATCHES_HPP_
 #define PCL_REGISTRATION_TRANSFORMATION_ESTIMATION_FEATURE_MATCHES_HPP_
 
-#include "pcl/registration/transformation_estimation_lm.h"
+#include "pcl/registration/transformation_estimation_feature_matches.h"
 #include "pcl/registration/warp_point_rigid.h"
 #include "pcl/registration/warp_point_rigid_6d.h"
 #include "pcl/registration/distances.h"
 #include <unsupported/Eigen/NonLinearOptimization>
 
+template <typename PointSource, typename PointTarget> inline void
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation (
+    const pcl::PointCloud<PointSource> &cloud_src,
+    const std::vector<int> &indices_src,
+    const pcl::PointCloud<PointTarget> &cloud_tgt,
+    const std::vector<int> &indices_tgt,
+    Eigen::Matrix4f &transformation_matrix)
+{
+	std::cerr << "pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation \n";
+  if (indices_src.size () != indices_tgt.size ())
+  {
+    PCL_ERROR ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation] Number or points in source (%lu) differs than target (%lu)!\n", (unsigned long)indices_src.size (), (unsigned long)indices_tgt.size ());
+    return;
+  }
+
+  if (indices_src.size () < 4)     // need at least 4 samples
+  {
+    PCL_ERROR ("[pcl::IterativeClosestPointNonLinear::estimateRigidTransformationLM] ");
+    PCL_ERROR ("Need at least 4 points to estimate a transform! Source and target have %lu points!",
+               (unsigned long)indices_src.size ());
+    return;
+  }
+
+  // If no warp function has been set, use the default (WarpPointRigid6D)
+  if (!warp_point_)
+    warp_point_.reset (new WarpPointRigid6D<PointSource, PointTarget>);
+
+  int n_unknowns = warp_point_->getDimension ();  // get dimension of unknown space
+  int m = indices_src.size ();
+  Eigen::VectorXd x(n_unknowns);
+  x.setConstant (n_unknowns, 0);
+
+  // Set temporary pointers
+  tmp_src_ = &cloud_src;
+  tmp_tgt_ = &cloud_tgt;
+  tmp_idx_src_ = &indices_src;
+  tmp_idx_tgt_ = &indices_tgt;
+
+  OptimizationFunctorWithIndices functor (n_unknowns, m, this);
+  Eigen::NumericalDiff<OptimizationFunctorWithIndices> num_diff (functor);
+  Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctorWithIndices> > lm (num_diff);
+  int info = lm.minimize (x);
+
+  // Compute the norm of the residuals
+  PCL_DEBUG ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation]");
+  PCL_DEBUG ("LM solver finished with exit code %i, having a residual norm of %g. \n", info, lm.fvec.norm ());
+  PCL_DEBUG ("Final solution: [%f", x[0]);
+  for (int i = 1; i < n_unknowns; ++i)
+    PCL_DEBUG (" %f", x[i]);
+  PCL_DEBUG ("]\n");
+
+  // Return the correct transformation
+  Eigen::VectorXf params = x.cast<float> ();
+  warp_point_->setParam (params);
+  transformation_matrix = warp_point_->getTransform ();
+
+  tmp_src_ = NULL;
+  tmp_tgt_ = NULL;
+  tmp_idx_src_ = tmp_idx_tgt_ = NULL;
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget> int
@@ -54,6 +114,11 @@ pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarg
   const PointCloud<PointTarget> & tgt_points = *estimator_->tmp_tgt_;
   const std::vector<int> & src_indices = *estimator_->tmp_idx_src_;
   const std::vector<int> & tgt_indices = *estimator_->tmp_idx_tgt_;
+
+  int mPointsDense = m_values - estimator_->mPointsFeatures;
+  // std::cerr << "mvals: " << m_values << " mFeatures: " << estimator_->mPointsFeatures << "\n"
+   //<< "src indicies size: " << src_indices.size() << " target indices size: " << tgt_indices.size() << "\n"
+   //<< "source points:" << src_points.size() << " target points size: " << tgt_points.size() << "\n";
 
   // Initialize the warp function with the given parameters
   Eigen::VectorXf params = x.cast<float> ();
@@ -69,10 +134,17 @@ pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarg
     PointSource p_src_warped;
     estimator_->warp_point_->warpPoint (p_src, p_src_warped);
     
-    if (i < (src_indices.size() - estimator_->mPointsFeatures))
-    	fvec[i] = sqrt((1 - featureErrorWeight) * (1/estimator_->mPointsDense) ) * estimator_->computeDistancePointToPlane (p_src_warped, p_tgt);
+    if (i <= mPointsDense)
+    	fvec[i] = sqrt((1 - estimator_->featureErrorWeight) * (1.0/(double)mPointsDense) ) * estimator_->computeDistancePointToPlane (p_src_warped, p_tgt);
     else
-    	fvec[i] = sqrt(featureErrorWeight * (1/estimator_->mPointsFeature) ) * estimator_->computeDistance (p_src_warped, p_tgt);
+    {
+    	fvec[i] = sqrt(estimator_->featureErrorWeight * (1.0/(double)estimator_->mPointsFeatures) ) * estimator_->computeDistance (p_src_warped, p_tgt);
+    	//std::cerr << " alpha : " << estimator_->featureErrorWeight << "\n ";
+    	//std::cerr << " 1/estimator_->mPointsFeatures : " << (1.0/(double)estimator_->mPointsFeatures) << "\n ";
+    	//std::cerr << " estimator_->computeDistance (p_src_warped, p_tgt) : " << estimator_->computeDistance (p_src_warped, p_tgt) << "\n ";
+    	//std::cerr << " i : " << i << " fvec[i]: " << fvec[i] << " \n ";
+    	//std::cerr << " p_src : " << p_src << " p_tgt" << p_tgt << "\n";
+    }
   }
   return (0);
 }

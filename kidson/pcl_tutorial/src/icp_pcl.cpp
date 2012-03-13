@@ -9,7 +9,7 @@ int
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_out (new pcl::PointCloud<pcl::PointXYZ>);
 
-  // Fill in the CloudIn data
+  /* Fill in the CloudIn data
   cloud_in->width    = 5;
   cloud_in->height   = 1;
   cloud_in->is_dense = false;
@@ -34,7 +34,14 @@ int
   for (size_t i = 0; i < cloud_out->points.size (); ++i)
     std::cout << "    " << cloud_out->points[i].x << " " <<
       cloud_out->points[i].y << " " << cloud_out->points[i].z << std::endl;
-  //------- finished creating cloud data
+  //------- finished creating cloud data */
+
+  //Fill in the cloud data
+  pcl::PCDReader reader;
+  reader.read (argv[1], *cloud_in);
+  reader.read (argv[2], *cloud_out);
+  std::cout << "PointCloud source has: " << cloud_in->points.size () << " data points." << std::endl;
+  std::cout << "PointCloud target has: " << cloud_out->points.size () << " data points." << std::endl;
 
   pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
   icp.setInputCloud(cloud_in);
@@ -44,6 +51,9 @@ int
   std::cout << "has converged:" << icp.hasConverged() << " score: " <<
   icp.getFitnessScore() << std::endl;
   std::cout << icp.getFinalTransformation() << std::endl;
+
+  pcl::PCDWriter writer;
+    writer.write ("output.pcd", Final, false);
 
  return (0);
 }
