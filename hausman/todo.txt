@@ -1,22 +1,31 @@
 
-3d clustering
-making the launch file- improve
-document the things in the code
+Open questions:
+3d clustering-?
+3d tracking-?-> Ryohei Ueda -student
 
-experiments- improve the screens
-correct the pose estimation
+Urgent:
+making the launch file- improve
+document the things in the code- clean up
 tutorials
+
+Icra workshops:
 write the one page abstract for the project
 prepare demonstration with one kinect(without the robot)
 https://ias.cs.tum.edu/events/spmk-icra2012
 
-implement push point determination manually (by e.g. clicking on the
-depth image)
-new approaches for occlusions: multiple views(another camera in the hand) or modelling of unknown spaces
+More fun:
+go to Tangelmann and make the pictures of the objects there, push them and try it out- Try in the lab first
 
-improve the images(cotrast nd brightness)- more
-implement grasping of an object out of segmented points
-video
-compare with normal segmentation: http://www.cs.brown.edu/~pff/segment/
+Improve what we have:
 GUI in Qt
+correct the pose estimation
+compare with normal segmentation: http://www.cs.brown.edu/~pff/segment/
+
+Ideas and cooperating:
+new approaches for occlusions: multiple views(another camera in the hand) or modelling of unknown spaces
+simulating of clustering hypothesis- Sid
+Improve the math - Zoltan
+Textureless objects tracking- Antonis Agyros from FORTH - practical students?
+Reconstruction of the full object model - not sparse anymore
+Prior knowledge from Luci from 3d static segmentation
 
