@@ -159,7 +159,7 @@ int main (int argc, char** argv)
   // here is a guess transform that was manually set to align point clouds, pure icp performs well with this
   PointCloudNormal Final;
   Eigen::Matrix4f guess;
-  guess <<   1, 0, 0, 0.1,
+  guess <<   1, 0, 0, 0.07,
 		     0, 1, 0, 0,
 		     0, 0, 1, 0.015,
 		     0, 0, 0, 1;
@@ -167,39 +167,53 @@ int main (int argc, char** argv)
   ROS_INFO("Setting up icp with features");
   // custom icp
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_features;
-  //icp_features.setMaximumIterations (100);
-  std::cerr << "icp_features.getMaximumIterations " << icp_features.getMaximumIterations() << std::endl;
-
-  std::cerr << "icp_features.getRANSACOutlierRejectionThreshold() " << icp_features.getRANSACOutlierRejectionThreshold() << std::endl;
-
-  //icp_features.setMaxCorrespondenceDistance(0.02);
-  std::cerr << "icp_features.getMaxCorrespondenceDistance() " << icp_features.getMaxCorrespondenceDistance() << std::endl;
-
-  //icp_features.setTransformationEpsilon (1e-8);
-  std::cerr << "icp_features.getTransformationEpsilon () " << icp_features.getTransformationEpsilon () << std::endl;
-
-  std::cerr << "icp_features.getEuclideanFitnessEpsilon () " << icp_features.getEuclideanFitnessEpsilon () << std::endl;
-
-
+  icp_features.setMaximumIterations (1);
   icp_features.setInputCloud(cloud_source_normals);
   icp_features.setInputTarget(cloud_target_normals);
   icp_features.setSourceFeatures (featureCloudSource, indicesSource);
   icp_features.setTargetFeatures (featureCloudTarget, indicesTarget);
   icp_features.setFeatureErrorWeight(0);
 
+/*------BEST-------------
+  icp.getMaximumIterations 50
+  icp.getRANSACOutlierRejectionThreshold() 0.01
+  icp.getMaxCorrespondenceDistance() 0.01
+  icp.getTransformationEpsilon () 0
+  icp.getEuclideanFitnessEpsilon () -1.79769e+308
+  score: 0.000272791
+  ---------------------*/
   ROS_INFO("Performing rgbd icp.....");
-  icp_features.align(Final);  //, guess
+  icp_features.align(Final, guess);  //, guess
   std::cout << "ICP features has finished with converge flag of:" << icp_features.hasConverged() << " score: " <<
 		  icp_features.getFitnessScore() << std::endl;
   std::cout << icp_features.getFinalTransformation() << std::endl;
 
   //Normal (non modified) icp for reference
-    pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
+  pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
+    icp.setMaximumIterations (50);
+    std::cerr << "icp.getMaximumIterations " << icp.getMaximumIterations() << std::endl;
+
+    icp.setRANSACOutlierRejectionThreshold(0.22);
+    std::cerr << "icp.getRANSACOutlierRejectionThreshold() " << icp.getRANSACOutlierRejectionThreshold() << std::endl;
+
+    icp.setMaxCorrespondenceDistance(0.03);
+    std::cerr << "icp.getMaxCorrespondenceDistance() " << icp.getMaxCorrespondenceDistance() << std::endl;
+
+    //only used for convergence test
+    icp.setTransformationEpsilon (1e-9);
+    std::cerr << "icp.getTransformationEpsilon () " << icp.getTransformationEpsilon () << std::endl;
+
+    //only used for convergence test
+    std::cerr << "icp.getEuclideanFitnessEpsilon () " << icp.getEuclideanFitnessEpsilon () << std::endl;
+
     icp.setInputCloud(cloud_source_normals);
     icp.setInputTarget(cloud_target_normals);
     pcl::PointCloud<pcl::PointXYZRGBNormal> Final_reference;
+
+    std::cout << "ICP has starts with a score of" << icp.getFitnessScore() << std::endl;
+
     ROS_INFO("Performing standard icp.....");
-    icp.align(Final_reference);
+    icp.align(Final_reference, guess);
     std::cout << "ICP has finished with converge flag of:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
       std::cout << icp.getFinalTransformation() << std::endl;
 
