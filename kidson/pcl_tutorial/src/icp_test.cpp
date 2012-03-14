@@ -26,7 +26,7 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.03);
+  ne.setRadiusSearch (0.05);
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -136,12 +136,13 @@ int main (int argc, char** argv)
   std::vector<int> indicesTarget;
 
   //Fill in the cloud data
-  /*pcl::PCDReader reader;
-  reader.read (argv[1], *cloud_source);
-  reader.read (argv[2], *cloud_target);
-  std::cout << "PointCloud source has: " << cloud_source->points.size () << " data points." << std::endl;
-  std::cout << "PointCloud target has: " << cloud_target->points.size () << " data points." << std::endl;
-  */
+  //pcl::PCDReader reader;
+  //ROS_INFO("Reading saved clouds with normals from file (faster)");
+  //reader.read ("normals-source.pcd", *cloud_source_normals);
+  //reader.read ("normals-target.pcd", *cloud_target_normals);
+  //std::cout << "PointCloud source has: " << cloud_source->points.size () << " data points." << std::endl;
+  //std::cout << "PointCloud target has: " << cloud_target->points.size () << " data points." << std::endl;
+
 
   ROS_INFO("Getting test data from a bag file");
   getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 1);
@@ -166,15 +167,15 @@ int main (int argc, char** argv)
   ROS_INFO("Setting up icp with features");
   // custom icp
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_features;
-  icp_features.setMaximumIterations (100);
+  //icp_features.setMaximumIterations (100);
   std::cerr << "icp_features.getMaximumIterations " << icp_features.getMaximumIterations() << std::endl;
 
   std::cerr << "icp_features.getRANSACOutlierRejectionThreshold() " << icp_features.getRANSACOutlierRejectionThreshold() << std::endl;
 
-  icp_features.setMaxCorrespondenceDistance(0.02);
+  //icp_features.setMaxCorrespondenceDistance(0.02);
   std::cerr << "icp_features.getMaxCorrespondenceDistance() " << icp_features.getMaxCorrespondenceDistance() << std::endl;
 
-  icp_features.setTransformationEpsilon (1e-8);
+  //icp_features.setTransformationEpsilon (1e-8);
   std::cerr << "icp_features.getTransformationEpsilon () " << icp_features.getTransformationEpsilon () << std::endl;
 
   std::cerr << "icp_features.getEuclideanFitnessEpsilon () " << icp_features.getEuclideanFitnessEpsilon () << std::endl;
@@ -186,18 +187,21 @@ int main (int argc, char** argv)
   icp_features.setTargetFeatures (featureCloudTarget, indicesTarget);
   icp_features.setFeatureErrorWeight(0);
 
-  //normal icp for reference
-  pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-  icp.setInputCloud(featureCloudSourceTemp);
-  icp.setInputTarget(featureCloudTargetTemp);
-  pcl::PointCloud<pcl::PointXYZRGB> Final_reference;
-  icp.align(Final_reference);
-
   ROS_INFO("Performing rgbd icp.....");
-  icp_features.align(Final, guess);  //, guess
-  std::cout << "has converged:" << icp_features.hasConverged() << " score: " <<
+  icp_features.align(Final);  //, guess
+  std::cout << "ICP features has finished with converge flag of:" << icp_features.hasConverged() << " score: " <<
 		  icp_features.getFitnessScore() << std::endl;
   std::cout << icp_features.getFinalTransformation() << std::endl;
+
+  //Normal (non modified) icp for reference
+    pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
+    icp.setInputCloud(cloud_source_normals);
+    icp.setInputTarget(cloud_target_normals);
+    pcl::PointCloud<pcl::PointXYZRGBNormal> Final_reference;
+    ROS_INFO("Performing standard icp.....");
+    icp.align(Final_reference);
+    std::cout << "ICP has finished with converge flag of:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
+      std::cout << icp.getFinalTransformation() << std::endl;
 
   ROS_INFO("Writing output clouds...");
   transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse, icp_features.getFinalTransformation());
@@ -205,6 +209,8 @@ int main (int argc, char** argv)
   pcl::PCDWriter writer;
   writer.write ("cloud1-out.pcd", *cloud_source, false);
   writer.write ("cloud2-out.pcd", *cloud_target, false);
+  writer.write ("normals-source.pcd", *cloud_source_normals, false);
+  writer.write ("normals-target.pcd", *cloud_source_normals, false);
   writer.write ("feature-source.pcd", *featureCloudSource, false);
   writer.write ("feature-target.pcd", *featureCloudTarget, false);
   writer.write ("converged-cloud.pcd", *cloud_converg_dense, false);
