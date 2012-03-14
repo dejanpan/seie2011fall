@@ -175,12 +175,12 @@ int main (int argc, char** argv)
   icp_features.setFeatureErrorWeight(0);
 
 /*------BEST-------------
-  icp.getMaximumIterations 50
-  icp.getRANSACOutlierRejectionThreshold() 0.01
-  icp.getMaxCorrespondenceDistance() 0.01
-  icp.getTransformationEpsilon () 0
-  icp.getEuclideanFitnessEpsilon () -1.79769e+308
-  score: 0.000272791
+icp.getMaximumIterations 50
+icp.getRANSACOutlierRejectionThreshold() 0.2
+icp.getMaxCorrespondenceDistance() 0.03
+icp.getTransformationEpsilon () 1e-09
+icp.getEuclideanFitnessEpsilon () -1.79769e+308
+score: 0.000164332
   ---------------------*/
   ROS_INFO("Performing rgbd icp.....");
   icp_features.align(Final, guess);  //, guess
@@ -193,7 +193,7 @@ int main (int argc, char** argv)
     icp.setMaximumIterations (50);
     std::cerr << "icp.getMaximumIterations " << icp.getMaximumIterations() << std::endl;
 
-    icp.setRANSACOutlierRejectionThreshold(0.22);
+    icp.setRANSACOutlierRejectionThreshold(0.2);
     std::cerr << "icp.getRANSACOutlierRejectionThreshold() " << icp.getRANSACOutlierRejectionThreshold() << std::endl;
 
     icp.setMaxCorrespondenceDistance(0.03);
