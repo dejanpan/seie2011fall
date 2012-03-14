@@ -1,0 +1,18 @@
+<package>
+  <description brief="barcode_detection">
+
+     barcode_detection
+
+  </description>
+  <author>banacer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/barcode_detection</url>
+  <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
+  <depend package="image_transport"/>
+  <depend package="sensor_msgs"/>
+
+</package>
+
+
