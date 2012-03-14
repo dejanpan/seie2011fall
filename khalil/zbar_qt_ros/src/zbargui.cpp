@@ -35,26 +35,25 @@ void zbarGui::doStart()
 		  product_name->setText(QApplication::translate("zbarGui",srv.response.title.data.c_str() , 0, QApplication::UnicodeUTF8));
 		  product_producer->setText(QApplication::translate("zbarGui",srv.response.subtitle.data.c_str() , 0, QApplication::UnicodeUTF8));
 		  product_category->setText(QApplication::translate("zbarGui",srv.response.category_key.data.c_str() , 0, QApplication::UnicodeUTF8));
+		  IplImage* cv_image = NULL;
+		            try
+		            {
+		                  sensor_msgs::ImageConstPtr img_msg_ptr(new sensor_msgs::Image(srv.response.image_msg));
+		                  cv_image = bridge_.imgMsgToCv(img_msg_ptr, "passthrough");
+
+		            }
+		            catch (sensor_msgs::CvBridgeException error)
+		            {
+		                  ROS_ERROR("error");
+		            }
+
+		            emit SIG_updateImage2(cv_image);
 	  }
 	  else
 	  {
 	    ROS_ERROR("Failed to call service ");
 	    return;
 	  }
-
-	  IplImage* cv_image = NULL;
-	  try
-	  {
-		sensor_msgs::ImageConstPtr img_msg_ptr(new sensor_msgs::Image(srv.response.image_msg));
-	  	cv_image = bridge_.imgMsgToCv(img_msg_ptr, "passthrough");
-
-	  }
-	  catch (sensor_msgs::CvBridgeException error)
-	  {
-	  	ROS_ERROR("error");
-	  }
-
-	  emit SIG_updateImage2(cv_image);
 }
 
 
