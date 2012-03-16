@@ -35,15 +35,14 @@
  *
  */
 
-#ifndef PCL_ICP_FEATURES_H_
-#define PCL_ICP_FEATURES_H_
+#ifndef PCL_ICP_H_
+#define PCL_ICP_H_
 
 // PCL includes
 #include <pcl/sample_consensus/ransac.h>
 #include <pcl/sample_consensus/sac_model_registration.h>
 #include "pcl/registration/registration.h"
-#include "pcl/registration/transformation_estimation_lm.h"
-#include "pcl/registration/transformation_estimation_feature_matches.h"
+#include "pcl/registration/transformation_estimation_svd.h"
 #include "pcl/registration/transformation_estimation_point_to_plane.h"
 
 namespace pcl
@@ -87,61 +86,31 @@ namespace pcl
     * \ingroup registration
     */
   template <typename PointSource, typename PointTarget>
-  class IterativeClosestPointFeatures : public Registration<PointSource, PointTarget>
+  class IterativeClosestPoint : public Registration<PointSource, PointTarget>
   {
     typedef typename Registration<PointSource, PointTarget>::PointCloudSource PointCloudSource;
     typedef typename PointCloudSource::Ptr PointCloudSourcePtr;
     typedef typename PointCloudSource::ConstPtr PointCloudSourceConstPtr;
 
     typedef typename Registration<PointSource, PointTarget>::PointCloudTarget PointCloudTarget;
-    typedef typename PointCloudTarget::Ptr PointCloudTargetPtr;
-    typedef typename PointCloudTarget::ConstPtr PointCloudTargetConstPtr;
 
     typedef PointIndices::Ptr PointIndicesPtr;
     typedef PointIndices::ConstPtr PointIndicesConstPtr;
 
     public:
       /** \brief Empty constructor. */
-      IterativeClosestPointFeatures ()
+      IterativeClosestPoint () 
       {
         reg_name_ = "IterativeClosestPoint";
-        transformation_estimation_.reset (new pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>);
+        //transformation_estimation_.reset (new pcl::registration::TransformationEstimationSVD<PointSource, PointTarget>);
+        transformation_estimation_.reset (new pcl::registration::TransformationEstimationPointToPlane<PointSource, PointTarget>);
       };
-
-       void
-	   setSourceFeatures (const PointCloudSourceConstPtr &cloud, std::vector<int> &indicies)
-	   {
-    	  featurePointCloudSource = *cloud;
-    	  featureSourceIndices = indicies;
-	   }
-
-       void
-	   setTargetFeatures (const PointCloudTargetConstPtr &cloud, std::vector<int> &indicies)
-	   {
-    	  featurePointCloudTarget = *cloud;
-    	  featureTargetIndices = indicies;
-	   }
-
-       void setFeatureErrorWeight(float alpha)
-       {
-    	   pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget> * estimate_fm = dynamic_cast< pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget> *> (&(*transformation_estimation_));
-    	   estimate_fm->setFeatureErrorWeight(alpha);
-       }
-
-
 
     protected:
       /** \brief Rigid transformation computation method  with initial guess.
         * \param output the transformed input point cloud dataset using the rigid transformation found
         * \param guess the initial guess of the transformation to compute
         */
-
-      PointCloudSource featurePointCloudSource;
-      PointCloudTarget featurePointCloudTarget;
-
-      std::vector<int> featureSourceIndices;
-      std::vector<int> featureTargetIndices;
-
       virtual void 
       computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess);
 
@@ -167,6 +136,6 @@ namespace pcl
   };
 }
 
-#include "pcl/registration/impl/icp_features.hpp"
+#include "pcl/registration/impl/icp.hpp"
 
-#endif  //#ifndef PCL_ICP_FEATURES_H_
+#endif  //#ifndef PCL_ICP_H_

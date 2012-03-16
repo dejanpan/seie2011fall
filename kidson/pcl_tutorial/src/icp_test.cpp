@@ -26,7 +26,7 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.05);
+  ne.setRadiusSearch (0.01);
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -103,15 +103,20 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		    ROS_INFO_STREAM("transform from ransac: " << "\n"  << initialTransform << "\n");
 
 		    ROS_INFO("Extracting corresponding indices");
-		    indicesSource.resize(fm->matches.size());
-		    indicesTarget.resize(fm->matches.size());
+		    int j = 1;
 		  	for(std::vector<pcl_tutorial::match>::const_iterator iterator_ = fm->matches.begin(); iterator_ != fm->matches.end(); ++iterator_)
 		  	{
 		  		indicesSource.push_back(iterator_->queryId);
 		  		indicesTarget.push_back(iterator_->trainId);
-		  		//ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryId, iterator_->trainId, iterator_->imgId, iterator_->distance);
+		  		ROS_INFO_STREAM("source point " << j << ": "   << featureCloudSource->points[iterator_->queryId].x << ", " << featureCloudSource->points[iterator_->queryId].y << ", " << featureCloudSource->points[iterator_->queryId].z);
+		  		ROS_INFO_STREAM("target point " << j++ << ": " << featureCloudTarget->points[iterator_->trainId].x << ", " << featureCloudTarget->points[iterator_->trainId].y << ", " << featureCloudTarget->points[iterator_->trainId].z);
+		  	//	ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryId, iterator_->trainId, iterator_->imgId, iterator_->distance);
 		  	}
 		  	i++;
+
+		  //  for(std::vector<int>::iterator iterator_ = indicesSource.begin(); iterator_ != indicesSource.end(); ++iterator_) {
+		  //  	ROS_INFO("source indice: %d", *iterator_);
+		  //  }
 		}
 		else
 			i++;
@@ -149,8 +154,8 @@ int main (int argc, char** argv)
 
   //calculate normals
   ROS_INFO("Calcualting normals");
-  normalEstimation(cloud_source, cloud_source_normals);
-  normalEstimation(cloud_target, cloud_target_normals);
+ normalEstimation(cloud_source, cloud_source_normals);
+ normalEstimation(cloud_target, cloud_target_normals);
 
   ROS_INFO("Converting feature point clouds");
   pcl::copyPointCloud (*featureCloudSourceTemp, *featureCloudSource);
@@ -167,53 +172,59 @@ int main (int argc, char** argv)
   ROS_INFO("Setting up icp with features");
   // custom icp
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_features;
-  icp_features.setMaximumIterations (1);
+
+  icp_features.setMaximumIterations (20);
+  icp_features.setTransformationEpsilon (0);
+  icp_features.setMaxCorrespondenceDistance(0.05);
+  icp_features.setRANSACOutlierRejectionThreshold(0.05);
+
   icp_features.setInputCloud(cloud_source_normals);
   icp_features.setInputTarget(cloud_target_normals);
   icp_features.setSourceFeatures (featureCloudSource, indicesSource);
   icp_features.setTargetFeatures (featureCloudTarget, indicesTarget);
-  icp_features.setFeatureErrorWeight(0);
+  icp_features.setFeatureErrorWeight(1);  // 1 = feature, 0 = icp
+
+  ROS_INFO("Performing rgbd icp.....");
+  icp_features.align(Final);  //, guess
+  std::cout << "ICP features has finished with converge flag of:" << icp_features.hasConverged() << " score: " <<
+		  icp_features.getFitnessScore() << std::endl;
+  std::cout << icp_features.getFinalTransformation() << std::endl;
+
 
 /*------BEST-------------
 icp.getMaximumIterations 50
-icp.getRANSACOutlierRejectionThreshold() 0.2
+icp.getRANSACOutlierRejectionThreshold() 0.02
 icp.getMaxCorrespondenceDistance() 0.03
 icp.getTransformationEpsilon () 1e-09
 icp.getEuclideanFitnessEpsilon () -1.79769e+308
 score: 0.000164332
   ---------------------*/
-  ROS_INFO("Performing rgbd icp.....");
-  icp_features.align(Final, guess);  //, guess
-  std::cout << "ICP features has finished with converge flag of:" << icp_features.hasConverged() << " score: " <<
-		  icp_features.getFitnessScore() << std::endl;
-  std::cout << icp_features.getFinalTransformation() << std::endl;
-
   //Normal (non modified) icp for reference
   pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
-    icp.setMaximumIterations (50);
+    icp.setMaximumIterations (20);
     std::cerr << "icp.getMaximumIterations " << icp.getMaximumIterations() << std::endl;
 
-    icp.setRANSACOutlierRejectionThreshold(0.2);
+    icp.setRANSACOutlierRejectionThreshold(0.05);
     std::cerr << "icp.getRANSACOutlierRejectionThreshold() " << icp.getRANSACOutlierRejectionThreshold() << std::endl;
 
-    icp.setMaxCorrespondenceDistance(0.03);
+    icp.setMaxCorrespondenceDistance(0.05);
     std::cerr << "icp.getMaxCorrespondenceDistance() " << icp.getMaxCorrespondenceDistance() << std::endl;
 
     //only used for convergence test
-    icp.setTransformationEpsilon (1e-9);
+    icp.setTransformationEpsilon (0);
     std::cerr << "icp.getTransformationEpsilon () " << icp.getTransformationEpsilon () << std::endl;
 
     //only used for convergence test
     std::cerr << "icp.getEuclideanFitnessEpsilon () " << icp.getEuclideanFitnessEpsilon () << std::endl;
 
-    icp.setInputCloud(cloud_source_normals);
-    icp.setInputTarget(cloud_target_normals);
+    icp.setInputCloud(featureCloudSource);
+    icp.setInputTarget(featureCloudTarget);
     pcl::PointCloud<pcl::PointXYZRGBNormal> Final_reference;
 
     std::cout << "ICP has starts with a score of" << icp.getFitnessScore() << std::endl;
 
     ROS_INFO("Performing standard icp.....");
-    icp.align(Final_reference, guess);
+    icp.align(Final_reference);//, guess);
     std::cout << "ICP has finished with converge flag of:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
       std::cout << icp.getFinalTransformation() << std::endl;
 
