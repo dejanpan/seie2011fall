@@ -1,0 +1,164 @@
+ross@ross-pc:~/ros_workspace/pcl_tutorial$ rosrun pcl_tutorial icp_test 
+[ INFO] [1331919824.014384490]: Getting test data from a bag file
+[ INFO] [1331919824.049566766]: Converting point cloud message to local pcl clouds
+[ INFO] [1331919824.469575201]: Converting dense clouds
+[ INFO] [1331919824.484118055]: Converting sparse clouds
+[ INFO] [1331919824.484178119]: Converting geometry message to eigen4f
+[ INFO] [1331919824.484290840]: transform from ransac: 
+   0.999906   -0.010544 -0.00878396   -0.056058
+  0.0103982     0.99981  -0.0164801  0.00747791
+ 0.00895606   0.0163872    0.999826  -0.0233625
+          0 4.58421e-41 4.58421e-41           1
+
+[ INFO] [1331919824.484383909]: Extracting corresponding indices
+[ INFO] [1331919824.492526841]: Calcualting normals
+[ INFO] [1331919882.326133771]: Converting feature point clouds
+[ INFO] [1331919882.326203811]: Setting up icp with features
+[ INFO] [1331919882.448711040]: Performing rgbd icp.....
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 0 Number of correspondences 234267 [90.156092%] out of 259846 points [100.0%], RANSAC rejected: 5268 [2.199261%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00510481
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 1 Number of correspondences 258602 [99.521255%] out of 259846 points [100.0%], RANSAC rejected: 56 [0.021650%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.0180433
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 2 Number of correspondences 251026 [96.605682%] out of 259846 points [100.0%], RANSAC rejected: 556 [0.221002%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.013736
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 3 Number of correspondences 250645 [96.459057%] out of 259846 points [100.0%], RANSAC rejected: 500 [0.199088%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.0083211
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 4 Number of correspondences 249774 [96.123858%] out of 259846 points [100.0%], RANSAC rejected: 332 [0.132744%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.000763204
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 5 Number of correspondences 249571 [96.045735%] out of 259846 points [100.0%], RANSAC rejected: 293 [0.117264%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00352004
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 6 Number of correspondences 248774 [95.739015%] out of 259846 points [100.0%], RANSAC rejected: 1970 [0.785662%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00140149
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 7 Number of correspondences 251190 [96.668796%] out of 259846 points [100.0%], RANSAC rejected: 137 [0.054511%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00298126
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 8 Number of correspondences 251438 [96.764237%] out of 259846 points [100.0%], RANSAC rejected: 468 [0.185784%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.000531951
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 9 Number of correspondences 252038 [96.995143%] out of 259846 points [100.0%], RANSAC rejected: 121 [0.047986%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00106299
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 10 Number of correspondences 252144 [97.035937%] out of 259846 points [100.0%], RANSAC rejected: 37 [0.014672%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:4.92721e-05
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 11 Number of correspondences 251660 [96.849672%] out of 259846 points [100.0%], RANSAC rejected: 533 [0.211346%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.000114696
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 12 Number of correspondences 251660 [96.849672%] out of 259846 points [100.0%], RANSAC rejected: 533 [0.211346%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:1.78383e-08
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 13 Number of correspondences 251660 [96.849672%] out of 259846 points [100.0%], RANSAC rejected: 533 [0.211346%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:2.41802e-05
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 14 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:2.43533e-05
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 15 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:2.4104e-09
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 16 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:7.39568e-10
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 17 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:7.20686e-11
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 18 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:6.20281e-10
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 19 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:2.8861e-10
+[pcl::IterativeClosestPoint::computeTransformation] Convergence reached. Number of iterations: 20 out of 20. Transformation difference: 0.000000
+nr_iterations_ (20) >= max_iterations_ (20)
+fabs ((transformation_ - previous_transformation_).sum ()) (0.000000) < transformation_epsilon_ (0.000000)
+fabs (getFitnessScore (correspondence_distances_, previous_correspondence_distances)) (0.000000) <= euclidean_fitness_epsilon_ (-179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.000000)
+ICP features has finished with converge flag of:1 score: 0.000487536
+    0.999999 -0.000675282   0.00158198     0.090947
+ 0.000609956     0.999162    0.0409348   -0.0566666
+ -0.00160829   -0.0409337      0.99916   0.00315796
+           0            0            0            1
+icp.getMaximumIterations 20
+icp.getRANSACOutlierRejectionThreshold() 0.05
+icp.getMaxCorrespondenceDistance() 0.05
+icp.getTransformationEpsilon () 0
+icp.getEuclideanFitnessEpsilon () -1.79769e+308
+ICP has starts with a score of0.000735874
+[ INFO] [1331919906.752050864]: Performing standard icp.....
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 0 Number of correspondences 234267 [90.156092%] out of 259846 points [100.0%], RANSAC rejected: 5268 [2.199261%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00510481
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 1 Number of correspondences 258602 [99.521255%] out of 259846 points [100.0%], RANSAC rejected: 56 [0.021650%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.0180433
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 2 Number of correspondences 251026 [96.605682%] out of 259846 points [100.0%], RANSAC rejected: 556 [0.221002%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.013736
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 3 Number of correspondences 250645 [96.459057%] out of 259846 points [100.0%], RANSAC rejected: 500 [0.199088%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.0083211
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 4 Number of correspondences 249774 [96.123858%] out of 259846 points [100.0%], RANSAC rejected: 332 [0.132744%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.000763204
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 5 Number of correspondences 249571 [96.045735%] out of 259846 points [100.0%], RANSAC rejected: 293 [0.117264%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00352004
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 6 Number of correspondences 248774 [95.739015%] out of 259846 points [100.0%], RANSAC rejected: 1970 [0.785662%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00140149
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 7 Number of correspondences 251190 [96.668796%] out of 259846 points [100.0%], RANSAC rejected: 137 [0.054511%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00298126
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 8 Number of correspondences 251438 [96.764237%] out of 259846 points [100.0%], RANSAC rejected: 468 [0.185784%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.000531951
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 9 Number of correspondences 252038 [96.995143%] out of 259846 points [100.0%], RANSAC rejected: 121 [0.047986%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.00106299
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 10 Number of correspondences 252144 [97.035937%] out of 259846 points [100.0%], RANSAC rejected: 37 [0.014672%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:4.92721e-05
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 11 Number of correspondences 251660 [96.849672%] out of 259846 points [100.0%], RANSAC rejected: 533 [0.211346%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:0.000114696
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 12 Number of correspondences 251660 [96.849672%] out of 259846 points [100.0%], RANSAC rejected: 533 [0.211346%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:1.78383e-08
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 13 Number of correspondences 251660 [96.849672%] out of 259846 points [100.0%], RANSAC rejected: 533 [0.211346%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:2.41802e-05
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 14 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:2.43533e-05
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 15 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:2.4104e-09
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 16 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:7.39568e-10
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 17 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:7.20686e-11
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 18 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:6.20281e-10
+[pcl::IterativeClosestPoint::computeTransformation] Iteration 19 Number of correspondences 248024 [95.450382%] out of 259846 points [100.0%], RANSAC rejected: 4180 [1.657388%].
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation 
+transformation epsilon:2.8861e-10
+[pcl::IterativeClosestPoint::computeTransformation] Convergence reached. Number of iterations: 20 out of 20. Transformation difference: 0.000000
+nr_iterations_ (20) >= max_iterations_ (20)
+fabs ((transformation_ - previous_transformation_).sum ()) (0.000000) < transformation_epsilon_ (0.000000)
+fabs (getFitnessScore (correspondence_distances_, previous_correspondence_distances)) (0.000000) <= euclidean_fitness_epsilon_ (-179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.000000)
+ICP has finished with converge flag of:1 score: 0.000487536
+    0.999999 -0.000675282   0.00158198     0.090947
+ 0.000609956     0.999162    0.0409348   -0.0566666
+ -0.00160829   -0.0409337      0.99916   0.00315796
+           0            0            0            1
+[ INFO] [1331919928.556975713]: Writing output clouds...
+

@@ -1,0 +1,48 @@
+0.05, 0.02
+x and y O.K.  z very crappy
+ICP has finished with converge flag of:1 score: 0.0015213
+    0.998897    0.0445205    0.0149613    0.0564781
+  -0.0441745     0.998766   -0.0227162   -0.0357062
+  -0.0159542    0.0220302      0.99963 -0.000192569
+           0            0            0            1
+[ INFO] [1331914622.183036070]: Writing output clouds...
+
+0.04 0.02
+x and y better, z still sucks
+ICP has finished with converge flag of:1 score: 0.00150092
+    0.998402    0.0509594    0.0244235    0.0433242
+  -0.0506073     0.998609   -0.0148289   -0.0444577
+  -0.0251453    0.0135692     0.999592 -0.000387165
+           0            0            0            1
+[ INFO] [1331915006.359763537]: Writing output clouds...
+
+0.03 0.02
+as above
+ICP has finished with converge flag of:1 score: 0.00153003
+    0.999071    0.0394985    0.0172672    0.0531411
+  -0.0392052     0.999087   -0.0170081   -0.0446033
+  -0.0179232    0.0163153     0.999706 -0.000590175
+           0            0            0            1
+
+
+ICP features has finished with converge flag of:1 score: 0.00016444
+   0.999989 -0.00455314 -0.00113286   0.0779219
+ 0.00455858    0.999978  0.00484273 -0.00358019
+ 0.00111078 -0.00484784    0.999988   0.0150776
+          0           0           0           1
+
+------------------------------------------------------------
+icp.getMaximumIterations 100
+icp.getRANSACOutlierRejectionThreshold() 0.05
+icp.getMaxCorrespondenceDistance() 0.05
+icp.getTransformationEpsilon () 0
+icp.getEuclideanFitnessEpsilon () -1.79769e+308
+
+ICP has finished with converge flag of:1 score: 0.000487521
+    0.999999 -0.000678558   0.00157774    0.0909512
+ 0.000613398     0.999162    0.0409369   -0.0566688
+  -0.0016042   -0.0409359      0.99916   0.00315845
+           0            0            0            1
+[ INFO] [1331915634.168970957]: Writing output clouds...
+
+x, y and z all close, not perfect
