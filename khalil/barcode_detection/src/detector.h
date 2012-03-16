@@ -23,15 +23,15 @@ public:
   virtual ~detector();
 
 
-  IplImage* edgeImage();
+  void edgeImage(IplImage* );
   void switch_callback_h( int );
   void switch_callback_l( int );
-  IplImage** dilationImage(IplImage* );
+  void dilationImage(IplImage* ,IplImage**);
   IplImage** absoluteDifference(IplImage** );
-  iplImage* higherResponse(IplImage**);
-  void createLine(cv::Mat ,int , int );
-  void delationErrosion(IplImage* );
+  void higherResponse(IplImage**,IplImage** );
+  void delationErrosion(IplImage* , IplImage** );
   void selectBlob(IplImage* );
+  int* createLine(int , int );
 };
 
 } /* namespace std */
