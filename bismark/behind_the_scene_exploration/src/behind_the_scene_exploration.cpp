@@ -27,7 +27,7 @@ int main(int argc, char** argv){
 
     float r,x,y,z,yaw_angle, pitch_angle,roll ;
     r=0.2;			//radius of the circle trajectory
-    z=0.3;			//z offset of the trajectory (wrt. base_link)
+    z=1.1;			//z offset of the trajectory (wrt. base_link)
     roll = M_PI;
     bool first_concat = true;
 
@@ -49,6 +49,7 @@ int main(int argc, char** argv){
     robot.torso.move(0.4);
     robot.left_arm.tuck();
 
+    //inital position for table scene
     double init_pos_right[]
            = { -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52,
                -1.74, -0.35, -2.36, -2.12, 7.13, -1.00, 3.52 };
@@ -56,6 +57,7 @@ int main(int argc, char** argv){
         robot.right_arm.goToJointPos(init_pos_vec);
 
 
+//    //inital position for lower shelf
 //        double init_pos_right[]
 //             = {-1.92, 0.70, -2.00, -1.78, -0.28, -0.08, -2.15,
 //               -1.92, 0.70, -2.00, -1.78, -0.28, -0.08, -2.15 };
@@ -69,62 +71,62 @@ int main(int argc, char** argv){
 
 //++++++++++++++++++Pointcloud processing++++++++++++++++++++++++++++++++++++++++
 
-    	//get input pointcloud from rosbag
-    	input_pc = ros::topic::waitForMessage<sensor_msgs::PointCloud2>("eye_in_hand/depth_registered/points");
-    	//input_pc = ros::topic::waitForMessage<sensor_msgs::PointCloud2>("eye_in_hand/depth_registered/points_throttle");
-
-    	//converting input pointcloud into pcl XYZRGB
-    	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-    	pcl::fromROSMsg(*input_pc, *cloud);
-
-
-    	//transformation of Pointcloud
-		bool found_transform = tf_.waitForTransform("base_link","eye_in_hand_rgb_optical_frame", ros::Time::now(), ros::Duration(10.0));
-    	//bool found_transform = tf_.waitForTransform( "base_link", "eye_in_hand_rgb_optical_frame", ros::Time::now()-ros::Duration(5), 		ros::Duration(10.0));
-
-
-    	if (found_transform)
-    	{
-
-
-    		tf::StampedTransform transform;
-    		//tf_.lookupTransform("eye_in_hand_rgb_optical_frame","base_link", ros::Time::now()-ros::Duration(5), transform);
-    		pcl_ros::transformPointCloud("base_link", *cloud, *transformed_cloud, tf_);
-    		cerr<<"TRANSFORMATION SUCCESS"<<endl;
-    	}
-
-    	else{
-    		continue;
-    	}
-
-    	if(first_concat){
-    		concat_cloud->header = transformed_cloud->header;
-    		*concat_cloud = *transformed_cloud;
-    	}
-
-    	else{
-
-
-
-        	//concatenation of clouds
-        	//*concat_cloud += icp_cloud; 		//with icp
-        	*concat_cloud += *transformed_cloud;			//without icp alignment
-    	}
-    	std::stringstream ss;
-    	ss<<i;
-	    pcl::PCDWriter writer_single;
-	    writer_single.write ("data/coffee/"+ss.str()+"_degree.pcd",*transformed_cloud, true);
-
-    	cerr<<"concat frame id: "<<concat_cloud->header.frame_id<<endl;
-    	cerr<<"transformed frame id: "<<transformed_cloud->header.frame_id<<endl;
-    	first_concat=false;
-
-
-    	//Filtering of Pointcloud
-    	pcl::VoxelGrid<pcl::PointXYZRGB> filter;
-    	filter.setInputCloud (concat_cloud);
-    	filter.setLeafSize (0.01f, 0.01f, 0.01);
-    	filter.filter (*voxel_cloud);
+//    	//get input point cloud
+//    	input_pc = ros::topic::waitForMessage<sensor_msgs::PointCloud2>("eye_in_hand/depth_registered/points");
+//    	//input_pc = ros::topic::waitForMessage<sensor_msgs::PointCloud2>("eye_in_hand/depth_registered/points_throttle");
+//
+//    	//converting input pointcloud into pcl XYZRGB
+//    	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+//    	pcl::fromROSMsg(*input_pc, *cloud);
+//
+//
+//    	//transformation of Pointcloud
+//		bool found_transform = tf_.waitForTransform("base_link","eye_in_hand_rgb_optical_frame", ros::Time::now(), ros::Duration(10.0));
+//    	//bool found_transform = tf_.waitForTransform( "base_link", "eye_in_hand_rgb_optical_frame", ros::Time::now()-ros::Duration(5), 		ros::Duration(10.0));
+//
+//
+//    	if (found_transform)
+//    	{
+//
+//
+//    		tf::StampedTransform transform;
+//    		//tf_.lookupTransform("eye_in_hand_rgb_optical_frame","base_link", ros::Time::now()-ros::Duration(5), transform);
+//    		pcl_ros::transformPointCloud("base_link", *cloud, *transformed_cloud, tf_);
+//    		cerr<<"TRANSFORMATION SUCCESS"<<endl;
+//    	}
+//
+//    	else{
+//    		continue;
+//    	}
+//
+//    	if(first_concat){
+//    		concat_cloud->header = transformed_cloud->header;
+//    		*concat_cloud = *transformed_cloud;
+//    	}
+//
+//    	else{
+//
+//
+//
+//        	//concatenation of clouds
+//        	//*concat_cloud += icp_cloud; 		//with icp
+//        	*concat_cloud += *transformed_cloud;			//without icp alignment
+//    	}
+//    	std::stringstream ss;
+//    	ss<<i;
+//	    pcl::PCDWriter writer_single;
+//	    writer_single.write ("data/zoli/"+ss.str()+"_degree.pcd",*transformed_cloud, true);
+//
+//    	cerr<<"concat frame id: "<<concat_cloud->header.frame_id<<endl;
+//    	cerr<<"transformed frame id: "<<transformed_cloud->header.frame_id<<endl;
+//    	first_concat=false;
+//
+//
+//    	//Filtering of Pointcloud
+//    	pcl::VoxelGrid<pcl::PointXYZRGB> filter;
+//    	filter.setInputCloud (concat_cloud);
+//    	filter.setLeafSize (0.01f, 0.01f, 0.01);
+//    	filter.filter (*voxel_cloud);
 
 
 //++++++++++++++++++END processing Pointcloud++++++++++++++++++++++++++++++++++++++++
@@ -156,12 +158,12 @@ int main(int argc, char** argv){
 
 
     }
-
-    //Save observed scene to pcd file
-    pcl::PCDWriter writer_down;
-    writer_down.write ("eye_in_hand_scene_downsampled.pcd", *voxel_cloud, true);
-    pcl::PCDWriter writer_ori;
-    writer_ori.write ("eye_in_hand_scene_original.pcd", *concat_cloud, true);
+//
+//    //Save observed scene to pcd file
+//    pcl::PCDWriter writer_down;
+//    writer_down.write ("eye_in_hand_scene_downsampled.pcd", *voxel_cloud, true);
+//    pcl::PCDWriter writer_ori;
+//    writer_ori.write ("eye_in_hand_scene_original.pcd", *concat_cloud, true);
 
 
 
