@@ -7,7 +7,8 @@ ToDo
 	-varying texture/geometry etc.
 	-do some metric, write results
 	-experiment with parameters; alpha, ransac rejection rates
-	-feature points rejection - boundery points
+	-dense correspondence rejection - boundery points (due to bogas planes)
+	-investigate depth error affecting joint icp
 
 2. integrate into rgbdslam
 	-test comparing with original

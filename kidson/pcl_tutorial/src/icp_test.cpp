@@ -134,7 +134,8 @@ int main (int argc, char** argv)
   PointCloudPtr cloud_target (new PointCloud);
   PointCloudPtr featureCloudSourceTemp (new PointCloud);
   PointCloudPtr featureCloudTargetTemp (new PointCloud);
-  PointCloudPtr cloud_converg_sparse (new PointCloud);
+  PointCloudPtr cloud_converg_sparse_all (new PointCloud);
+  PointCloudPtr cloud_converg_sparse_correspond (new PointCloud);
   PointCloudPtr cloud_converg_dense (new PointCloud);
   PointCloudNormalPtr cloud_source_normals (new PointCloudNormal);
   PointCloudNormalPtr cloud_target_normals (new PointCloudNormal);
@@ -154,7 +155,7 @@ int main (int argc, char** argv)
 
 
   ROS_INFO("Getting test data from a bag file");
-  getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 5);
+  getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 1);
 
   //calculate normals
   ROS_INFO("Calcualting normals");
@@ -179,14 +180,14 @@ int main (int argc, char** argv)
 
   icp_features.setMaximumIterations (50);
   icp_features.setTransformationEpsilon (0);
-  icp_features.setMaxCorrespondenceDistance(0.02);
-  icp_features.setRANSACOutlierRejectionThreshold(0.05);
+  icp_features.setMaxCorrespondenceDistance(0.1);
+  icp_features.setRANSACOutlierRejectionThreshold(0.03);
 
   icp_features.setInputCloud(cloud_source_normals);
   icp_features.setInputTarget(cloud_target_normals);
   icp_features.setSourceFeatures (featureCloudSource, indicesSource);
   icp_features.setTargetFeatures (featureCloudTarget, indicesTarget);
-  icp_features.setFeatureErrorWeight(0.5);  // 1 = feature, 0 = icp
+  icp_features.setFeatureErrorWeight(0.3);  // 1 = feature, 0 = icp
 
   ROS_INFO("Performing rgbd icp.....");
   icp_features.align(Final);  //, guess
@@ -232,9 +233,28 @@ score: 0.000164332
     std::cout << "ICP has finished with converge flag of:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
       std::cout << icp.getFinalTransformation() << std::endl;
 
+
   ROS_INFO("Writing output clouds...");
-  transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse, icp_features.getFinalTransformation());
+  transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse_all, icp_features.getFinalTransformation());
+  transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse_correspond, icp_features.getFinalTransformation());
   transformPointCloud (*cloud_source, *cloud_converg_dense, icp_features.getFinalTransformation());
+  // remove non correspondences from feature clouds as an addition output
+  uint8_t col=3;
+  //*cloud_converg_sparse_correspond = *cloud_converg_sparse_all;
+  cloud_converg_sparse_correspond->points.resize(indicesSource.size());
+  cloud_converg_sparse_correspond->height = 1;
+  cloud_converg_sparse_correspond->width = (int)indicesSource.size();
+  for (size_t cloudId = 0; cloudId < indicesSource.size(); ++cloudId)
+  {
+	  cloud_converg_sparse_correspond->points[cloudId].x = cloud_converg_sparse_all->points[indicesSource[cloudId]].x;
+	  cloud_converg_sparse_correspond->points[cloudId].y = cloud_converg_sparse_all->points[indicesSource[cloudId]].y;
+	  cloud_converg_sparse_correspond->points[cloudId].z = cloud_converg_sparse_all->points[indicesSource[cloudId]].z;
+	  cloud_converg_sparse_correspond->points[cloudId].r = col;
+	  cloud_converg_sparse_correspond->points[cloudId].g = col;
+	  cloud_converg_sparse_correspond->points[cloudId].b = col;
+	  //std::cerr << "point " << cloudId << "\n ";
+  }
+
   pcl::PCDWriter writer;
   writer.write ("cloud1-out.pcd", *cloud_source, false);
   writer.write ("cloud2-out.pcd", *cloud_target, false);
@@ -243,7 +263,8 @@ score: 0.000164332
   writer.write ("feature-source.pcd", *featureCloudSource, false);
   writer.write ("feature-target.pcd", *featureCloudTarget, false);
   writer.write ("converged-cloud.pcd", *cloud_converg_dense, false);
-  writer.write ("converged-feature.pcd", *cloud_converg_sparse, false);
+  writer.write ("converged-feature-all.pcd", *cloud_converg_sparse_all, false);
+  writer.write ("converged-feature-correspond.pcd", *cloud_converg_sparse_correspond, false);
   writer.write ("converged-reference.pcd", Final_reference, false);
 
  return (0);
