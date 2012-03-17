@@ -1,9 +1,0 @@
-todo
------
-
-get updated rgbdslam code from felix
-look into surfel stuff
-bug in bagfile generator rgbdslam: rgbdslam requires camera info as a published topic whilst writing bag file with transforms
-look more into g2o
-svn tutorials (still many commands I don't know)
-remaining pcl tutorials

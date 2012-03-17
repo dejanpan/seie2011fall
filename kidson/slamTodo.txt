@@ -1,12 +1,45 @@
--Implementation of RGBD ICP as described by the paper from Peter Henry
+----------
+ToDo
+----------
 
--Run generated bag files of pointclouds/poses through Dejan's code
+1. testing rgbdicp
+	-different pointclouds
+	-varying texture/geometry etc.
+	-do some metric, write results
+	-experiment with parameters; alpha, ransac rejection rates
+	-feature points rejection - boundery points
 
--Obtain the segmented pointcloud of the kitchen bench pointcloud from Lucians algorithm
-	-Also get the code from Lucian and find out how run it ourselves
+2. integrate into rgbdslam
+	-test comparing with original
+
+3. Demo/paper for the conference in April
+	-Working version of the above code
+
+-Plane registration
+
+-Segmentation
+	-lucci code
+
+-Collect data
+	-go into homes
+	-kinect at home
+
+-Mesh reconstruction/ikea model demo
+	-bug dejan to run his code
+
 
 -Mapping for Fraunhoffer - find out how to map an entire room with running into memory/processing problems
+	-Will this be needed?
 
--KinectFusion investigation - is it feasible for our requirements, can we incorporate colour?
+---------------
+Personal todo
+---------------
 
--Think about a demo/paper for the conference in April
+-Research Segmention
+-MORE TUTORIALS/coding practice
+	-C++
+	-pcl
+	-eigen
+	-std
+	-svn
+	-good coding practices
