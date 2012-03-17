@@ -154,7 +154,7 @@ int main (int argc, char** argv)
 
 
   ROS_INFO("Getting test data from a bag file");
-  getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 1);
+  getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 5);
 
   //calculate normals
   ROS_INFO("Calcualting normals");
@@ -179,8 +179,8 @@ int main (int argc, char** argv)
 
   icp_features.setMaximumIterations (50);
   icp_features.setTransformationEpsilon (0);
-  icp_features.setMaxCorrespondenceDistance(0.05);
-  icp_features.setRANSACOutlierRejectionThreshold(0.04);
+  icp_features.setMaxCorrespondenceDistance(0.02);
+  icp_features.setRANSACOutlierRejectionThreshold(0.05);
 
   icp_features.setInputCloud(cloud_source_normals);
   icp_features.setInputTarget(cloud_target_normals);
