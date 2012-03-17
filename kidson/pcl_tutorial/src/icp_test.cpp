@@ -26,7 +26,7 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.01);
+  ne.setRadiusSearch (0.03);
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -96,8 +96,6 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 			pcl::fromROSMsg(fm->sourceFeatureLocations, *featureCloudSource);
 			pcl::fromROSMsg(fm->targetFeatureLocations, *featureCloudTarget);
 
-			ROS_INFO_STREAM("point " << fm->sourceFeatureLocations);
-
 			ROS_INFO("Converting geometry message to eigen4f");
 		    tf::Transform trans;
 		    tf::transformMsgToTF(fm->featureTransform,trans);
@@ -105,19 +103,19 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		    ROS_INFO_STREAM("transform from ransac: " << "\n"  << initialTransform << "\n");
 
 		    ROS_INFO("Extracting corresponding indices");
-		    int j = 1;
+		    //int j = 1;
 		  	for(std::vector<pcl_tutorial::match>::const_iterator iterator_ = fm->matches.begin(); iterator_ != fm->matches.end(); ++iterator_)
 		  	{
 		  		indicesSource.push_back(iterator_->trainId);
 		  		indicesTarget.push_back(iterator_->queryId);
-		  		ROS_INFO_STREAM("source point " << j << ": "   << featureCloudSource->points[iterator_->queryId].x << ", " << featureCloudSource->points[iterator_->queryId].y << ", " << featureCloudSource->points[iterator_->queryId].z);
-		  		ROS_INFO_STREAM("target point " << j++ << ": " << featureCloudTarget->points[iterator_->trainId].x << ", " << featureCloudTarget->points[iterator_->trainId].y << ", " << featureCloudTarget->points[iterator_->trainId].z);
+		  	//	ROS_INFO_STREAM("source point " << j << ": "   << featureCloudSource->points[iterator_->queryId].x << ", " << featureCloudSource->points[iterator_->queryId].y << ", " << featureCloudSource->points[iterator_->queryId].z);
+		  	//	ROS_INFO_STREAM("target point " << j++ << ": " << featureCloudTarget->points[iterator_->trainId].x << ", " << featureCloudTarget->points[iterator_->trainId].y << ", " << featureCloudTarget->points[iterator_->trainId].z);
 		  	//	ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryId, iterator_->trainId, iterator_->imgId, iterator_->distance);
 		  	}
-		    for (size_t cloudId = 0; cloudId < featureCloudSource->points.size (); ++cloudId)
+		    /*for (size_t cloudId = 0; cloudId < featureCloudSource->points.size (); ++cloudId)
 		    {
 		    	ROS_INFO_STREAM("feature cloud: " << cloudId << ": " << featureCloudSource->points[cloudId].x << "; " << featureCloudSource->points[cloudId].y << "; " << featureCloudSource->points[cloudId].z);
-		    }
+		    }*/
 		  	i++;
 
 		  //  for(std::vector<int>::iterator iterator_ = indicesSource.begin(); iterator_ != indicesSource.end(); ++iterator_) {
@@ -188,7 +186,7 @@ int main (int argc, char** argv)
   icp_features.setInputTarget(cloud_target_normals);
   icp_features.setSourceFeatures (featureCloudSource, indicesSource);
   icp_features.setTargetFeatures (featureCloudTarget, indicesTarget);
-  icp_features.setFeatureErrorWeight(1);  // 1 = feature, 0 = icp
+  icp_features.setFeatureErrorWeight(0.5);  // 1 = feature, 0 = icp
 
   ROS_INFO("Performing rgbd icp.....");
   icp_features.align(Final);  //, guess
