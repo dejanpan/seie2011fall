@@ -96,6 +96,8 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 			pcl::fromROSMsg(fm->sourceFeatureLocations, *featureCloudSource);
 			pcl::fromROSMsg(fm->targetFeatureLocations, *featureCloudTarget);
 
+			ROS_INFO_STREAM("point " << fm->sourceFeatureLocations);
+
 			ROS_INFO("Converting geometry message to eigen4f");
 		    tf::Transform trans;
 		    tf::transformMsgToTF(fm->featureTransform,trans);
@@ -106,12 +108,16 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		    int j = 1;
 		  	for(std::vector<pcl_tutorial::match>::const_iterator iterator_ = fm->matches.begin(); iterator_ != fm->matches.end(); ++iterator_)
 		  	{
-		  		indicesSource.push_back(iterator_->queryId);
-		  		indicesTarget.push_back(iterator_->trainId);
+		  		indicesSource.push_back(iterator_->trainId);
+		  		indicesTarget.push_back(iterator_->queryId);
 		  		ROS_INFO_STREAM("source point " << j << ": "   << featureCloudSource->points[iterator_->queryId].x << ", " << featureCloudSource->points[iterator_->queryId].y << ", " << featureCloudSource->points[iterator_->queryId].z);
 		  		ROS_INFO_STREAM("target point " << j++ << ": " << featureCloudTarget->points[iterator_->trainId].x << ", " << featureCloudTarget->points[iterator_->trainId].y << ", " << featureCloudTarget->points[iterator_->trainId].z);
 		  	//	ROS_INFO("qidx: %d tidx: %d iidx: %d dist: %f", iterator_->queryId, iterator_->trainId, iterator_->imgId, iterator_->distance);
 		  	}
+		    for (size_t cloudId = 0; cloudId < featureCloudSource->points.size (); ++cloudId)
+		    {
+		    	ROS_INFO_STREAM("feature cloud: " << cloudId << ": " << featureCloudSource->points[cloudId].x << "; " << featureCloudSource->points[cloudId].y << "; " << featureCloudSource->points[cloudId].z);
+		    }
 		  	i++;
 
 		  //  for(std::vector<int>::iterator iterator_ = indicesSource.begin(); iterator_ != indicesSource.end(); ++iterator_) {
@@ -173,7 +179,7 @@ int main (int argc, char** argv)
   // custom icp
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_features;
 
-  icp_features.setMaximumIterations (20);
+  icp_features.setMaximumIterations (50);
   icp_features.setTransformationEpsilon (0);
   icp_features.setMaxCorrespondenceDistance(0.05);
   icp_features.setRANSACOutlierRejectionThreshold(0.05);

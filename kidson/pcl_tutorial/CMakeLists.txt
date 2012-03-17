@@ -18,7 +18,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 #uncomment if you have defined messages
-#rosbuild_genmsg()
+rosbuild_genmsg()
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
@@ -47,5 +47,5 @@ rosbuild_add_executable (planar_segmentation src/planar_segmentation.cpp)
 rosbuild_add_executable (correspond_test src/correspond_test.cpp)
 rosbuild_add_executable (icp_test src/icp_test.cpp)
 rosbuild_add_executable (normal_estimation src/normal_estimation.cpp)
-rosbuild_add_executable (readFromBag src/readFromBag.cpp)
+#rosbuild_add_executable (readFromBag src/readFromBag.cpp)
 #rosbuild_add_executable (view_pcd src/view_pcd.cpp)
