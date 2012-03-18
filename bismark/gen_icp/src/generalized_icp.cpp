@@ -57,11 +57,11 @@ int main(int argc, char** argv){
 
 
 
-    for(int i=1;i<argc;i+=1){
+    for(int i=1;i<(argc-1);i+=1){
 
 
     	std::stringstream ss;
-    	ss<<argv[2];
+    	ss<<argv[i+1];
     	pcl::PCDReader reader;
     	reader.read((ss.str()),*input);
 
