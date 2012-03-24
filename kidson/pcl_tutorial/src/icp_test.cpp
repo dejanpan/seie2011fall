@@ -26,7 +26,7 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.03);
+  ne.setRadiusSearch (0.003);
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -128,6 +128,22 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 	bag.close();
 }
 
+void removeCorrespondancesZThreshold (PointCloudPtr featureCloudSource, std::vector<int> &indicesSource,
+		PointCloudPtr featureCloudTarget, std::vector<int> &indicesTarget,
+		float zThreshold)
+{
+    for (size_t corrIdx = 0; corrIdx < indicesSource.size (); corrIdx++)
+    {
+        if(featureCloudSource->points[indicesSource[corrIdx]].z > zThreshold)
+        {
+            //remove from source and target indices
+            indicesSource.erase(indicesSource.begin() + (int)corrIdx);
+            indicesTarget.erase(indicesTarget.begin() + (int)corrIdx);
+            corrIdx--;  //because indices are now - 1
+        }
+    }
+}
+
 int main (int argc, char** argv)
 {
   PointCloudPtr cloud_source (new PointCloud);
@@ -156,6 +172,10 @@ int main (int argc, char** argv)
 
   ROS_INFO("Getting test data from a bag file");
   getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 1);
+
+  // remove corresponances with large z values (susceptible to error)
+  ROS_INFO("Removing feature correspondances with a large depth measurement");
+  removeCorrespondancesZThreshold (featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, 1.5);
 
   //calculate normals
   ROS_INFO("Calcualting normals");
@@ -190,7 +210,7 @@ int main (int argc, char** argv)
   icp_features.setFeatureErrorWeight(0.3);  // 1 = feature, 0 = icp
 
   ROS_INFO("Performing rgbd icp.....");
-  icp_features.align(Final);  //, guess
+  //icp_features.align(Final);  //, guess
   std::cout << "ICP features has finished with converge flag of:" << icp_features.hasConverged() << " score: " <<
 		  icp_features.getFitnessScore() << std::endl;
   std::cout << icp_features.getFinalTransformation() << std::endl;
