@@ -43,7 +43,7 @@
 #include <pcl/sample_consensus/sac_model_registration.h>
 #include "pcl/registration/registration.h"
 #include "pcl/registration/transformation_estimation_svd.h"
-#include "pcl/registration/transformation_estimation_point_to_plane.h"
+//#include "pcl/registration/transformation_estimation_point_to_plane.h"
 
 namespace pcl
 {
@@ -102,8 +102,8 @@ namespace pcl
       IterativeClosestPoint () 
       {
         reg_name_ = "IterativeClosestPoint";
-        //transformation_estimation_.reset (new pcl::registration::TransformationEstimationSVD<PointSource, PointTarget>);
-        transformation_estimation_.reset (new pcl::registration::TransformationEstimationPointToPlane<PointSource, PointTarget>);
+        transformation_estimation_.reset (new pcl::registration::TransformationEstimationSVD<PointSource, PointTarget>);
+        //transformation_estimation_.reset (new pcl::registration::TransformationEstimationPointToPlane<PointSource, PointTarget>);
       };
 
     protected:
