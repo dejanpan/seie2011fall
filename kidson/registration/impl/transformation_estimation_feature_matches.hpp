@@ -162,10 +162,8 @@ pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarg
     	//std::cerr << " p_src : " << p_src << " p_tgt" << p_tgt << "\n";
     }
   }
-  std::cerr << " Error(distance): " << fvec.sum() << "\n";
+  //std::cerr << " Error(distance): " << fvec.sum() << "\n";
   //std::cerr << "fvec: " << fvec.sum() << "\n";
-  if ((fvec.sum() > 1e+5) || (fvec.sum() < -1e+5))
-		  std::cerr << "##### FATAL ICP ERROR  ######    fvec.sum():" << fvec.sum() << "\n";
   return (0);
 }
 

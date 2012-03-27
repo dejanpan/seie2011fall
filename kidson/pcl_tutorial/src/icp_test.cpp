@@ -28,7 +28,7 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.01);
+  ne.setRadiusSearch (0.02);
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -175,7 +175,7 @@ int main (int argc, char** argv)
 
 
   ROS_INFO("Getting test data from a bag file");
-  getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 10);
+  getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 69);
   Eigen::Matrix4f ransacInverse = initialTransform.inverse();
 
   // remove corresponances with large z values (susceptible to error)
@@ -193,20 +193,15 @@ int main (int argc, char** argv)
   pcl::copyPointCloud (*featureCloudTargetTemp, *featureCloudTarget);
 
   // here is a guess transform that was manually set to align point clouds, pure icp performs well with this
-  PointCloudNormal Final;
+  PointCloud Final;
   Eigen::Matrix4f guess;
-  guess <<   1, 0, 0, 0,
-		     0, 1, 0, 0,
-		     0, 0, 1, 0,
-		     0, 0, 0, 1;
-
   guess <<   1, 0, 0, 0.07,
 		     0, 1, 0, 0,
 		     0, 0, 1, 0.015,
 		     0, 0, 0, 1;
 
   ROS_INFO("Setting up icp with features");
-  // custom icp
+  /* custom icp
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_features;
   icp_features.setMaximumIterations (40);
   icp_features.setTransformationEpsilon (1e-9);
@@ -224,7 +219,7 @@ int main (int argc, char** argv)
   std::cout << "ICP features has finished with converge flag of:" << icp_features.hasConverged() << " score: " <<
 		  icp_features.getFitnessScore() << std::endl;
   std::cout << icp_features.getFinalTransformation() << std::endl;
-
+*/
   std::vector<int> indicesSourceSmall = indicesSource;
   std::vector<int> indicesTargetSmall = indicesTarget;
 
@@ -235,29 +230,24 @@ int main (int argc, char** argv)
       *iterator_ = *iterator_ + cloud_target->size();
   }
 
+  PointCloudNormalPtr concatinatedSourceCloud (new PointCloudNormal);
+  PointCloudNormalPtr concatinatedTargetCloud (new PointCloudNormal);
 
-/*
-  PointCloudPtr concatinatedSourceCloud (new PointCloud);
-  PointCloudPtr concatinatedTargetCloud (new PointCloud);
+  *concatinatedSourceCloud = *cloud_source_normals;
+  *concatinatedTargetCloud = *cloud_target_normals;
 
-  *concatinatedSourceCloud = *cloud_source;
-  *concatinatedTargetCloud = *cloud_target;
+  (*concatinatedSourceCloud) += *featureCloudSource;
+  (*concatinatedTargetCloud) += *featureCloudTarget;
 
-  (*concatinatedSourceCloud) += *featureCloudSourceTemp;
-  (*concatinatedTargetCloud) += *featureCloudTargetTemp;
-
-  boost::shared_ptr< TransformationEstimationWDF<pcl::PointXYZRGB,pcl::PointXYZRGB> >
-  		initialTransformWDF(new TransformationEstimationWDF<pcl::PointXYZRGB,pcl::PointXYZRGB>());
+  boost::shared_ptr< TransformationEstimationWDF<pcl::PointXYZRGBNormal,pcl::PointXYZRGBNormal> >
+  		initialTransformWDF(new TransformationEstimationWDF<pcl::PointXYZRGBNormal,pcl::PointXYZRGBNormal>());
 
   float alpha = 1.0;
   initialTransformWDF->setAlpha(alpha);
   initialTransformWDF->setCorrespondecesDFP(indicesSource, indicesTarget);
 
-  //std::vector<int> vec_1, vec_2;
-  //initialTransformWDF->estimateRigidTransformation( *featureCloudSourceTemp, vec_1, *featureCloudTargetTemp, vec_2, guess);
-
   // Instantiate ICP
-  pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp_wdf;
+  pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_wdf;
 
   // Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
   icp_wdf.setMaxCorrespondenceDistance (0.05);
@@ -274,14 +264,14 @@ int main (int argc, char** argv)
   icp_wdf.setInputCloud( concatinatedSourceCloud);
   icp_wdf.setInputTarget( concatinatedTargetCloud);
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_transformed( new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_transformed( new pcl::PointCloud<pcl::PointXYZRGBNormal>);
   // As before, due to my initial bad naming, it is the "target" that is being transformed
   //									set initial transform
   icp_wdf.align ( *cloud_transformed, ransacInverse); //init_tr );
   std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icp_wdf.hasConverged() << std::endl <<
 				"	fitness score (SSD): " << icp_wdf.getFitnessScore (1000) << std::endl;
   icp_wdf.getFinalTransformation ();
-*/
+
   /// Final ICP transformation is obtained by multiplying initial transformed with icp refinement
 
 /*------BEST-------------
@@ -291,7 +281,7 @@ icp.getMaxCorrespondenceDistance() 0.03
 icp.getTransformationEpsilon () 1e-09
 icp.getEuclideanFitnessEpsilon () -1.79769e+308
 score: 0.000164332
-  ---------------------*/
+  ---------------------
   //Normal (non modified) icp for reference
   pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp;
     icp.setMaximumIterations (20);
@@ -320,11 +310,11 @@ score: 0.000164332
     icp.align(Final_reference);//, guess);
     std::cout << "ICP has finished with converge flag of:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
       std::cout << icp.getFinalTransformation() << std::endl;
-
+*/
   ROS_INFO("Writing output clouds...");
-  transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse_all, icp_features.getFinalTransformation());
-  transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse_correspond, icp_features.getFinalTransformation());
-  transformPointCloud (*cloud_source, *cloud_converg_dense, icp_features.getFinalTransformation());
+  transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse_all, icp_wdf.getFinalTransformation());
+  transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse_correspond, icp_wdf.getFinalTransformation());
+  transformPointCloud (*cloud_source, *cloud_converg_dense, icp_wdf.getFinalTransformation());
   transformPointCloud (*cloud_source, *cloud_ransac_estimation, ransacInverse);
 
   // remove non correspondences from feature clouds as an addition output
@@ -366,7 +356,7 @@ score: 0.000164332
   writer.write ("converged-feature-correspond.pcd", *cloud_converg_sparse_correspond, false);
   writer.write ("target-feature-correspond.pcd", *cloud_target_sparse_correspond, false);
   writer.write ("ransac_estimation.pcd", *cloud_ransac_estimation, false);
-  writer.write ("converged-reference.pcd", Final_reference, false);
+ // writer.write ("converged-reference.pcd", Final_reference, false);
 
  return (0);
 }
