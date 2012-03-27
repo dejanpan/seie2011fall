@@ -124,7 +124,7 @@ pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarg
   Eigen::VectorXf params = x.cast<float> ();
   estimator_->warp_point_->setParam (params);
 
-  //std::cerr << " ###################################BEGIN INDICES#####################################################" << "\n";
+  //std::cerr << " ###################################BEGIN distances#####################################################" << "\n";
   //std::cerr << "correspondences dense:" << mPointsDense << "\n";
 
   // Transform each source point and compute its distance to the corresponding target point
@@ -162,7 +162,7 @@ pcl::registration::TransformationEstimationFeatureMatches<PointSource, PointTarg
     	//std::cerr << " p_src : " << p_src << " p_tgt" << p_tgt << "\n";
     }
   }
-  //std::cerr << " Error(distance): " << fvec.sum() << "\n";
+  std::cerr << " Error(distance): " << fvec.sum() << "\n";
   //std::cerr << "fvec: " << fvec.sum() << "\n";
   if ((fvec.sum() > 1e+5) || (fvec.sum() < -1e+5))
 		  std::cerr << "##### FATAL ICP ERROR  ######    fvec.sum():" << fvec.sum() << "\n";

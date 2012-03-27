@@ -8,7 +8,7 @@ int
 {
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_out (new pcl::PointCloud<pcl::PointXYZ>);
-
+ 
   /* Fill in the CloudIn data
   cloud_in->width    = 5;
   cloud_in->height   = 1;
@@ -43,11 +43,18 @@ int
   std::cout << "PointCloud source has: " << cloud_in->points.size () << " data points." << std::endl;
   std::cout << "PointCloud target has: " << cloud_out->points.size () << " data points." << std::endl;
 
+  Eigen::Matrix4f guess;
+  guess <<   1, 0, 0, 0,
+		     0, 1, 0, 0,
+		     0, 0, 1, 0,
+		     0, 0, 0, 1;
+
   pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+  icp.setMaximumIterations (40);
   icp.setInputCloud(cloud_in);
   icp.setInputTarget(cloud_out);
   pcl::PointCloud<pcl::PointXYZ> Final;
-  icp.align(Final);
+  icp.align(Final, guess);
   std::cout << "has converged:" << icp.hasConverged() << " score: " <<
   icp.getFitnessScore() << std::endl;
   std::cout << icp.getFinalTransformation() << std::endl;

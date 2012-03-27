@@ -66,6 +66,7 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
     final_transformation_ = guess;
     // Apply guessed transformation prior to search for neighbours
     transformPointCloud (output, output, guess);
+    transformPointCloud (featurePointCloudSource, featurePointCloudSource, guess);
   }
 
   // Resize the vector of distances between correspondences 
@@ -119,12 +120,12 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
       correspondence_distances_[(*indices_)[idx]] = std::min (nn_dists[0], (float)dist_threshold);
     }
 
-    if (cnt < min_number_correspondences_)
-    {
-      PCL_ERROR ("[pcl::%s::computeTransformation] Not enough correspondences found. Relax your threshold parameters.\n", getClassName ().c_str ());
-      converged_ = false;
-      return;
-    }
+    //if (cnt < min_number_correspondences_)
+    //{
+    //  PCL_ERROR ("[pcl::%s::computeTransformation] Not enough correspondences found. Relax your threshold parameters.\n", getClassName ().c_str ());
+    //  converged_ = false;
+    //  return;
+    //}
 
     // Resize to the actual number of valid correspondences
     source_indices.resize (cnt); target_indices.resize (cnt);
@@ -168,14 +169,14 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
       }
     }
 
-    // Check whether we have enough correspondences
+    /* Check whether we have enough correspondences
     cnt = (int)source_indices_good.size ();
     if (cnt < min_number_correspondences_)
     {
       PCL_ERROR ("[pcl::%s::computeTransformation] Not enough correspondences found. Relax your threshold parameters.\n", getClassName ().c_str ());
       converged_ = false;
       return;
-    }
+    }*/
 
     PCL_INFO ("[pcl::%s::computeTransformation] Iteration %d Number of correspondences %d [%f%%] out of %lu points [100.0%%], RANSAC rejected: %lu [%f%%].\n", getClassName ().c_str (), nr_iterations_, cnt, (cnt * 100.0) / indices_->size (), (unsigned long)indices_->size (), (unsigned long)source_indices.size () - cnt, (source_indices.size () - cnt) * 100.0 / source_indices.size ());
   
@@ -224,6 +225,7 @@ pcl::IterativeClosestPointFeatures<PointSource, PointTarget>::computeTransformat
     //std::cerr << "first feature target: " << combinedTargetCloud.points[259839]<< "\n";
 
     transformation_estimation_->estimateRigidTransformation (combinedSourceCloud, combinedSourceIndices, combinedTargetCloud, combinedTargetIndices, transformation_);
+    //transformation_estimation_->estimateRigidTransformation (featurePointCloudSource, featureSourceIndices, featurePointCloudTarget, featureTargetIndices, transformation_);
 
     std::cerr << "transformation epsilon:" << fabs ((transformation_ - previous_transformation_).sum ()) << "\n";
 
