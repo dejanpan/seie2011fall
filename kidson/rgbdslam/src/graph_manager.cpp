@@ -200,7 +200,7 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
 /// max_targets = 1: Compare to previous frame only
 /// max_targets > 1: Select intelligently (TODO: rather stupid at the moment)
 QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_targets){
-    int last_targets = 3; //always compare to the last n, spread evenly for the rest
+    int last_targets = 1; //always compare to the last n, spread evenly for the rest //3
     QList<int> ids_to_link_to;
     //max_targets = last_targets;
     int gsize = graph_.size();
@@ -224,10 +224,10 @@ QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_t
     if(gsize <= max_targets){
       last_targets = gsize;
     }
-    for(int i = 2; i <= gsize && i <= last_targets; i++){//start at two, b/c the prev node is always already checked in addNode{
-        ids_to_link_to.push_back(gsize-i);
-    }
-    while(ids_to_link_to.size() < max_targets && ids_to_link_to.size() < gsize-1){ 
+    //for(int i = 2; i <= gsize && i <= last_targets; i++){//start at two, b/c the prev node is always already checked in addNode{
+    //    ids_to_link_to.push_back(gsize-i);
+    //}
+    /*while(ids_to_link_to.size() < max_targets && ids_to_link_to.size() < gsize-1){
         int sample_id = rand() % (gsize - 1);
         ROS_DEBUG_STREAM("Sample: " << sample_id << " Graph size: " << gsize << " ids_to_link_to.size: " << ids_to_link_to.size());
         //usleep(100000);
@@ -235,7 +235,12 @@ QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_t
         if(i1 != ids_to_link_to.end()) 
           continue;
         ids_to_link_to.push_back(sample_id);
-    }
+    }*/
+    //if((gsize - 5) > 0)
+    //    	ids_to_link_to.push_back(gsize - 5);
+    if((gsize - 20) > 0)
+        	ids_to_link_to.push_back(gsize - 15);
+
 
 
     //output only loop
@@ -452,6 +457,7 @@ bool GraphManager::addNode(Node* new_node) {
             MatchingResult mr = new_node->matchNodePair(abcd);
 
             if (mr.edge.id1 >= 0) {
+            	publish_transform(mr, new_node, abcd, feature_match_pub);
                 //mr.edge.informationMatrix *= geodesicDiscount(hypdij, mr);
                 ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
 
