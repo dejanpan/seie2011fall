@@ -200,7 +200,7 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
 /// max_targets = 1: Compare to previous frame only
 /// max_targets > 1: Select intelligently (TODO: rather stupid at the moment)
 QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_targets){
-    int last_targets = 1; //always compare to the last n, spread evenly for the rest //3
+    int last_targets = 3; //always compare to the last n, spread evenly for the rest //3
     QList<int> ids_to_link_to;
     //max_targets = last_targets;
     int gsize = graph_.size();
@@ -224,10 +224,10 @@ QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_t
     if(gsize <= max_targets){
       last_targets = gsize;
     }
-    //for(int i = 2; i <= gsize && i <= last_targets; i++){//start at two, b/c the prev node is always already checked in addNode{
-    //    ids_to_link_to.push_back(gsize-i);
-    //}
-    /*while(ids_to_link_to.size() < max_targets && ids_to_link_to.size() < gsize-1){
+    for(int i = 2; i <= gsize && i <= last_targets; i++){//start at two, b/c the prev node is always already checked in addNode{
+        ids_to_link_to.push_back(gsize-i);
+    }
+    while(ids_to_link_to.size() < max_targets && ids_to_link_to.size() < gsize-1){
         int sample_id = rand() % (gsize - 1);
         ROS_DEBUG_STREAM("Sample: " << sample_id << " Graph size: " << gsize << " ids_to_link_to.size: " << ids_to_link_to.size());
         //usleep(100000);
@@ -235,11 +235,11 @@ QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_t
         if(i1 != ids_to_link_to.end()) 
           continue;
         ids_to_link_to.push_back(sample_id);
-    }*/
+    }
     //if((gsize - 5) > 0)
     //    	ids_to_link_to.push_back(gsize - 5);
-    if((gsize - 20) > 0)
-        	ids_to_link_to.push_back(gsize - 15);
+    //if((gsize - 20) > 0)
+    //    	ids_to_link_to.push_back(gsize - 15);
 
 
 
@@ -383,7 +383,7 @@ bool GraphManager::addNode(Node* new_node) {
     //First check if trafo to last frame is not too small
     Node* prev_frame = graph_[graph_.size()-1];
     ROS_INFO("Comparing new node (%i) with previous node %i", new_node->id_, prev_frame->id_);
-    MatchingResult mr = new_node->matchNodePair(prev_frame);
+    MatchingResult mr = new_node->matchNodePair(prev_frame, true);
 
     if(mr.edge.id1 >= 0 && !isBigTrafo(mr.edge.mean)){
         ROS_WARN("Transformation not relevant. Did not add as Node");
@@ -429,7 +429,7 @@ bool GraphManager::addNode(Node* new_node) {
             qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
         }
         QList<MatchingResult> results = QtConcurrent::blockingMapped(
-                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1));
+                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1, false));
 
         for (int i = 0; i < results.size(); i++) {
             MatchingResult& mr = results[i];
@@ -454,7 +454,7 @@ bool GraphManager::addNode(Node* new_node) {
         for (int id_of_id = (int) vertices_to_comp.size() - 1; id_of_id >= 0; id_of_id--) {
             Node* abcd = graph_[vertices_to_comp[id_of_id]];
             ROS_INFO("Comparing new node (%i) with node %i / %i", new_node->id_, vertices_to_comp[id_of_id], abcd->id_);
-            MatchingResult mr = new_node->matchNodePair(abcd);
+            MatchingResult mr = new_node->matchNodePair(abcd, false);
 
             if (mr.edge.id1 >= 0) {
             	publish_transform(mr, new_node, abcd, feature_match_pub);
@@ -535,6 +535,12 @@ bool GraphManager::addNode(Node* new_node) {
         new_node->buildFlannIndex();
         graph_[new_node->id_] = new_node;
         ROS_INFO("Added Node, new Graphsize: %i", (int) graph_.size());
+        pcl::PCDWriter writer;
+        std::stringstream filename;
+        filename << "node_" << new_node->id_ << ".pcd";
+        writer.write (filename.str(), *(new_node->pc_col), true);
+        new_node->clearPointCloud();
+
         if((optimizer_->vertices().size() % ParameterServer::instance()->get<int>("optimizer_skip_step")) == 0){ 
           optimizeGraph();
         } else {

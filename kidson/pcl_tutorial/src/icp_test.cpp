@@ -67,10 +67,11 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 	sensor_msgs::PointCloud2::Ptr cloud_source_filtered (new sensor_msgs::PointCloud2 ());
 	sensor_msgs::PointCloud2::Ptr cloud_target_filtered (new sensor_msgs::PointCloud2 ());
 
-
+  	pcl::PCDWriter writer;
+  	std::stringstream filename;
 
 	rosbag::Bag bag;
-	bag.open("test.bag", rosbag::bagmode::Read);
+	bag.open("/home/ross/ros_workspace/bagfiles/scenesAllMatches/bench1-2sweeps.bag", rosbag::bagmode::Read);
 
 	std::vector<std::string> topics;
 	topics.push_back(std::string("/feature_match_out_topic"));
@@ -80,7 +81,7 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 	int i = 1;
 	BOOST_FOREACH(rosbag::MessageInstance const m, view)
 	{
-		if( i == rosMessageNumber)
+		if(( i == rosMessageNumber) || (rosMessageNumber==0))
 		{
 			pcl_tutorial::featureMatch::ConstPtr fm = m.instantiate<pcl_tutorial::featureMatch>();
 
@@ -118,6 +119,19 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		    {
 		    	ROS_INFO_STREAM("feature cloud: " << cloudId << ": " << featureCloudSource->points[cloudId].x << "; " << featureCloudSource->points[cloudId].y << "; " << featureCloudSource->points[cloudId].z);
 		    }*/
+		    ROS_INFO("Writing point clouds");
+		  	filename << "cloud" << i << "DenseSource.pcd";
+		  	writer.write (filename.str(), *cloud_source, false);
+		  	filename.str("");
+		  	filename << "cloud" << i << "DenseTarget.pcd";
+		  	writer.write (filename.str(), *cloud_target, false);
+		  	filename.str("");
+		  	filename << "cloud" << i << "SparseSource.pcd";
+		  	writer.write (filename.str(), *featureCloudSource, false);
+		  	filename.str("");
+		  	filename << "cloud" << i << "SparseTarget.pcd";
+		    writer.write (filename.str(), *featureCloudTarget, false);
+		    filename.str("");
 		  	i++;
 
 		  //  for(std::vector<int>::iterator iterator_ = indicesSource.begin(); iterator_ != indicesSource.end(); ++iterator_) {
@@ -175,7 +189,7 @@ int main (int argc, char** argv)
 
 
   ROS_INFO("Getting test data from a bag file");
-  getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 69);
+  getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 0);
   Eigen::Matrix4f ransacInverse = initialTransform.inverse();
 
   // remove corresponances with large z values (susceptible to error)

@@ -81,7 +81,7 @@ public:
 	~Node();
 
 	///Compare the features of two nodes and compute the transformation
-  MatchingResult matchNodePair(const Node* older_node);
+  MatchingResult matchNodePair(const Node* older_node, bool newNode);
 
   ///Transform, e.g., from MoCap
   void setGroundTruthTransform(tf::StampedTransform gt);

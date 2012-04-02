@@ -391,7 +391,7 @@ int main (int argc, char** argv)
 {
 	std::vector<double> results;
 
-	runTests(results, "featureStructured3-features", 63, "close"); //close
+/*	runTests(results, "featureStructured3-features", 63, "close"); //close
 	runTests(results, "featureStructured3-features", 64, "mid"); //medr
 	runTests(results, "featureStructured3-features", 62, "far"); //far
 
@@ -417,7 +417,18 @@ int main (int argc, char** argv)
 
 	runTests(results, "desk-far1-features", 46, "close"); //close
 	runTests(results, "desk-far1-features", 47, "mid"); //med
-	runTests(results, "desk-far1-features", 48, "far"); //far
+	runTests(results, "desk-far1-features", 48, "far"); //far*/
+
+	runTests(results, "bench1-2sweeps", 16, "close"); //close
+	runTests(results, "bench1-2sweeps", 26, "close"); //close
+	runTests(results, "bench1-2sweeps", 36, "close"); //close
+	runTests(results, "bench1-2sweeps", 46, "close"); //close
+	runTests(results, "bench1-2sweeps", 56, "close"); //close
+	runTests(results, "bench1-2sweeps", 66, "close"); //close
+	runTests(results, "bench1-2sweeps", 76, "close"); //close
+	runTests(results, "bench1-2sweeps", 86, "close"); //close
+	runTests(results, "bench1-2sweeps", 96, "close"); //close
+	runTests(results, "bench1-2sweeps", 106, "close"); //close
 
 	for (size_t idx = 0; idx < results.size(); ++idx)
 	{

@@ -983,7 +983,7 @@ void Node::gicpSetIdentity(dgc_transform_t m){
 #endif
 
 
-MatchingResult Node::matchNodePair(const Node* older_node){
+MatchingResult Node::matchNodePair(const Node* older_node, bool newNode){
   MatchingResult mr;
   if(initial_node_matches_ > ParameterServer::instance()->get<int>("max_connections")) return mr; //enough is enough
   const unsigned int min_matches = (unsigned int) ParameterServer::instance()->get<int>("min_matches");// minimal number of feature correspondences to be a valid candidate for a link
@@ -992,7 +992,7 @@ MatchingResult Node::matchNodePair(const Node* older_node){
   this->findPairsFlann(older_node, &mr.all_matches); 
 
   ROS_DEBUG("found %i inital matches",(int) mr.all_matches.size());
-  if (mr.all_matches.size() < min_matches){
+  if ((mr.all_matches.size() < min_matches)){   //&& (!newNode)){
     ROS_INFO("Too few inliers: Adding no Edge between %i and %i. Only %i correspondences to begin with.",
         older_node->id_,this->id_,(int)mr.all_matches.size());
   } 
