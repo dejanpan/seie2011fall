@@ -46,7 +46,7 @@ void ParameterServer::defaultConfig() {
     config["fixed_frame_name"]              = std::string("/map");
     config["ground_truth_frame_name"]       = std::string("");                  //use empty string if no ground truth tf frame available
     config["base_frame_name"]               = std::string("/openni_camera");    //if the camera is articulated use robot base
-    config["bagfile_name"]                  = std::string("/home/ross/ros_workspace/bagfiles/bench1-ManySweeps2.bag");                  // /home/ross/ros_workspace/bagfiles/testSet/featureStructured3.bag
+    config["bagfile_name"]                  = std::string("/home/ross/ros_workspace/bagfiles/bench1-ManySweeps4.bag");                  // /home/ross/ros_workspace/bagfiles/testSet/featureStructured3.bag
     config["batch_processing"]              = static_cast<bool> (false);        //store results and close after bagfile has been processed
     config["fixed_camera"]                  = static_cast<bool> (true);         //is camera fixed relative to base?
     config["feature_detector_type"]         = std::string("SURF");              //SURF, SIFT, FAST, ... see misc.cpp
@@ -59,7 +59,7 @@ void ParameterServer::defaultConfig() {
     config["publisher_queue_size"]          = static_cast<int> (1);
     config["max_keypoints"]                 = static_cast<int> (1000);  //1000         //will also be used as max for SiftGPU
     config["min_keypoints"]                 = static_cast<int> (500);  //500
-    config["min_matches"]                   = static_cast<int> (100);      //25     //if using SiftGPU and GLSL you should use max. 60 matches
+    config["min_matches"]                   = static_cast<int> (140);      //25     //if using SiftGPU and GLSL you should use max. 60 matches
     config["fast_max_iterations"]           = static_cast<int> (10);
     config["surf_max_iterations"]           = static_cast<int> (5);
     config["min_translation_meter"]         = static_cast<double> (0.05);	//0.05
