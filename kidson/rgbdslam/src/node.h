@@ -81,7 +81,7 @@ public:
 	~Node();
 
 	///Compare the features of two nodes and compute the transformation
-  MatchingResult matchNodePair(const Node* older_node, bool newNode);
+  MatchingResult matchNodePair(const Node* older_node);
 
   ///Transform, e.g., from MoCap
   void setGroundTruthTransform(tf::StampedTransform gt);
@@ -141,6 +141,7 @@ public:
 
   //!erase the points from the cloud to save memory
   void clearPointCloud();
+  void cachePointCloudToFile();
 	//PointCloud pc;
 	///pointcloud_type centrally defines what the pc is templated on
 	unsigned int id_; ///must correspond to the g2o vertex id

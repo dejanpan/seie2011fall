@@ -6,8 +6,14 @@
 int
 main (int argc, char** argv)
 {
+  if (argc != 3)
+  {
+    std::cerr << "please provide filename followed by leaf size (e.g. cloud.pcd 0.01)" << std::endl;
+    exit(0);
+  }
   sensor_msgs::PointCloud2::Ptr cloud (new sensor_msgs::PointCloud2 ());
   sensor_msgs::PointCloud2::Ptr cloud_filtered (new sensor_msgs::PointCloud2 ());
+  float leafSize = atof(argv[2]);
 
   //Fill in the cloud data
   pcl::PCDReader reader;
@@ -20,7 +26,7 @@ main (int argc, char** argv)
   // Create the filtering object
   pcl::VoxelGrid<sensor_msgs::PointCloud2> sor;
   sor.setInputCloud (cloud);
-  sor.setLeafSize (0.01f, 0.01f, 0.01f);
+  sor.setLeafSize (leafSize, leafSize, leafSize);
   sor.filter (*cloud_filtered);
 
   std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height 

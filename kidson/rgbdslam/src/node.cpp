@@ -20,6 +20,7 @@
 #include <ctime>
 #include <Eigen/Geometry>
 #include "pcl/ros/conversions.h"
+#include "pcl/io/pcd_io.h"
 #include <pcl/common/transformation_from_correspondences.h>
 //#include <opencv2/highgui/highgui.hpp>
 #include <qtconcurrentrun.h>
@@ -817,7 +818,7 @@ bool Node::getRelativeTransformationTo(const Node* earlier_node,
   assert(initial_matches != NULL);
   matches.clear();
   
-  if(initial_matches->size() <= (unsigned int) ParameterServer::instance()->get<int>("min_matches")){
+  if(initial_matches->size() <= (unsigned int) ParameterServer::instance()->get<int>("min_matches")) {
 	  ROS_INFO("Only %d feature matches between %d and %d (minimal: %i)",(int)initial_matches->size() , this->id_, earlier_node->id_, ParameterServer::instance()->get<int>("min_matches"));
     return false;
   }
@@ -983,7 +984,7 @@ void Node::gicpSetIdentity(dgc_transform_t m){
 #endif
 
 
-MatchingResult Node::matchNodePair(const Node* older_node, bool newNode){
+MatchingResult Node::matchNodePair(const Node* older_node){
   MatchingResult mr;
   if(initial_node_matches_ > ParameterServer::instance()->get<int>("max_connections")) return mr; //enough is enough
   const unsigned int min_matches = (unsigned int) ParameterServer::instance()->get<int>("min_matches");// minimal number of feature correspondences to be a valid candidate for a link
@@ -992,7 +993,7 @@ MatchingResult Node::matchNodePair(const Node* older_node, bool newNode){
   this->findPairsFlann(older_node, &mr.all_matches); 
 
   ROS_DEBUG("found %i inital matches",(int) mr.all_matches.size());
-  if ((mr.all_matches.size() < min_matches)){   //&& (!newNode)){
+  if ((mr.all_matches.size() < min_matches)){
     ROS_INFO("Too few inliers: Adding no Edge between %i and %i. Only %i correspondences to begin with.",
         older_node->id_,this->id_,(int)mr.all_matches.size());
   } 
@@ -1102,4 +1103,13 @@ void Node::clearPointCloud(){
   pc_col->height = 0;
   pointcloud_type pc_empty;
   pc_empty.points.swap(pc_col->points);
+}
+
+// writes the point cloud of a node to file and clears it from memory
+void Node::cachePointCloudToFile()
+{
+	 pcl::PCDWriter writer;
+	 std::stringstream filename;
+	 filename << "node_" << id_ << ".pcd";
+	 writer.write (filename.str(), *pc_col, true);
 }

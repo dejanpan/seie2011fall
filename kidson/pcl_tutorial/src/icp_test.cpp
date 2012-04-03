@@ -66,12 +66,13 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 {
 	sensor_msgs::PointCloud2::Ptr cloud_source_filtered (new sensor_msgs::PointCloud2 ());
 	sensor_msgs::PointCloud2::Ptr cloud_target_filtered (new sensor_msgs::PointCloud2 ());
+	PointCloudPtr cloud_ransac_estimation (new PointCloud);
 
   	pcl::PCDWriter writer;
   	std::stringstream filename;
 
 	rosbag::Bag bag;
-	bag.open("/home/ross/ros_workspace/bagfiles/scenesAllMatches/bench1-2sweeps.bag", rosbag::bagmode::Read);
+	bag.open("/home/ross/ros_workspace/bagfiles/scenesAllMatches/RANSACdata.bag", rosbag::bagmode::Read);
 
 	std::vector<std::string> topics;
 	topics.push_back(std::string("/feature_match_out_topic"));
@@ -107,6 +108,8 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 
 		    ROS_INFO("Extracting corresponding indices");
 		    //int j = 1;
+		    indicesSource.clear();
+		    indicesTarget.clear();
 		  	for(std::vector<pcl_tutorial::match>::const_iterator iterator_ = fm->matches.begin(); iterator_ != fm->matches.end(); ++iterator_)
 		  	{
 		  		indicesSource.push_back(iterator_->trainId);
@@ -119,19 +122,26 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 		    {
 		    	ROS_INFO_STREAM("feature cloud: " << cloudId << ": " << featureCloudSource->points[cloudId].x << "; " << featureCloudSource->points[cloudId].y << "; " << featureCloudSource->points[cloudId].z);
 		    }*/
+
+		  	Eigen::Matrix4f ransacInverse = initialTransform.inverse();
+		  	transformPointCloud (*cloud_source, *cloud_ransac_estimation, ransacInverse);
+
 		    ROS_INFO("Writing point clouds");
-		  	filename << "cloud" << i << "DenseSource.pcd";
-		  	writer.write (filename.str(), *cloud_source, false);
-		  	filename.str("");
+		  	//filename << "cloud" << i << "DenseSource.pcd";
+		  	//writer.write (filename.str(), *cloud_source, false);
+		  	//filename.str("");
 		  	filename << "cloud" << i << "DenseTarget.pcd";
-		  	writer.write (filename.str(), *cloud_target, false);
+		  	writer.write (filename.str(), *cloud_target, true);
 		  	filename.str("");
-		  	filename << "cloud" << i << "SparseSource.pcd";
-		  	writer.write (filename.str(), *featureCloudSource, false);
+		  	filename << "cloud" << i << "RANSAC-" << (int)indicesSource.size() << "-inliers.pcd";
+		  	writer.write (filename.str(), *cloud_ransac_estimation, true);
 		  	filename.str("");
-		  	filename << "cloud" << i << "SparseTarget.pcd";
-		    writer.write (filename.str(), *featureCloudTarget, false);
-		    filename.str("");
+		  	//filename << "cloud" << i << "SparseSource.pcd";
+		  	//writer.write (filename.str(), *featureCloudSource, false);
+		  	//filename.str("");
+		  	//filename << "cloud" << i << "SparseTarget.pcd";
+		    //writer.write (filename.str(), *featureCloudTarget, false);
+		    //filename.str("");
 		  	i++;
 
 		  //  for(std::vector<int>::iterator iterator_ = indicesSource.begin(); iterator_ != indicesSource.end(); ++iterator_) {
@@ -191,7 +201,7 @@ int main (int argc, char** argv)
   ROS_INFO("Getting test data from a bag file");
   getTestDataFromBag(cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, 0);
   Eigen::Matrix4f ransacInverse = initialTransform.inverse();
-
+/*
   // remove corresponances with large z values (susceptible to error)
   ROS_INFO("Removing feature correspondances with a large depth measurement");
   //removeCorrespondancesZThreshold (featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, 1.3);
@@ -215,6 +225,7 @@ int main (int argc, char** argv)
 		     0, 0, 0, 1;
 
   ROS_INFO("Setting up icp with features");
+  */
   /* custom icp
   pcl::IterativeClosestPointFeatures<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_features;
   icp_features.setMaximumIterations (40);
@@ -234,7 +245,7 @@ int main (int argc, char** argv)
 		  icp_features.getFitnessScore() << std::endl;
   std::cout << icp_features.getFinalTransformation() << std::endl;
 */
-  std::vector<int> indicesSourceSmall = indicesSource;
+/*  std::vector<int> indicesSourceSmall = indicesSource;
   std::vector<int> indicesTargetSmall = indicesTarget;
 
   for(std::vector<int>::iterator iterator_ = indicesSource.begin(); iterator_ != indicesSource.end(); ++iterator_) {
@@ -287,7 +298,7 @@ int main (int argc, char** argv)
   icp_wdf.getFinalTransformation ();
 
   /// Final ICP transformation is obtained by multiplying initial transformed with icp refinement
-
+*/
 /*------BEST-------------
 icp.getMaximumIterations 50
 icp.getRANSACOutlierRejectionThreshold() 0.02
@@ -325,7 +336,7 @@ score: 0.000164332
     std::cout << "ICP has finished with converge flag of:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
       std::cout << icp.getFinalTransformation() << std::endl;
 */
-  ROS_INFO("Writing output clouds...");
+/*  ROS_INFO("Writing output clouds...");
   transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse_all, icp_wdf.getFinalTransformation());
   transformPointCloud (*featureCloudSourceTemp, *cloud_converg_sparse_correspond, icp_wdf.getFinalTransformation());
   transformPointCloud (*cloud_source, *cloud_converg_dense, icp_wdf.getFinalTransformation());
@@ -333,7 +344,7 @@ score: 0.000164332
 
   // remove non correspondences from feature clouds as an addition output
   uint8_t col=3;
-  //*cloud_converg_sparse_correspond = *cloud_converg_sparse_all;
+  // *cloud_converg_sparse_correspond = *cloud_converg_sparse_all;
   cloud_converg_sparse_correspond->points.resize(indicesSourceSmall.size());
   cloud_converg_sparse_correspond->height = 1;
   cloud_converg_sparse_correspond->width = (int)indicesSourceSmall.size();
@@ -371,7 +382,7 @@ score: 0.000164332
   writer.write ("target-feature-correspond.pcd", *cloud_target_sparse_correspond, false);
   writer.write ("ransac_estimation.pcd", *cloud_ransac_estimation, false);
  // writer.write ("converged-reference.pcd", Final_reference, false);
-
+*/
  return (0);
 }
 

@@ -23,6 +23,7 @@
 #include "misc.h"
 #include "pcl_ros/transforms.h"
 #include "pcl/io/pcd_io.h"
+#include <pcl/filters/voxel_grid.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <opencv2/features2d/features2d.hpp>
 #include <QThread>
@@ -347,6 +348,8 @@ bool GraphManager::addNode(Node* new_node) {
         init_base_pose_ =  new_node->getGroundTruthTransform();//identity if no MoCap available
         new_node->buildFlannIndex(); // create index so that next nodes can use it
         graph_[new_node->id_] = new_node;
+        new_node->cachePointCloudToFile();
+        new_node->clearPointCloud();
         g2o::VertexSE3* reference_pose = new g2o::VertexSE3;
         reference_pose->setId(0);
         reference_pose->setEstimate(g2o::SE3Quat());
@@ -383,7 +386,7 @@ bool GraphManager::addNode(Node* new_node) {
     //First check if trafo to last frame is not too small
     Node* prev_frame = graph_[graph_.size()-1];
     ROS_INFO("Comparing new node (%i) with previous node %i", new_node->id_, prev_frame->id_);
-    MatchingResult mr = new_node->matchNodePair(prev_frame, true);
+    MatchingResult mr = new_node->matchNodePair(prev_frame);
 
     if(mr.edge.id1 >= 0 && !isBigTrafo(mr.edge.mean)){
         ROS_WARN("Transformation not relevant. Did not add as Node");
@@ -429,7 +432,7 @@ bool GraphManager::addNode(Node* new_node) {
             qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
         }
         QList<MatchingResult> results = QtConcurrent::blockingMapped(
-                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1, false));
+                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1));
 
         for (int i = 0; i < results.size(); i++) {
             MatchingResult& mr = results[i];
@@ -454,7 +457,7 @@ bool GraphManager::addNode(Node* new_node) {
         for (int id_of_id = (int) vertices_to_comp.size() - 1; id_of_id >= 0; id_of_id--) {
             Node* abcd = graph_[vertices_to_comp[id_of_id]];
             ROS_INFO("Comparing new node (%i) with node %i / %i", new_node->id_, vertices_to_comp[id_of_id], abcd->id_);
-            MatchingResult mr = new_node->matchNodePair(abcd, false);
+            MatchingResult mr = new_node->matchNodePair(abcd);
 
             if (mr.edge.id1 >= 0) {
             	publish_transform(mr, new_node, abcd, feature_match_pub);
@@ -535,12 +538,8 @@ bool GraphManager::addNode(Node* new_node) {
         new_node->buildFlannIndex();
         graph_[new_node->id_] = new_node;
         ROS_INFO("Added Node, new Graphsize: %i", (int) graph_.size());
-        pcl::PCDWriter writer;
-        std::stringstream filename;
-        filename << "node_" << new_node->id_ << ".pcd";
-        writer.write (filename.str(), *(new_node->pc_col), true);
+        new_node->cachePointCloudToFile();
         new_node->clearPointCloud();
-
         if((optimizer_->vertices().size() % ParameterServer::instance()->get<int>("optimizer_skip_step")) == 0){ 
           optimizeGraph();
         } else {
@@ -584,7 +583,6 @@ bool GraphManager::addNode(Node* new_node) {
     process_node_runs_ = false;
     return (optimizer_->edges().size() > num_edges_before);
 }
-
 
 ///Get the norm of the translational part of an affine matrix (Helper for isBigTrafo)
 void GraphManager::visualizeFeatureFlow3D(unsigned int marker_id,
@@ -1129,6 +1127,8 @@ void GraphManager::saveIndividualCloudsToFile(QString file_basename)
 void GraphManager::saveAllCloudsToFile(QString filename){
     struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);
     pointcloud_type aggregate_cloud; ///will hold all other clouds
+    pointcloud_type::Ptr nodeCloud (new pointcloud_type);
+    pointcloud_type::Ptr nodeCloudFiltered (new pointcloud_type);
     ROS_INFO("Saving all clouds to %s, this may take a while as they need to be transformed to a common coordinate frame.", qPrintable(filename));
     batch_processing_runs_ = true;
     tf::Transform  world2cam;
@@ -1146,7 +1146,20 @@ void GraphManager::saveAllCloudsToFile(QString filename){
         }
         tf::Transform transform = g2o2TF(v->estimate());
         world2cam = cam2rgb*transform;
-        transformAndAppendPointCloud (*(graph_[i]->pc_col), aggregate_cloud, world2cam, Max_Depth);
+        //recall cached clouds on the hdd
+        std::stringstream nodeName;
+        nodeName << "node_" << i << ".pcd";
+        ROS_INFO_STREAM("Retrieving node " << nodeName.str() << " from cache and saving to map");
+        pcl::PCDReader nodeFetcher;
+        nodeFetcher.read(nodeName.str(), *nodeCloud);
+        pcl::VoxelGrid<point_type> sor;
+        sor.setInputCloud (nodeCloud);
+        sor.setLeafSize (0.001f, 0.001f, 0.001f);
+        sor.filter (*nodeCloudFiltered);
+        transformAndAppendPointCloud (*nodeCloudFiltered, aggregate_cloud, world2cam, Max_Depth);
+        nodeCloud->clear();
+        nodeCloudFiltered->clear();
+        //transformAndAppendPointCloud (*(graph_[i]->pc_col), aggregate_cloud, world2cam, Max_Depth);
 
         if(ParameterServer::instance()->get<bool>("batch_processing"))
           graph_[i]->clearPointCloud(); //saving all is the last thing to do, so these are not required anymore
