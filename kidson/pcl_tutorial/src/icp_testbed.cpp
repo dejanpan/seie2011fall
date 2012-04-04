@@ -309,7 +309,7 @@ float runICPTest (std::string bagfilename, int messageIdx, float alpha, std::str
 	  writer.write (filename.str(), *cloud_converg_sparse_correspond, false);
 	  filename.str("");
 
-	  return icp_wdf.getFitnessScore (1000);
+	  return icp_wdf.getFitnessScore (0.05);
 
 }
 
@@ -367,7 +367,7 @@ float runICPSVDTest (std::string bagfilename, int messageIdx, std::string cloudD
 	writer.write (filename.str(), Final_reference, false);
 	filename.str("");
 
-	return icp.getFitnessScore (1000);
+	return icp.getFitnessScore (0.05);
 }
 
 void runTests(std::vector<double>& results, std::string filename, int id, std::string cloudDist)
@@ -391,7 +391,7 @@ int main (int argc, char** argv)
 {
 	std::vector<double> results;
 
-/*	runTests(results, "featureStructured3-features", 63, "close"); //close
+	runTests(results, "featureStructured3-features", 63, "close"); //close
 	runTests(results, "featureStructured3-features", 64, "mid"); //medr
 	runTests(results, "featureStructured3-features", 62, "far"); //far
 
@@ -417,9 +417,9 @@ int main (int argc, char** argv)
 
 	runTests(results, "desk-far1-features", 46, "close"); //close
 	runTests(results, "desk-far1-features", 47, "mid"); //med
-	runTests(results, "desk-far1-features", 48, "far"); //far*/
+	runTests(results, "desk-far1-features", 48, "far"); //far
 
-	runTests(results, "bench1-2sweeps", 16, "close"); //close
+/*	runTests(results, "bench1-2sweeps", 16, "close"); //close
 	runTests(results, "bench1-2sweeps", 26, "close"); //close
 	runTests(results, "bench1-2sweeps", 36, "close"); //close
 	runTests(results, "bench1-2sweeps", 46, "close"); //close
@@ -429,7 +429,7 @@ int main (int argc, char** argv)
 	runTests(results, "bench1-2sweeps", 86, "close"); //close
 	runTests(results, "bench1-2sweeps", 96, "close"); //close
 	runTests(results, "bench1-2sweeps", 106, "close"); //close
-
+*/
 	for (size_t idx = 0; idx < results.size(); ++idx)
 	{
 		ROS_INFO_STREAM("Results " << idx << ": " << results[idx]);

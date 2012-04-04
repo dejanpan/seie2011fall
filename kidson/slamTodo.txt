@@ -10,6 +10,9 @@ ToDo
 	-dense correspondence rejection - boundery points (due to bogas planes)
 	-investigate depth error affecting joint icp
 
+	-write up 1 page on results, change error metric
+	-look into original icp paper for icp metric
+
 2. integrate into rgbdslam
 	-test comparing with original
 
@@ -17,6 +20,7 @@ ToDo
 	-Working version of the above code
 
 -Plane registration
+	-read paper, think about implementation
 
 -Segmentation
 	-lucci code
