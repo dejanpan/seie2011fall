@@ -10,6 +10,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 #include <tf/transform_listener.h>
+#include <tf/transform_broadcaster.h>
 
 #include <pcl/point_types.h>
 #include <pcl/common/common.h>
@@ -33,6 +34,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/features/fpfh.h>
 #include <pcl/registration/ia_ransac.h>
+#include <pcl_ros/transforms.h>
 
 #include <Eigen/Core>
 
@@ -246,9 +248,40 @@ class TemplateAlignment
 
 
 
+inline void
+matrixAsTransfrom (const Eigen::Matrix4f &out_mat,  tf::Transform& bt)
+{
+     double mv[12];
+
+     mv[0] = out_mat (0, 0) ;
+     mv[4] = out_mat (0, 1);
+     mv[8] = out_mat (0, 2);
+     mv[1] = out_mat (1, 0) ;
+     mv[5] = out_mat (1, 1);
+     mv[9] = out_mat (1, 2);
+     mv[2] = out_mat (2, 0) ;
+     mv[6] = out_mat (2, 1);
+     mv[10] = out_mat (2, 2);
+
+     btMatrix3x3 basis;
+     basis.setFromOpenGLSubMatrix(mv);
+     btVector3 origin(out_mat (0, 3),out_mat (1, 3),out_mat (2, 3));
+
+     ROS_DEBUG("origin %f %f %f", origin.x(), origin.y(), origin.z());
+
+     bt = tf::Transform(basis,origin);
+}
+
+
 
 // used for Pointcloud Messages, Debugging Purposes
 ros::Publisher pubDebug;
+
+
+// used for Pointcloud Messages, Debugging Purposes
+ros::Publisher pubDebug2;
+// used for Pointcloud Messages, Debugging Purposes
+ros::Publisher pubBox;
 // used for MarkerArrays, visualizing found cups
 ros::Publisher pubMarkersCups;
 // used for MarkerArrays, visualizing found plates
@@ -268,13 +301,59 @@ FeatureCloud plateTemplate;
 //FeatureCloud plateArcTemplate; //unsure if necessary
 
 TemplateAlignment templateAlign;
-
+tf::TransformBroadcaster *br = 0;
 void cloudThrottledCallback(const sensor_msgs::PointCloud2::ConstPtr& inputCloud)
 {
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    if (!br)
+        br = new tf::TransformBroadcaster();
+    double minX, minY, minZ, maxX, maxY, maxZ;
+    ros::param::param<double>("D_minX", minX, 0.55);
+    ros::param::param<double>("D_minY", minY, 0.28);
+    ros::param::param<double>("D_minZ", minZ, 0.6);
+    ros::param::param<double>("D_maxX", maxX, 0.96);
+    ros::param::param<double>("D_maxY", maxY, 0.99);
+    ros::param::param<double>("D_maxZ", maxZ, 0.77);
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pclInputCloud (new pcl::PointCloud<pcl::PointXYZ>);
 
     // convert pointcloud message to pcl pointcloud
-    pcl::fromROSMsg(*inputCloud, *cloud);
+    pcl::fromROSMsg(*inputCloud, *pclInputCloud);
+
+
+    tf::StampedTransform transformOptToMap;
+    tf::TransformListener listener;
+    listener.waitForTransform("/openni_rgb_optical_frame", "/map", ros::Time(0), ros::Duration(10));
+    listener.lookupTransform("/map", "/openni_rgb_optical_frame", ros::Time(0), transformOptToMap);
+    pcl_ros::transformPointCloud(*pclInputCloud, *pclInputCloud ,transformOptToMap);
+
+    Eigen::Vector4f min_pt, max_pt;
+
+    min_pt = Eigen::Vector4f(minX,minY,minZ, 1);
+    max_pt = Eigen::Vector4f(maxX,maxY,maxZ, 1);
+
+     boost::shared_ptr<std::vector<int> > indices( new std::vector<int> );
+     pcl::getPointsInBox(*pclInputCloud,min_pt,max_pt,*indices);
+
+     ROS_INFO("min %f %f %f" ,min_pt[0],min_pt[1],min_pt[2]);
+     ROS_INFO("max %f %f %f" ,max_pt[0],max_pt[1],max_pt[2]);
+     ROS_INFO("cloud size : %zu", pclInputCloud->points.size());
+
+     pcl::ExtractIndices<pcl::PointXYZ> extr;
+     extr.setInputCloud(pclInputCloud);
+     extr.setIndices(indices);
+         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+     extr.filter(*cloud);
+
+     ROS_INFO("cloud size after box filtering: %zu", cloud->points.size());
+
+
+    sensor_msgs::PointCloud2 outputBoxCloud;
+    pcl::toROSMsg(*cloud, outputBoxCloud);
+    outputBoxCloud.header.frame_id = "/map"; //inputCloud->header.frame_id;
+    pubBox.publish(outputBoxCloud);
+
+
+
 
     // -------------------------------
     // STEP 1 : Euclidean Segmentation
@@ -315,7 +394,7 @@ void cloudThrottledCallback(const sensor_msgs::PointCloud2::ConstPtr& inputCloud
 
         TemplateAlignment::Result bestAlignment;
         int bestResultIndex = templateAlign.findBestAlignment (bestAlignment);
-        if(bestAlignment.fitness_score > 0.000020)
+        if(bestAlignment.fitness_score > 0.000030)
         {
             //no good fit found
             printf ("Bad fit, score: %f\n", bestAlignment.fitness_score);
@@ -326,6 +405,23 @@ void cloudThrottledCallback(const sensor_msgs::PointCloud2::ConstPtr& inputCloud
             //good fit found
             Eigen::Matrix3f rotation = bestAlignment.final_transformation.block<3,3>(0, 0);
             Eigen::Vector3f translation = bestAlignment.final_transformation.block<3,1>(0, 3);
+
+            tf::Transform mTransf;
+            mTransf.setOrigin(tf::Vector3(0.05, 0.678, 0.575));
+            mTransf.setRotation (tf::createQuaternionFromRPY(0, 0, 2.3));
+
+
+            tf::Transform mTransf2;
+            btMatrix3x3 rot;
+
+            matrixAsTransfrom(bestAlignment.final_transformation, mTransf2);
+
+            geometry_msgs::Pose posemsg;
+            tf::poseTFToMsg(mTransf2, posemsg);
+            std::cout << posemsg << std::endl;
+
+            br->sendTransform(tf::StampedTransform(mTransf2, ros::Time::now(), "/map", "/dishfinal_template"));
+
 
             pcl::PointCloud<pcl::PointXYZ> transformedCloud;
             switch(bestResultIndex)
@@ -347,9 +443,14 @@ void cloudThrottledCallback(const sensor_msgs::PointCloud2::ConstPtr& inputCloud
             }
 
             sensor_msgs::PointCloud2 outputCloud;
-            pcl::toROSMsg(transformedCloud, outputCloud);
-            outputCloud.header.frame_id = inputCloud->header.frame_id;
+
+            //render Templates
+            pcl::toROSMsg(*plateTemplate.getPointCloud (), outputCloud);  outputCloud.header.frame_id = "/pcd_debug";
             pubDebug.publish(outputCloud);
+
+            //render fitted Template
+            pcl::toROSMsg(transformedCloud, outputCloud);  outputCloud.header.frame_id = "/map"; //inputCloud->header.frame_id;
+            pubDebug2.publish(outputCloud);
 
             printf ("\n");
             printf ("    | %6.3f %6.3f %6.3f | \n", rotation (0,0), rotation (0,1), rotation (0,2));
@@ -376,7 +477,7 @@ int main(int argc, char **argv)
 
  cupNoHandleTemplate.loadInputCloud ("cup_nohandle.pcd");
  cupHandleTemplate.loadInputCloud ("cup_handle.pcd");
- plateTemplate.loadInputCloud ("plate.pcd");
+ plateTemplate.loadInputCloud ("clean_plate.pcd");
  //plateArcTemplate.loadInputCloud ("plateArc.pcd"); //unsure if necessary
 
  templateAlign.addTemplateCloud (cupNoHandleTemplate);
@@ -385,6 +486,8 @@ int main(int argc, char **argv)
  //templateAlign.addTemplateCloud (plateArcTemplate); //unsure if necessary
 
  pubDebug = n.advertise<sensor_msgs::PointCloud2> ("dishfinal_debug", 1);
+ pubDebug2 = n.advertise<sensor_msgs::PointCloud2> ("dishfinal_debug2", 1);
+ pubBox = n.advertise<sensor_msgs::PointCloud2> ("dishfinal_box", 1);
  pubMarkersCups = n.advertise<visualization_msgs::MarkerArray>("dishfinal_cups", 0);
  pubMarkersPlates = n.advertise<visualization_msgs::MarkerArray>("dishfinal_plates", 0);
 
