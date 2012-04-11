@@ -411,31 +411,54 @@ void cloudThrottledCallback(const sensor_msgs::PointCloud2::ConstPtr& inputCloud
             mTransf.setRotation (tf::createQuaternionFromRPY(0, 0, 2.3));
 
 
-            tf::Transform mTransf2;
+            tf::Transform transfBestAlign;
             btMatrix3x3 rot;
 
-            matrixAsTransfrom(bestAlignment.final_transformation, mTransf2);
+            matrixAsTransfrom(bestAlignment.final_transformation, transfBestAlign);
 
             geometry_msgs::Pose posemsg;
-            tf::poseTFToMsg(mTransf2, posemsg);
+            tf::poseTFToMsg(transfBestAlign, posemsg);
             std::cout << posemsg << std::endl;
 
-            br->sendTransform(tf::StampedTransform(mTransf2, ros::Time::now(), "/map", "/dishfinal_template"));
+            tf::Transform transfMapPlate;
+            transfMapPlate.setOrigin(tf::Vector3(-0.045, -0.150, 0.773));
+            transfMapPlate.setRotation (tf::Quaternion(0.667, -0.026, 0.715, 0.208));
 
+            tf::Transform transfMapPlateGrip;
+            transfMapPlateGrip.setOrigin(tf::Vector3(0.011, -0.099, 0.768));
+            transfMapPlateGrip.setRotation (tf::Quaternion(0.191, -0.555, 0.809, 0.040));
+
+
+            tf::Transform transfMapCup;
+            transfMapCup.setOrigin(tf::Vector3(0.198, -0.014, 0.856));
+            transfMapCup.setRotation (tf::Quaternion(0.399, -0.314, 0.793, 0.336));
+
+            tf::Transform transfMapCupGrip;
+            transfMapCupGrip.setOrigin(tf::Vector3(0.164, -0.085, 0.906));
+            transfMapCupGrip.setRotation (tf::Quaternion(0.460, -0.093, 0.837, 0.280));
+
+
+            //br->sendTransform(tf::StampedTransform(mTransf2, ros::Time::now(), "/map", "/dishfinal_template"));
 
             pcl::PointCloud<pcl::PointXYZ> transformedCloud;
             switch(bestResultIndex)
             {
             case 0:
                 printf ("Cup without handle found! score: %f\n", bestAlignment.fitness_score);
+                br->sendTransform(tf::StampedTransform(transfBestAlign*transfMapCup, ros::Time::now(), "/map", "/dishfinal_template"));
+                br->sendTransform(tf::StampedTransform(transfBestAlign*transfMapCupGrip, ros::Time::now(), "/map", "/dishfinal_grip"));
                 pcl::transformPointCloud (*cupNoHandleTemplate.getPointCloud (), transformedCloud, bestAlignment.final_transformation);
                   break;
             case 1:
                 printf ("Cup with handle found! score: %f\n", bestAlignment.fitness_score);
+                br->sendTransform(tf::StampedTransform(transfBestAlign*transfMapCup, ros::Time::now(), "/map", "/dishfinal_template"));
+                br->sendTransform(tf::StampedTransform(transfBestAlign*transfMapCupGrip, ros::Time::now(), "/map", "/dishfinal_grip"));
                 pcl::transformPointCloud (*cupHandleTemplate.getPointCloud (), transformedCloud, bestAlignment.final_transformation);
                   break;
             case 2:
                 printf ("Plate found! score: %f\n", bestAlignment.fitness_score);
+                br->sendTransform(tf::StampedTransform(transfBestAlign*transfMapPlate, ros::Time::now(), "/map", "/dishfinal_template"));
+                br->sendTransform(tf::StampedTransform(transfBestAlign*transfMapPlateGrip, ros::Time::now(), "/map", "/dishfinal_grip"));
                 pcl::transformPointCloud (*plateTemplate.getPointCloud (), transformedCloud, bestAlignment.final_transformation);
                   break;
             default:
