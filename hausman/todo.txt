@@ -1,7 +1,7 @@
 
 Open questions:
 3d clustering-?
-3d tracking-?-> Ryohei Ueda -student
+3d tracking-?-> Ryohei Ueda -student -> get it to work first
 
 Urgent:
 making the launch file- improve
@@ -27,5 +27,5 @@ simulating of clustering hypothesis- Sid
 Improve the math - Zoltan
 Textureless objects tracking- Antonis Agyros from FORTH - practical students?
 Reconstruction of the full object model - not sparse anymore
-Prior knowledge from Luci from 3d static segmentation
+Prior knowledge from Luci from 3d static segmentation- Dejan pushes
 
