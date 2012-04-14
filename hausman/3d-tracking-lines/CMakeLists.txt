@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 project(3D_TRACKING_LINES)
-find_package(PCL 1.5 REQUIRED COMPONENTS common io surface visualization filters features segmentation tracking search kdtree)
+find_package(PCL 1.5.1 REQUIRED COMPONENTS common io surface visualization filters features segmentation tracking search kdtree)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
