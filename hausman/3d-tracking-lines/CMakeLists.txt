@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 project(3D_TRACKING_LINES)
-find_package(PCL 1.4 REQUIRED COMPONENTS)
+find_package(PCL 1.5 REQUIRED COMPONENTS common io)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 add_executable(3d_tracking_lines 3d_tracking_lines.cpp)
-target_link_libraries(3d_tracking_lines pcl_common pcl_io pcl_surface pcl_visualization pcl_filters pcl_features pcl_segmentation pcl_tracking pcl_search pcl_kdtree)
-target_link_libraries(3d_tracking_lines ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES})
+target_link_libraries(3d_tracking_lines ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} pcl_common pcl_io pcl_surface pcl_visualization pcl_filters pcl_features pcl_segmentation pcl_tracking pcl_search pcl_kdtree)
+
