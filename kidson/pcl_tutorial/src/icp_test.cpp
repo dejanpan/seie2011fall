@@ -72,7 +72,7 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
   	std::stringstream filename;
 
 	rosbag::Bag bag;
-	bag.open("/home/ross/ros_workspace/bagfiles/scenesAllMatches/RANSACdata.bag", rosbag::bagmode::Read);
+	bag.open("/home/ross/ros_workspace/bagfiles/scenesAllMatches/bench1-2sweeps2.bag", rosbag::bagmode::Read);
 
 	std::vector<std::string> topics;
 	topics.push_back(std::string("/feature_match_out_topic"));
@@ -125,23 +125,23 @@ void getTestDataFromBag(PointCloudPtr cloud_source, PointCloudPtr cloud_target,
 
 		  	Eigen::Matrix4f ransacInverse = initialTransform.inverse();
 		  	transformPointCloud (*cloud_source, *cloud_ransac_estimation, ransacInverse);
-
+/*
 		    ROS_INFO("Writing point clouds");
-		  	//filename << "cloud" << i << "DenseSource.pcd";
-		  	//writer.write (filename.str(), *cloud_source, false);
-		  	//filename.str("");
+		  	filename << "cloud" << i << "DenseSource.pcd";
+		  	writer.write (filename.str(), *cloud_source, false);
+		  	filename.str("");
 		  	filename << "cloud" << i << "DenseTarget.pcd";
 		  	writer.write (filename.str(), *cloud_target, true);
 		  	filename.str("");
 		  	filename << "cloud" << i << "RANSAC-" << (int)indicesSource.size() << "-inliers.pcd";
 		  	writer.write (filename.str(), *cloud_ransac_estimation, true);
 		  	filename.str("");
-		  	//filename << "cloud" << i << "SparseSource.pcd";
-		  	//writer.write (filename.str(), *featureCloudSource, false);
-		  	//filename.str("");
-		  	//filename << "cloud" << i << "SparseTarget.pcd";
-		    //writer.write (filename.str(), *featureCloudTarget, false);
-		    //filename.str("");
+		  	filename << "cloud" << i << "SparseSource.pcd";
+		  	writer.write (filename.str(), *featureCloudSource, false);
+		  	filename.str("");
+		  	filename << "cloud" << i << "SparseTarget.pcd";
+		    writer.write (filename.str(), *featureCloudTarget, false);
+		    filename.str("");*/
 		  	i++;
 
 		  //  for(std::vector<int>::iterator iterator_ = indicesSource.begin(); iterator_ != indicesSource.end(); ++iterator_) {

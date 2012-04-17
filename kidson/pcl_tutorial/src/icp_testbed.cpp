@@ -6,6 +6,7 @@
 #include <pcl/features/normal_3d.h>
 #include "pcl_ros/transforms.h"
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
 #include <pcl/registration/transformation_estimation_wdf.h>
 
@@ -22,7 +23,7 @@ typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudPtr;
 typedef pcl::PointCloud<pcl::PointXYZRGBNormal> PointCloudNormal;
 typedef pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr PointCloudNormalPtr;
 
-#define MINIMUM_FEATURES	10
+#define MINIMUM_FEATURES	8
 
 void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr pointCloudOut)
 {
@@ -31,7 +32,7 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.02);
+  ne.setRadiusSearch (0.02); //0.02
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -124,7 +125,7 @@ void getTestDataFromBag(std::string bagfilename, PointCloudPtr cloud_source, Poi
 		    {
 		    	ROS_INFO_STREAM("feature cloud: " << cloudId << ": " << featureCloudSource->points[cloudId].x << "; " << featureCloudSource->points[cloudId].y << "; " << featureCloudSource->points[cloudId].z);
 		    }*/
-
+/*
 		    ROS_INFO("Writing point clouds");
 		  	filename << "cloud" << i << "DenseSource.pcd";
 		  	writer.write (filename.str(), *cloud_source, false);
@@ -137,7 +138,7 @@ void getTestDataFromBag(std::string bagfilename, PointCloudPtr cloud_source, Poi
 		  	filename.str("");
 		  	filename << "cloud" << i << "SparseTarget.pcd";
 		    writer.write (filename.str(), *featureCloudTarget, false);
-		    filename.str("");
+		    filename.str("");*/
 		  	i++;
 
 		  //  for(std::vector<int>::iterator iterator_ = indicesSource.begin(); iterator_ != indicesSource.end(); ++iterator_) {
@@ -166,6 +167,25 @@ void removeCorrespondancesZThreshold (PointCloudPtr featureCloudSource, std::vec
     }
 }
 */
+
+double calculateOverlap(PointCloudPtr cloudSource, PointCloudPtr cloudTarget)
+{
+  pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+  kdtree.setInputCloud(cloudTarget);
+  double max_range = 0.0005;
+
+  std::vector<int> nn_indices (1);
+  std::vector<float> nn_dists (1);
+
+  int nr = 0;
+  for (size_t i = 0; i < cloudSource->points.size (); ++i)
+  {
+	kdtree.nearestKSearch (cloudSource->points[i], 1, nn_indices, nn_dists);
+    if (nn_dists[0] <= max_range)
+      	nr++;
+  }
+  return (nr / (double)cloudSource->points.size());
+}
 
 float runICPTest (std::string bagfilename, int messageIdx, float alpha, std::string cloudDist)
 {
@@ -296,18 +316,20 @@ float runICPTest (std::string bagfilename, int messageIdx, float alpha, std::str
 	  pcl::PCDWriter writer;
 	  std::stringstream filename;
 
-	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-targetDense.pcd";
+	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-" << messageIdx << "-targetDense.pcd";
 	  writer.write (filename.str(), *cloud_target, false);
 	  filename.str("");
-	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-convergedDense.pcd";
+	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-" << messageIdx << "-convergedDense.pcd";
 	  writer.write (filename.str(), *cloud_converg_dense, false);
 	  filename.str("");
-	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-targetSparse.pcd";
+	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-" << messageIdx << "-targetSparse.pcd";
 	  writer.write (filename.str(), *cloud_target_sparse_correspond, false);
 	  filename.str("");
-	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-convergedSparse.pcd";
+	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-" << messageIdx << "-convergedSparse.pcd";
 	  writer.write (filename.str(), *cloud_converg_sparse_correspond, false);
 	  filename.str("");
+
+	  std::cout << "##################### OVERLAP ###################: " << calculateOverlap(cloud_target, cloud_ransac_estimation) << "\n";
 
 	  return icp_wdf.getFitnessScore (0.05);
 
@@ -376,7 +398,7 @@ void runTests(std::vector<double>& results, std::string filename, int id, std::s
 	std::cout << "starting test for: " << filename << ", using alpha: 0.0 and cloud separation of: " << cloudDist << "\n";
 	results.push_back(runICPTest(filename, id, 0.0, cloudDist));
 	std::cout << "############################################################################################# \n";
-	std::cout << "starting test for: " << filename << ", using alpha: 0.5 and cloud separation of: " << cloudDist << "\n";
+	std::cout << "starting test for: " << filename << " id: " << id << ", using alpha: 0.5 and cloud separation of: " << cloudDist << "\n";
 	results.push_back(runICPTest(filename, id, 0.5, cloudDist));
 	std::cout << "############################################################################################# \n";
 	std::cout << "starting test for: " << filename << ", using alpha: 1.0 and cloud separation of: " << cloudDist << "\n";
@@ -391,7 +413,43 @@ int main (int argc, char** argv)
 {
 	std::vector<double> results;
 
-	runTests(results, "featureStructured3-features", 63, "close"); //close
+	PointCloudPtr cloudSource (new PointCloud);
+	PointCloudPtr cloudTarget (new PointCloud);
+
+	/*pcl::PCDReader reader;
+	reader.read (argv[1], *cloudSource);
+	reader.read (argv[2], *cloudTarget);
+	std::cout << "overlap:" << 100 * calculateOverlap(cloudSource, cloudTarget) << "% \n";*/
+
+	/*runTests(results, "NoFeatureNonStructured1-features2", 1, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 2, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 3, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 4, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 5, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 6, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 7, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 8, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 9, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 10, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 11, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 12, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 13, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 14, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 15, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 16, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 17, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 18, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 19, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 20, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 21, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 22, "close"); //close
+		runTests(results, "NoFeatureNonStructured1-features2", 23, "close"); //close*/
+
+
+//	runTests(results, "bench1-2sweeps2", 8, "mid"); //close
+//	runTests(results, "bench1-2sweeps2", 12, "far"); //close
+
+/*	runTests(results, "featureStructured3-features", 63, "close"); //close
 	runTests(results, "featureStructured3-features", 64, "mid"); //medr
 	runTests(results, "featureStructured3-features", 62, "far"); //far
 
@@ -417,7 +475,35 @@ int main (int argc, char** argv)
 
 	runTests(results, "desk-far1-features", 46, "close"); //close
 	runTests(results, "desk-far1-features", 47, "mid"); //med
-	runTests(results, "desk-far1-features", 48, "far"); //far
+	runTests(results, "desk-far1-features", 48, "far"); //far*/
+
+	runTests(results, "bench1-2sweeps5", 1, "close"); //close
+	runTests(results, "bench1-2sweeps5", 17, "mid"); //medr
+	runTests(results, "bench1-2sweeps5", 32, "far"); //far
+
+	runTests(results, "featureNonStructured3-features", 78, "close"); //close
+	runTests(results, "featureNonStructured3-features", 80, "mid"); //med
+	runTests(results, "featureNonStructured3-features", 79, "far"); //far
+
+	runTests(results, "NoFeatureStructured3-features", 16, "close"); //close
+	runTests(results, "NoFeatureStructured3-features", 18, "mid"); //med
+	runTests(results, "NoFeatureStructured3-features", 17, "far"); //far
+
+	runTests(results, "NoFeatureNonStructured1-features2", 10, "close"); //close
+	runTests(results, "NoFeatureNonStructured1-features2", 23, "mid"); //med
+	runTests(results, "NoFeatureNonStructured1-features2", 20, "far"); //far
+
+	runTests(results, "desk-close1-features3", 1, "close"); //close
+	runTests(results, "desk-close1-features3", 13, "mid"); //med
+	runTests(results, "desk-close1-features3", 17, "far"); //far
+
+	runTests(results, "desk-middle1-features2", 1, "close"); //close
+	runTests(results, "desk-middle1-features2", 4, "mid"); //med
+	runTests(results, "desk-middle1-features2", 2, "far"); //far
+
+	runTests(results, "desk-far1-features2", 1, "close"); //close
+	runTests(results, "desk-far1-features2", 7, "mid"); //med
+	runTests(results, "desk-far1-features2", 23, "far"); //far
 
 /*	runTests(results, "bench1-2sweeps", 16, "close"); //close
 	runTests(results, "bench1-2sweeps", 26, "close"); //close
@@ -428,8 +514,8 @@ int main (int argc, char** argv)
 	runTests(results, "bench1-2sweeps", 76, "close"); //close
 	runTests(results, "bench1-2sweeps", 86, "close"); //close
 	runTests(results, "bench1-2sweeps", 96, "close"); //close
-	runTests(results, "bench1-2sweeps", 106, "close"); //close
-*/
+	runTests(results, "bench1-2sweeps", 106, "close"); //close */
+
 	for (size_t idx = 0; idx < results.size(); ++idx)
 	{
 		ROS_INFO_STREAM("Results " << idx << ": " << results[idx]);
