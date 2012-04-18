@@ -1,0 +1,289 @@
+
+%
+% classification
+%
+
+%
+% NOTE: this version is similar to version v_10 but with some extensions
+% for the model fitting of Zoltan.
+%
+
+
+
+%
+% TEST DATA
+%
+%
+
+n_training_objects = 3;
+
+%for  ICRA paper. Scene 1
+%prefix ='C:\OSCAR\projects\TUM\object_detection\experiments\Real_scene\parts_scans\parts\scene1a';
+
+%for  ICRA paper. Scene 2
+prefix ='C:\OSCAR\projects\TUM\object_detection\experiments\Real_scene\parts_scans\parts\scene2a';
+
+
+suffix ='\part'; 
+
+% learned models
+dir_model = 'C:\OSCAR\projects\TUM\object_detection\experiments\Real_scene\table_chair_cabinet\k_30\';
+
+
+% views to classify
+n_views = 1; 
+
+cell_size_2d = 0.20;
+
+
+minimum_points = 50;
+
+% NOTE: use bounding box measurements for the window sizes
+% shold come from the trainig data= half the total width of the object / cell size
+search_window = [ ...
+    5, ...    % table 
+    4, ...   % chair
+    4 ...   % sideboard
+    4 ...   % sofa
+];
+
+% only free parameter
+object_hypo_thresholds = [ ...
+    1.0, ...  % table 
+    1.2 ...   % chair
+    1.0 ...   % sideboard
+    0.8 ...   % sofa
+];
+
+
+% should come from the training data = width of the object
+dist_final_hypo_thresholds = [ ...
+    1.0, ...  % table 
+    0.5 ...   % chair
+    1.0 ...   % sideboard
+    0.6 ...   % sofa
+];
+
+
+% should come from the trainig data= half the total width of the object
+center_thresholds = [ ...
+    0.2 ...  % table 
+    0.2 ...   % chair
+    0.2 ...   % sideboard
+    0.2 ...   % sofa
+];
+
+
+
+%--------------------------
+% load_training_parts
+%--------------------------
+training_n_objects =3;
+ 
+% training_prefix_1 = {  ...
+%     'C:\OSCAR\projects\TUM\object_detection\experiments\1\Tables\Spatio_Table_boat-shape_form_0000F1C3-centered_v';  ...    
+%     'C:\OSCAR\projects\TUM\object_detection\experiments\1\Chairs\Aluminium_Group_EA_119_0000F152-centered_v';  ...        
+%     'C:\OSCAR\projects\TUM\object_detection\experiments\1\Sideboard\Spatio_Sideboard_160_0000F1C5-centered_v'; ...
+%     'C:\OSCAR\projects\TUM\object_detection\experiments\1\Sofas\Park_Swivel_Armchair_0000F114-centered_v'; ...
+% };
+% 
+% training_suffix_1= { ...
+%     '', ...
+%     '', ...
+%     '', ...
+%     '', ...
+% };
+% 
+% 
+% training_suffix_2 = { ...
+%     '\part'; ...
+%     '\part'; ...
+%     '\part'; ...
+%     '\part', ...
+% };
+% 
+% 
+training_n_views = [ ...
+    80; ...
+    80; ...
+    80; ...
+    80; ...
+];
+
+
+
+%--------------------------
+% load_training_parts
+%--------------------------
+% load_training_parts;
+
+
+% load training_part_centers
+load( strcat( dir_model, 'training_part_centers.mat') );
+
+% load training_view_centers
+load( strcat( dir_model, 'training_view_centers.mat') );
+
+
+% load training ranges
+load( strcat( dir_model, 'training_max_features.mat') );
+load( strcat( dir_model, 'training_min_features.mat') );
+
+
+%
+% Load training clusterings and models
+%    
+load( strcat( dir_model,'training_vectors.mat') );
+load( strcat( dir_model,'training_clustering.mat') );
+load( strcat( dir_model,'training_space_relations.mat') );
+load( strcat( dir_model,'training_nclusters.mat') );
+load( strcat( dir_model,'training_codebook') );        
+
+
+
+for current_view=0:n_views-1
+
+    %-----------------------------
+    % Load points
+    %-----------------------------
+    read_data_test;
+
+
+    %-----------------------------
+    % Load features
+    %-----------------------------
+    read_features;
+
+
+    %-----------------------------------
+    % Plot points 
+    %-----------------------------------
+    % plot_points(features, points, part_centers);
+
+
+    %-----------------------------
+    % Reject parts with:
+    %       - few points
+    %       - lines 
+    %-----------------------------
+    filter_parts;
+    filtered_features=filtered1_features;
+    %plot_points(filtered_features, points, part_centers);
+
+    %-----------------------------
+    % Select features
+    %-----------------------------
+    select_features_test;
+    filtered_features = selected_features;
+
+
+    %-----------------------------
+    % Outlier removal;
+    % NOT YET!
+    %-----------------------------
+%     outlier_removal;
+%     filtered_features=filtered2_features;
+%     plot_points(filtered_features, points, part_centers);
+
+    
+    %-----------------------------
+    % Normalize features
+    %-----------------------------
+    normalize_features_test;
+    filtered_features = filtered2_features; 
+    %plot_points(filtered_features, points, part_centers);
+
+    final_features = filtered_features(:, 1:end-4);
+    
+    
+    %-------------------------   
+    % final data set
+    %-------------------------
+    for o=1:n_training_objects   
+        best_hypotheses(o).list =[];  
+    end    
+
+
+    %-------------------------
+    % classify parts
+    %-------------------------
+    generate_votes;    
+    
+    %-------------------------
+    % Select local maxima
+    %-------------------------
+    select_local_maxima;
+    
+    %--------------------------
+    % Plot classification
+    %--------------------------
+    
+    %debug
+    plot_votes;
+    
+    
+    for o=1:n_training_objects            
+        final_scene_part_contributors(o).parts = [];
+        all_final_scene_part_contributors(o).parts = [];
+    end
+       
+    
+    for o=1:n_training_objects            
+                   
+        % best bounding box so far
+        best_bboxes = []; 
+        
+        [ n_best_hypotheses, kk ] = size( best_hypotheses(o).list );
+        
+        % filter by threshold
+        threshold = object_hypo_thresholds(o);
+        indexes = find( best_hypotheses(o).list(:,5) < threshold );
+        best_hypotheses(o).list(indexes,:) = [];
+        
+        
+        % debug
+        % plot_hypo;
+
+        
+        % check model
+        [ n_best_hypotheses, kk ] = size( best_hypotheses(o).list );
+        correct_hypo = zeros(n_best_hypotheses, 1);
+        for n_hypo = 1:n_best_hypotheses                                              
+            hypo = best_hypotheses(o).list(n_hypo,:);           
+
+            %--------------------------------------
+            % get_contributor_parts from the scene
+            %--------------------------------------
+            get_scene_contributor_parts;
+            
+            %--------------------------------------
+            % Check model
+            %--------------------------------------
+            check_object_2;                                               
+        end
+    
+        % discard false positives
+        indx = find( correct_hypo(:,1) == 0 );
+        best_hypotheses(o).list(indx,:) = [];        
+
+        %--------------------------------------
+        % solve overlapping in final hypotheses
+        %--------------------------------------
+        [n_r kk] = size( best_hypotheses(o).list );
+        if  n_r > 1
+            solve_hypo_overlapping;
+        end         
+    end 
+    
+    
+    
+    
+    
+    % debug
+    plot_hypo;
+    
+    pause;
+    
+end   %for v=1:nviews  
+
+

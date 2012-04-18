@@ -1,0 +1,64 @@
+
+
+%-------------------------------------
+% get_contributor_parts
+%
+%
+% Get parts contributing to the hypotheses
+%-------------------------------------
+
+%
+% TRAINING DATA
+%
+training_n_objects = 2;
+
+training_prefix_1 = {  ...
+    '/home/oscar/projects/TUM/object_detection/3d_data/zoltan/v_2/center/mchair/chair1_v';  ...    
+    '/home/oscar/projects/TUM/object_detection/3d_data/zoltan/v_2/center/mtable/table1_v';  ...        
+};
+
+training_suffix_1= { ...
+    '', ...
+    '', ...
+};
+
+
+training_suffix_2 = { ...
+    '/part'; ...
+    '/part'; ...
+};
+
+training_n_views = [ ...
+    16; ...
+    16;
+];
+
+
+%-----------------------------
+% Load points
+%-----------------------------
+read_data_training;
+
+
+
+%---------------------------------------
+% select parts contributing to each hypothesis
+%---------------------------------------
+for o=1:n_training_objects            
+    best_hypo = best_hypotheses(o).list; 
+    
+    for n=1:n_best_hypotheses   
+        % get first hypothesis
+        hypo = best_hypo(n,:);
+        
+        % get 2d cell
+        [row_2d, col_2d] =  hypo(1:2);
+        part_list = space_2d(o).parts(row_2d, col).list
+    end
+    
+    
+end    
+
+
+
+

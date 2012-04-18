@@ -1,0 +1,32 @@
+
+%--------------------------------------
+% Overlaping problems
+%--------------------------------------
+
+
+%     
+% check overlapping
+%     
+% 
+% [n_r kk] = size(best_bboxes);
+% 
+% if ( n_r > 1 ) 
+% 
+%     for bb = 2:n_r
+%         best_limit1 = best_bboxes(bb, 1:2);
+%         best_limit2 = best_bboxes(bb, 3:4);
+% 
+%         if ( limit1(1) > best_limit2(1) | ...
+%              limit2(1) < best_limit1(1) | ...
+%              limit2(2) < best_limit1(2) | ...
+%              limit1(2) > best_limit2(2) )
+% 
+%              overlap = false;
+%         end            
+%     end    
+% 
+% 
+%     if overlap == false
+%         best_bboxes = [best_bboxes; limit1, limit2];
+%     end    
+% end

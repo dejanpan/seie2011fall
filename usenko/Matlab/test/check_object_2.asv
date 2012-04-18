@@ -1,0 +1,79 @@
+
+
+%---------------------------------------
+% Check object
+%---------------------------------------
+
+% contributing parts
+c_parts = final_scene_part_contributors(o).parts;
+h_center = hypo(3:4);
+
+view_distances= zeros(training_n_views(o), 1);
+
+for v=0:training_n_views(o)-1                
+    
+    %
+    % load view
+    %
+    loadView;
+    
+    d_vector = h_center - current_view_center(1:2);
+    
+    % debug
+    d_current_view_points = current_view_points;
+    d_current_view_points(:,1) = d_current_view_points(:,1) + d_vector(1);
+    d_current_view_points(:,2) = d_current_view_points(:,2) + d_vector(2);
+    plot_part_test(d_current_view_points, 'k');
+
+    
+    [n_r n_c] = size(current_view_part_centers);
+    final_distances = zeros(n_r, 1);
+    
+    for t_p=0:n_r-1
+        idx = find( current_view_part_centers(:, n_c  ) == o & ... 
+                    current_view_part_centers(:, n_c-1) == t_p & ... 
+                    current_view_part_centers(:, n_c-2) == v );
+        t_p_center = current_view_part_centers(idx, 1:3);
+        t_p_center(1:2) = t_p_center(1:2) + d_vector;
+        
+        % debug
+        scatter3( t_p_center(1), t_p_center(2), t_p_center(3), 50, 'r', 'filled' ); 
+       
+        %
+        % look for closest contributing center
+        %         
+        [kk c_c ] = size(c_parts);        
+        distances = zeros(c_c);
+        for c_p=1:c_c
+            p_id = c_parts(c_p);
+            
+            % find center
+            [n_p l_p] = size(part_centers);
+            ind = find( part_centers(:, l_p) == p_id) ;
+            p_center = part_centers(ind, 1:3);   
+
+            % plot center
+            distances(c_p) = sqrEuclideanDistance(t_p_center, p_center);
+        end                    
+        
+        final_distances(t_p+1) =  min(distances);
+    end 
+    
+    % final view distance
+    view_distances(v+1) =  min( final_distances );   
+end
+
+
+% best view
+[dist]
+
+
+
+
+
+
+
+
+
+
+           

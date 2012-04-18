@@ -1,0 +1,21 @@
+
+
+function plot_part(points, pc)
+
+    [r c] = size(points);
+    
+    inv_step = 10;
+    
+    factor = ceil(r / 500);
+    inv_step = inv_step *factor;
+    
+    if ( r >= inv_step )
+        red = floor(r / inv_step); 
+        step = floor(r / red);
+    else 
+        step = 1;
+    end;    
+    
+    scatter3( points(1:step:r,1), points(1:step:r,2), points(1:step:r,3), 10, pc, 'filled' );        
+    axis([0.5 3.5 -1.5 1.5 -0.10 1.5]); 
+    

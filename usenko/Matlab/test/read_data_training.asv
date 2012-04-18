@@ -1,0 +1,45 @@
+
+%-----------------------------
+% data
+%-----------------------------
+training_points = [];
+training_part_centers = [];
+training_view_centers= [];
+
+for o=1:training_n_objects
+
+    for v=0:training_n_views(1)-1            
+        
+        % getting the number of parts for the view
+        filename = strcat(training_prefix_1{o}, int2str(v), training_suffix_1{o},  '.pcd');
+        n_parts = getNParts(filename);    
+        
+        view_points = [];
+        
+        for p=0:n_parts -1            
+            filename = strcat(training_prefix_1{o}, int2str(v), training_suffix_1{o}, training_suffix_2{o}, int2str(p),  '.pcd')
+            segment = loadSegment_training(filename, v, p, o);
+            training_points =[training_points; segment];
+            
+            p_c = centerBoundingBox(segment);
+            training_part_centers = [training_part_centers; p_c, v, p, o];
+            
+            view_points = [ view_points; segment];
+        end    
+        
+        center_v = centerBoundingBox(view_points);
+        training_view_centers = [training_view_centers; center_v v o]; 
+        bounding_boxes = 
+        
+    end
+    
+end;    
+
+
+
+
+
+
+
+
+

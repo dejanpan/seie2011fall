@@ -1,0 +1,136 @@
+
+An unexpected exception has been detected in native code outside the VM.
+Unexpected Signal : EXCEPTION_ACCESS_VIOLATION (0xc0000005) occurred at PC=0x7E317091
+Function=[Unknown.]
+Library=C:\windows\system32\winex11.drv
+
+NOTE: We are unable to locate the function name symbol for the error
+      just occurred. Please refer to release documentation for possible
+      reason and solutions.
+
+
+Current Java thread:
+	at sun.awt.windows.WToolkit.eventLoop(Native Method)
+	at sun.awt.windows.WToolkit.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+
+Dynamic libraries:
+0x00400000 - 0x004D8000 	E:\Programme\MATLAB7\bin\win32\matlab.exe
+0x7BC10000 - 0x7BCB6000 	C:\windows\system32\ntdll.dll
+0x7B810000 - 0x7B93A000 	C:\windows\system32\KERNEL32.dll
+0x792F0000 - 0x7938E000 	E:\Programme\MATLAB7\bin\win32\mcr.dll
+0x7ED60000 - 0x7EE5F000 	C:\windows\system32\user32.dll
+0x7ECD0000 - 0x7ED50000 	C:\windows\system32\gdi32.dll
+0x7EC80000 - 0x7ECC6000 	C:\windows\system32\advapi32.dll
+0x7EC10000 - 0x7EC6D000 	C:\windows\system32\rpcrt4.dll
+0x7EB60000 - 0x7EBFD000 	C:\windows\system32\comdlg32.dll
+0x7E9D0000 - 0x7EB52000 	C:\windows\system32\shell32.dll
+0x7E970000 - 0x7E9BE000 	C:\windows\system32\shlwapi.dll
+0x7E8A0000 - 0x7E95F000 	C:\windows\system32\comctl32.dll
+0x7E860000 - 0x7E891000 	C:\windows\system32\winspool.drv
+0x7E780000 - 0x7E85B000 	C:\windows\system32\ole32.dll
+0x78800000 - 0x78815000 	E:\Programme\MATLAB7\bin\win32\mpath.dll
+0x78700000 - 0x78788000 	E:\Programme\MATLAB7\bin\win32\libut.dll
+0x7EFF0000 - 0x7F000000 	C:\windows\system32\imagehlp.dll
+0x7E710000 - 0x7E75F000 	C:\windows\system32\dbghelp.dll
+0x7E700000 - 0x7E708000 	C:\windows\system32\psapi.dll
+0x78500000 - 0x78576000 	E:\Programme\MATLAB7\bin\win32\icuuc24.dll
+0x78430000 - 0x78435000 	E:\Programme\MATLAB7\bin\win32\icudt24l.dll
+0x7C340000 - 0x7C396000 	E:\Programme\MATLAB7\bin\win32\MSVCR71.dll
+0x78440000 - 0x784C2000 	E:\Programme\MATLAB7\bin\win32\icuin24.dll
+0x784D0000 - 0x784DD000 	E:\Programme\MATLAB7\bin\win32\icuio24.dll
+0x7C3A0000 - 0x7C41B000 	E:\Programme\MATLAB7\bin\win32\MSVCP71.dll
+0x7E620000 - 0x7E6F2000 	C:\windows\system32\oleaut32.dll
+0x79AC0000 - 0x79AD1000 	E:\Programme\MATLAB7\bin\win32\mwoles05.dll
+0x787F0000 - 0x787FE000 	E:\Programme\MATLAB7\bin\win32\mvalue.dll
+0x78790000 - 0x787C5000 	E:\Programme\MATLAB7\bin\win32\libmx.dll
+0x786E0000 - 0x786F2000 	E:\Programme\MATLAB7\bin\win32\libz.dll
+0x7E5B0000 - 0x7E60C000 	C:\windows\system32\msvcrt.dll
+0x79B70000 - 0x79BA5000 	E:\Programme\MATLAB7\bin\win32\comcli.dll
+0x78930000 - 0x78993000 	E:\Programme\MATLAB7\bin\win32\m_dispatcher.dll
+0x78580000 - 0x786D6000 	E:\Programme\MATLAB7\bin\win32\xerces-c_2_1_0.dll
+0x78F70000 - 0x78FD4000 	E:\Programme\MATLAB7\bin\win32\libmwservices.dll
+0x78F50000 - 0x78F61000 	E:\Programme\MATLAB7\bin\win32\datasvcs.dll
+0x788B0000 - 0x7892D000 	E:\Programme\MATLAB7\bin\win32\udd.dll
+0x78820000 - 0x788A5000 	E:\Programme\MATLAB7\bin\win32\mcos.dll
+0x79020000 - 0x7909B000 	E:\Programme\MATLAB7\bin\win32\uiw.dll
+0x792C0000 - 0x792EA000 	E:\Programme\MATLAB7\bin\win32\libmwhardcopy.dll
+0x789A0000 - 0x78C28000 	E:\Programme\MATLAB7\bin\win32\m_interpreter.dll
+0x78E30000 - 0x78E87000 	E:\Programme\MATLAB7\bin\win32\m_ir.dll
+0x787D0000 - 0x787DE000 	E:\Programme\MATLAB7\bin\win32\libmex.dll
+0x78ED0000 - 0x78F43000 	E:\Programme\MATLAB7\bin\win32\mlib.dll
+0x78C30000 - 0x78E29000 	E:\Programme\MATLAB7\bin\win32\m_parser.dll
+0x78EC0000 - 0x78ECA000 	E:\Programme\MATLAB7\bin\win32\ir_xfmr.dll
+0x787E0000 - 0x787E9000 	E:\Programme\MATLAB7\bin\win32\libmat.dll
+0x78EB0000 - 0x78EBF000 	E:\Programme\MATLAB7\bin\win32\m_pcodeio.dll
+0x78E90000 - 0x78EA1000 	E:\Programme\MATLAB7\bin\win32\m_pcodegen.dll
+0x790D0000 - 0x79145000 	E:\Programme\MATLAB7\bin\win32\libmwgui.dll
+0x79BF0000 - 0x79D18000 	E:\Programme\MATLAB7\bin\win32\bridge.dll
+0x7E590000 - 0x7E59D000 	C:\windows\system32\version.dll
+0x7E580000 - 0x7E584000 	C:\windows\system32\lz32.dll
+0x79B40000 - 0x79B6B000 	E:\Programme\MATLAB7\bin\win32\jmi.dll
+0x79150000 - 0x79291000 	E:\Programme\MATLAB7\bin\win32\hg.dll
+0x790A0000 - 0x790BA000 	E:\Programme\MATLAB7\bin\win32\libuij.dll
+0x79390000 - 0x794AF000 	E:\Programme\MATLAB7\bin\win32\numerics.dll
+0x794F0000 - 0x79576000 	E:\Programme\MATLAB7\bin\win32\libfftw3.dll
+0x79580000 - 0x79601000 	E:\Programme\MATLAB7\bin\win32\libfftw3f.dll
+0x794B0000 - 0x794CC000 	E:\Programme\MATLAB7\bin\win32\libmwlapack.dll
+0x79A80000 - 0x79AB2000 	E:\Programme\MATLAB7\bin\win32\libmwumfpack.dll
+0x7C140000 - 0x7C243000 	E:\Programme\MATLAB7\bin\win32\MFC71.DLL
+0x79AE0000 - 0x79B31000 	E:\Programme\MATLAB7\bin\win32\udd_mi.dll
+0x7E550000 - 0x7E570000 	C:\windows\system32\netapi32.dll
+0x7E530000 - 0x7E549000 	C:\windows\system32\iphlpapi.dll
+0x7E4D0000 - 0x7E4F4000 	C:\windows\system32\ws2_32.dll
+0x790C0000 - 0x790C5000 	E:\Programme\MATLAB7\bin\win32\uinone.dll
+0x79BB0000 - 0x79BB9000 	E:\Programme\MATLAB7\bin\win32\mlautoregister.dll
+0x7E300000 - 0x7E38E000 	C:\windows\system32\winex11.drv
+0x7E120000 - 0x7E13F000 	C:\windows\system32\imm32.dll
+0x7E0C0000 - 0x7E0F0000 	C:\windows\system32\uxtheme.dll
+0x7E060000 - 0x7E07A000 	C:\windows\system32\localspl.dll
+0x7E050000 - 0x7E05A000 	C:\windows\system32\spoolss.dll
+0x7A7B0000 - 0x7A9C8000 	E:\Programme\MATLAB7\bin\win32\atlas_PIII.dll
+0x79610000 - 0x79A64000 	E:\Programme\MATLAB7\bin\win32\lapack.dll
+0x7C040000 - 0x7C0B5000 	E:\Programme\MATLAB7\bin\win32\DFORRT.dll
+0x7C300000 - 0x7C30E000 	E:\Programme\MATLAB7\bin\win32\MFC71ENU.DLL
+0x78100000 - 0x78236000 	E:\Programme\MATLAB7\sys\java\jre\win32\jre1.4.2\bin\client\jvm.dll
+0xF73A0000 - 0xF7420000 	C:\windows\system32\winmm.dll
+0x78240000 - 0x78247000 	E:\Programme\MATLAB7\sys\java\jre\win32\jre1.4.2\bin\hpi.dll
+0x78250000 - 0x7825E000 	E:\Programme\MATLAB7\sys\java\jre\win32\jre1.4.2\bin\verify.dll
+0x78260000 - 0x78278000 	E:\Programme\MATLAB7\sys\java\jre\win32\jre1.4.2\bin\java.dll
+0x78280000 - 0x7828D000 	E:\Programme\MATLAB7\sys\java\jre\win32\jre1.4.2\bin\zip.dll
+0x78290000 - 0x7839A000 	E:\Programme\MATLAB7\sys\java\jre\win32\jre1.4.2\bin\awt.dll
+0x783E0000 - 0x78430000 	E:\Programme\MATLAB7\sys\java\jre\win32\jre1.4.2\bin\fontmanager.dll
+0x79D20000 - 0x79D32000 	E:\Programme\MATLAB7\bin\win32\jmi_mi.dll
+0x7A780000 - 0x7A78A000 	E:\Programme\MATLAB7\bin\win32\nativejava.dll
+0x7A790000 - 0x7A797000 	E:\Programme\MATLAB7\bin\win32\nativelex.dll
+0x792A0000 - 0x792BD000 	E:\Programme\MATLAB7\bin\win32\glren.dll
+0xF7070000 - 0xF7100000 	C:\windows\system32\opengl32.dll
+0xF7370000 - 0xF7376000 	C:\windows\system32\glu32.dll
+0x78FE0000 - 0x7901E000 	E:\Programme\MATLAB7\bin\win32\libmwbuiltins.dll
+0x10000000 - 0x10098000 	E:\Programme\MATLAB7\toolbox\matlab\imagesci\hdf.dll
+0x02230000 - 0x022CE000 	E:\Programme\MATLAB7\bin\win32\mwhd413m.dll
+0x022D0000 - 0x022E6000 	E:\Programme\MATLAB7\bin\win32\mwhm413m.dll
+0xF7250000 - 0xF7268000 	C:\windows\system32\wsock32.dll
+0x00240000 - 0x00245000 	E:\Programme\MATLAB7\toolbox\matlab\datatypes\cellfun.dll
+0x7A7A0000 - 0x7A7A5000 	E:\Programme\MATLAB7\bin\win32\nativehg.dll
+0x783A0000 - 0x783A5000 	E:\Programme\MATLAB7\sys\java\jre\win32\jre1.4.2\bin\jawt.dll
+0x783B0000 - 0x783D2000 	E:\Programme\MATLAB7\sys\java\jre\win32\jre1.4.2\bin\dcpr.dll
+
+Heap at VM Abort:
+Heap
+ def new generation   total 4032K, used 3831K [0x049b0000, 0x04e10000, 0x052d0000)
+  eden space 3584K,  94% used [0x049b0000, 0x04cfdd88, 0x04d30000)
+  from space 448K, 100% used [0x04d30000, 0x04da0000, 0x04da0000)
+  to   space 448K,   0% used [0x04da0000, 0x04da0000, 0x04e10000)
+ tenured generation   total 26368K, used 16291K [0x052d0000, 0x06c90000, 0x089b0000)
+   the space 26368K,  61% used [0x052d0000, 0x062b8de0, 0x062b8e00, 0x06c90000)
+ compacting perm gen  total 15360K, used 15256K [0x089b0000, 0x098b0000, 0x0c9b0000)
+   the space 15360K,  99% used [0x089b0000, 0x09896288, 0x09896400, 0x098b0000)
+
+Local Time = Wed Jun 16 18:52:04 2010
+Elapsed Time = 3232
+#
+# The exception above was detected in native code outside the VM
+#
+# Java VM: Java HotSpot(TM) Client VM (1.4.2-b28 mixed mode)
+#

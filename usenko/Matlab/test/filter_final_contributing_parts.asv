@@ -1,0 +1,18 @@
+
+%------------------------------------------
+% Remove parts of hypothese that did not survive
+%------------------------------------------
+
+[n_r kk] = size( best_hypotheses(o).list );
+if  n_r > 0
+    [n_r kk] = size( final_scene_part_contributors(o).parts ); 
+    for p=1:n_r;
+        p_id = unique_final_scene_part_contributors(o).parts(p,2);  
+        hypo_id = unique_final_scene_part_contributors(o).parts(p,2);  
+
+        
+    end   
+end       
+
+        
+        

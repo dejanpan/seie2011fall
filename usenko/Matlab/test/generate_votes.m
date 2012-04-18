@@ -1,0 +1,115 @@
+
+
+fprintf('Voting...');
+
+for i=1:n_training_objects
+    scene_object(i).votes = [];
+end    
+
+
+[n_parts kk] = size(final_features);
+n_words = training_nclusters;
+
+for p=1:n_parts    
+    part_vector = final_features(p, :);
+    scene_part_id = filtered_features(p, end);
+    
+
+%     %debug        
+%     figure();
+%     % part identifiers
+%     p_id = filtered_features(p, end);
+% 
+%     % look for points pertaining to this part
+%     [n_p l_p] = size(points);
+%     part_points_indexes = find(  points(:, l_p)==p_id );
+%     part_points = points( part_points_indexes, : );  
+%     
+%     % plot points
+%     plot_part_test( part_points, 'k' ) ;     
+%     pause;
+%     close;
+    
+    %
+    % activate codebook entries
+    %
+    activations= zeros(n_words,1);
+    
+    % activation with threshold
+    % activate_codebook_3;
+    
+    
+    %
+    % select the N shortest distances
+    %
+    activate_codebook_3;
+
+    
+    
+    %
+    % vote in the 3D space
+    %
+    codebook_votes(p).votes = [];
+    codebook_votes(p).objects = [];
+    for c=1:n_words
+        if activations(c) > 0;  
+            % object votes
+            relations = training_codebook(c).space_relations;
+            
+            
+            %
+            % Part boundingbox center
+            %
+            % look for points pertaining to this part
+            % view and part identifiers
+            [n_f l_f] = size(filtered_features);    
+            
+            p_id = filtered_features(p, l_f);
+            
+            [n_p l_p] = size(part_centers);
+            indx = find( part_centers(:, l_p)==p_id);
+            p_center = part_centers( indx, 1:3 );    
+
+            %p_center = centerBoundingBox(part_points);
+            %p_center = [ filtered_features(p, end-5:end-3) ];      
+                       
+            [n_rel kk] = size(relations);
+            for r=1:n_rel
+                vector = [ relations(r,10) relations(r,11) relations(r,12) ];
+                
+                %
+                % codebook weight
+                %
+                %codebook_w = activations(c) / sum(activations); 
+                codebook_w = activations(c);
+                
+                %
+                % relation weight
+                %
+                rel_w = 1.0 / n_rel;  
+                
+                
+                vote_weight = codebook_w * rel_w;
+                
+                vote = p_center + vector;
+                vote = [vote vote_weight p_center vector];
+                               
+                training_part_identifier = relations(r, 1:3);    % view, part, object
+
+                codebook_votes(p).votes = [codebook_votes(p).votes; vote training_part_identifier];
+                %codebook_votes(p).votes = [codebook_votes(p).votes; list_votes];
+                object = relations(r,3);
+                codebook_votes(p).objects = [codebook_votes(p).objects; object];
+                
+                % all votes                
+                temp = [vote training_part_identifier scene_part_id];
+                scene_object(object).votes = [scene_object(object).votes; temp];
+                
+            end            
+        end    
+    end    
+end   %for p=1:n_parts     
+
+
+
+fprintf('DONE');

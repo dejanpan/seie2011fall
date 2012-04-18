@@ -1,0 +1,19 @@
+
+max_dist = realmax;
+codebook_index = -1;
+
+%
+% activate according to distance to centers
+%
+
+activation_threshold =  0.7;
+
+for c=1:n_words
+    word_vector = training_codebook(c).center ;    
+    d = sqrEuclideanDistance(part_vector, word_vector);
+    if d < max_dist  
+        max_dist = d;
+        codebook_index = c;
+    end
+end    
+activations(codebook_index) = 1;    

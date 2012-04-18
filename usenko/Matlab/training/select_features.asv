@@ -1,0 +1,243 @@
+
+
+%     % #1  number of points
+%     % #2  Proportion of boundary points
+%     % #3  Min curvature: curvature of the point with minimum local curvature
+%     % #4  Max curvature: curvature of the point with maximum local curvature
+%     % #5  Average curvature of the segment 
+%     % #6  eval0
+%     % #7 evec0x
+%     % #8 evec0y 
+%     % #9 evec0z
+%     % #10 eval1
+%     % #11 evec1x
+%     % #12 evec1y
+%     % #13 evec1z
+%     %# 14 eval2
+%     % #15 evec2
+%     % #16 evec2y
+%     % #17 evec2z 
+%
+%     %
+%     % proyections on the eigenvectors
+%     %
+%     % #18 var0
+%     % #19 var1
+%     % #20 var2
+
+%     %
+%     % Invariants
+%     %
+%     % #21 j1
+%     % #22 j2
+%     % #23 j3
+
+%     % volume ocupied by points (voxelized)
+%     % #24 volume
+
+%     % l0min l0max l1min l1max l2min l2max = minimum and maximum
+%     % distances from centroid along the corresponding eigenvector 
+%     % (the min+max sum is the length of the oriented bounding box's corresponding edge)
+% 
+%     % lmin/lmax
+% 
+%     % #25 l0min
+%     % #26 l0max
+%     % #27 l1min
+%     % #28 l1max 
+%     % #29 l2min
+%     % #30 l2max
+% 
+%     %skew0abs skew1abs skew2abs = absolute value of the skew of distribution
+%     %along the corresponding eigenvector (0 means mean is centered)        
+% 
+%     % #31 skew0abs
+%     % #32 skew1abs
+%     % #33 skew2abs
+% 
+%     % kurtosis0 kurtosis1 kurtosis2 = kurtosis of distribution along the
+%     % corresponding eigenvector 
+%     % #34 kurtosis0
+%     % #35 kurtosis1
+%     % #36 kurtosis2
+
+% % extra features
+% 
+% % #37 eval0 / (eval0 + eval1  + eval2);
+% % #38 eval1 / (eval0 + eval1  + eval2);
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 38];
+% 
+% % #39 
+% v = eval2 / (eval0 + eval1  + eval2);
+% feature_v = [feature_v, v];    
+% feature_ids =[ feature_ids, 39];
+% 
+% % #40 
+% v = eval0 / eval1;
+% feature_v = [feature_v, v];    
+% feature_ids =[ feature_ids, 40];
+% 
+% % #41 
+% v = eval0 / eval2;
+% feature_v = [feature_v, v];    
+% feature_ids =[ feature_ids, 41];
+% 
+% % #42 
+% v = eval1 / eval2;
+% feature_v = [feature_v, v];      
+% feature_ids =[ feature_ids, 42];
+% 
+% 
+% % #43   
+% % sqrt(var0) / (l0min + l0max)
+% sum0 =   (l0min +l0max);
+% if sum0 == 0
+%     error('Error reading features: sum0 == 0');            
+% end
+% v = sqrt(var0) /sum0;
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 43];
+% 
+% 
+% % #44   
+% % sqrt(var1) / (l1min + l1max)
+% sum1 =   (l1min +l1max);
+% if sum1 == 0
+%     error('Error reading features: sum1 == 0');            
+% end
+% v = sqrt(var1) / sum1;
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 44];
+% 
+% 
+% % #45   
+% % sqrt(var2) / (l2min + l2max)
+% sum2 =   (l2min +l2max);
+% if sum2 == 0
+%     error('Error reading features: sum2 == 0');            
+% end
+% v = sqrt(var2) / sum2;
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 45];
+% 
+% 
+% % #46   
+% % l0min / l0max
+% v =  l0min / l0max;
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 46];
+% 
+% % #47   
+% % l1min / l1max
+% v =  l1min / l1max;
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 47];
+% 
+% % #48   
+% % l2min / l2max
+% v =  l2min / l2max;
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 48];
+% 
+% % #49   
+% % volume / ( (l0min+l0max)*(l1min+l1max)*(l2min+l2max) )
+% v =  volume / ( (l0min+l0max)*(l1min+l1max)*(l2min+l2max) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 49];              
+% 
+% 
+% % 50 acos( abs(evec0x) )
+% v = acos( abs(evec0x) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 50];                      
+% 
+% % 51 acos( abs(evec0y) )
+% v = acos( abs(evec0y) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 51];                      
+% 
+% % 52 acos( abs(evec0z) )
+% v = acos( abs(evec0z) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 52];                      
+% 
+% 
+% % 53 acos( abs(evec1x) )
+% v = acos( abs(evec1x) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 53];                      
+% 
+% % 54 acos( abs(evec1y) )
+% v = acos( abs(evec1y) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 54];                      
+% 
+% % 55 acos( abs(evec1z) )
+% v = acos( abs(evec1z) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 55];                      
+% 
+% % 56 acos( abs(evec2x) )
+% v = acos( abs(evec2x) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 56];                      
+% 
+% % 57 acos( abs(evec2y) )
+% v = acos( abs(evec2y) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 57];                      
+% 
+% % 58 acos( abs(evec2z) )
+% v = acos( abs(evec2z) );
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 58];                      
+% 
+% % 59 (lmin1+lmax1) / (lmin2+lmax2)
+% v = (l1min + l1max) / (l2min + l2max);
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 59];                      
+% 
+% % 60 (l0min+l0max)
+% v = (l0min + l0max);
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 60];                      
+% 
+% % 61 (l1min+l1max)
+% v = (l1min + l1max);
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 61];                      
+% 
+% % 62 (l2min+l2max)
+% v = (l2min + l2max);
+% feature_v = [feature_v, v];
+% feature_ids =[ feature_ids, 62];                      
+
+
+
+% rotational and scale invariant
+%selected_indexes = [2 5 6 7 8 9 10 11  28 29 30 31 32 33 34 35 36 37 38 39 40];
+
+
+% selected by hand checking the cross-correlation matrix
+% selected_indexes = [2 3 6 7 9 15 20 21 28 29 30 31 32 33];
+
+% almost of them 
+selected_indexes = [2 5 6 10 14 18 19 20 24 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 52 59 60 61 62];
+
+
+% #5  average curvature
+% #10  eval1
+% #14  eval2
+% #24  volume 
+% #38  eval1 / (eval0 + eval1  + eval2);
+% #39  eval2 / (eval0 + eval1  + eval2);    
+% #42  eval1/eval2
+% #49  volume / ( (l0min+l0max)*(l1min+l1max)*(l2min+l2max) )
+% #52  acos( abs(evec0z)  ) angle relative to Z 
+% #59  (lmin1+lmax1) / (lmin2+lmax2)
+%selected_indexes = [5 10 14 24 38 39 42 59];
+
+selected_features = filtered_features(:, selected_indexes);
+selected_feature_ids = feature_ids(:,  selected_indexes);
+

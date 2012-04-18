@@ -1,0 +1,19 @@
+
+%-----------------------------
+% Normalize features
+%-----------------------------
+
+% zscore
+%n_selected_features = zscore(selected_features);
+
+
+only_vectors = filtered_features(:, 1:end-3);
+
+% max - min values
+max_f = max( only_vectors );
+min_f = min( only_vectors );
+range_f = max_f -min_f;
+[r c] = size( only_vectors );
+
+n_elected_features = ( selected_features - ones(r,1)*min_f ) ./ ( ones(r,1)*(max_f-min_f ) );
+

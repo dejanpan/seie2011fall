@@ -1,0 +1,94 @@
+
+
+%---------------------------------------
+% Check object
+%---------------------------------------
+
+        
+% %
+% % debug
+% %
+% figure();
+% hold on;
+% 
+% [kk n_c] = size( final_scene_part_contributors(o).parts ); 
+% for p=1:n_c;
+%     p_id = final_scene_part_contributors(o).parts(p);
+%     plot_scene_contributing_part;
+% end       
+
+
+point = hypo(1,3:4);        
+
+inside_bbox = zeros(1, training_n_views(o));
+
+for v = 0:training_n_views(o)-1
+    % corresponding bbox
+    [kk n_t] = size(training_bounding_boxes);
+    indx = find( training_bounding_boxes(:, n_t) == o & training_bounding_boxes(:, n_t-1) == v );
+    bbox = training_bounding_boxes(indx,:);
+
+    % check points inside bounding box
+    check_points_in_bbox;
+    
+    %debug
+    plot_bbox( point, bbox, 'b' );
+       
+end
+
+% select best bounding box
+[prob best_v]  = max( inside_bbox );
+
+[kk n_t] = size(training_bounding_boxes);
+indx = find( training_bounding_boxes(:, n_t) == o & training_bounding_boxes(:, n_t-1) == best_v -1 );
+best_bbox = training_bounding_boxes(indx,:);
+
+
+% debug
+bbox = best_bbox;
+plot_bbox(point, bbox, 'r');
+clear_bbox;
+
+
+
+if isempty(best_bboxes)
+    limit1 = [point(1)-inc_x, point(2)-inc_y]; 
+    limit2 = [point(1)+inc_x, point(2)+inc_y];
+    best_bboxes = [limit1, limit2];
+end
+
+
+%     
+%     check overlapping
+%     
+overlap = true;
+inc_x = bbox(1);
+inc_y = bbox(2);
+limit1 = [point(1)-inc_x, point(2)-inc_y]; 
+limit2 = [point(1)+inc_x, point(2)+inc_y];
+
+[n_r kk] = size(best_bboxes);
+for bb = 1:n_r
+    best_limit1 = best_bboxes(bb, 1:2);
+    best_limit2 = best_bboxes(bb, 3:4);
+    
+    if ( limit1(1) > best_limit2(1) | ...
+         limit2(1) < best_limit1(1) | ...
+         limit2(2) < best_limit1(2) | ...
+         limit1(2) > best_limit2(2) )
+
+         overlap = false;
+    end            
+end    
+
+
+if overlap == false
+    best_bboxes = [best_bboxes; limit1, limit2];
+end    
+
+
+% debug 
+bbox = [ limit1, limit2 ];
+plot_bbox;
+
+           

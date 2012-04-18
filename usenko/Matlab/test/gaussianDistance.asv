@@ -1,0 +1,12 @@
+
+
+function re_dist = gaussianDistance(x, center, max_dist)
+    
+    d =  sqrEuclideanDistance(c, center);   
+
+    if ( d <= max_dist )
+        ret_dist = 1.0;
+    else
+        ret_dist = exp( -((d-max_dist).^2) ./(max_dist.^2) ) );
+    end
+end

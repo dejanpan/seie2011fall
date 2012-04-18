@@ -1,0 +1,32 @@
+
+%-------------------------
+% meanshift of votes
+%-------------------------
+
+
+function meanshift_votes()
+
+% distance of kernel
+b= 0.30;
+
+for o=1:n_training_objects
+    o_indexes = find(c_objects==o) ;
+    o_votes = c_votes(o_indexes,:);
+    
+    
+    
+    o_votes_t = o_votes';
+    [clustCent, point2cluster,clustMembsCell] = MeanShiftCluster(o_votes_t, b);
+    numClust = length(clustMembsCell);
+    
+    igure(),hold on
+
+    cVec = 'bgrcmykbgrcmykbgrcmykbgrcmyk';%, cVec = [cVec cVec];
+    for k = 1:min(numClust,length(cVec))
+        myMembers = clustMembsCell{k};
+    
+        % plot clusters->poses
+        scatter(poses_t(1,myMembers),poses_t(2,myMembers),[cVec(k) '.'])    
+    end
+    
+end

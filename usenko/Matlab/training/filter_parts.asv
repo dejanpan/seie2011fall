@@ -1,0 +1,30 @@
+
+
+%-----------------------------
+% Filter segments
+%-----------------------------
+
+%
+% segments with less than N points
+%
+n_points = 10;
+del_ind_f = find(features(:,1) < n_points);
+
+% rejected feature vectors
+filtered1_features = features;
+filtered1_features(del_ind_f,:) = [];
+
+
+
+
+%
+% filter lines
+%
+
+l0min= filtered1_features(i, 25);
+l0max= filtered1_features(i, 26);
+l1min= filtered1_features(i, 27);
+l1max= filtered1_features(i, 28);            
+
+del_ind_f = find(features(:,1) < n_points);
+
