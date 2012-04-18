@@ -349,7 +349,7 @@ bool GraphManager::addNode(Node* new_node) {
         new_node->buildFlannIndex(); // create index so that next nodes can use it
         graph_[new_node->id_] = new_node;
         new_node->cachePointCloudToFile();
-        new_node->clearPointCloud();
+        //new_node->clearPointCloud();
         g2o::VertexSE3* reference_pose = new g2o::VertexSE3;
         reference_pose->setId(0);
         reference_pose->setEstimate(g2o::SE3Quat());
@@ -395,7 +395,8 @@ bool GraphManager::addNode(Node* new_node) {
     } else if(mr.edge.id1 >= 0){
 
     	//code to publish transform data here
-    	publish_transform(mr, new_node, prev_frame, feature_match_pub);
+    	if(new_node->id_ == 1)
+    		publish_transform(mr, new_node, prev_frame, feature_match_pub);
     	// everything after this point (optimizer, etc) is no longer required.
     	// left in because it doesn't seem to affect performance and it may be useful to compare with
     	// rgbd_icp optimizer
@@ -460,7 +461,8 @@ bool GraphManager::addNode(Node* new_node) {
             MatchingResult mr = new_node->matchNodePair(abcd);
 
             if (mr.edge.id1 >= 0) {
-            	publish_transform(mr, new_node, abcd, feature_match_pub);
+            	if((new_node->id_== 1) || (abcd->id_ == 1))
+            		publish_transform(mr, new_node, abcd, feature_match_pub);
                 //mr.edge.informationMatrix *= geodesicDiscount(hypdij, mr);
                 ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
 
@@ -539,7 +541,7 @@ bool GraphManager::addNode(Node* new_node) {
         graph_[new_node->id_] = new_node;
         ROS_INFO("Added Node, new Graphsize: %i", (int) graph_.size());
         new_node->cachePointCloudToFile();
-        new_node->clearPointCloud();
+        //new_node->clearPointCloud();
         if((optimizer_->vertices().size() % ParameterServer::instance()->get<int>("optimizer_skip_step")) == 0){ 
           optimizeGraph();
         } else {

@@ -23,7 +23,7 @@ typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudPtr;
 typedef pcl::PointCloud<pcl::PointXYZRGBNormal> PointCloudNormal;
 typedef pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr PointCloudNormalPtr;
 
-#define MINIMUM_FEATURES	8
+#define MINIMUM_FEATURES	10
 
 void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr pointCloudOut)
 {
@@ -316,22 +316,22 @@ float runICPTest (std::string bagfilename, int messageIdx, float alpha, std::str
 	  pcl::PCDWriter writer;
 	  std::stringstream filename;
 
-	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-" << messageIdx << "-targetDense.pcd";
+	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha <<  "-targetDense.pcd"; //"-" << messageIdx <<
 	  writer.write (filename.str(), *cloud_target, false);
 	  filename.str("");
-	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-" << messageIdx << "-convergedDense.pcd";
+	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha <<  "-convergedDense.pcd";
 	  writer.write (filename.str(), *cloud_converg_dense, false);
 	  filename.str("");
-	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-" << messageIdx << "-targetSparse.pcd";
+	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha <<  "-targetSparse.pcd";
 	  writer.write (filename.str(), *cloud_target_sparse_correspond, false);
 	  filename.str("");
-	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha << "-" << messageIdx << "-convergedSparse.pcd";
+	  filename << bagfilename << "-" << cloudDist << "-" << "alpha" << alpha <<  "-convergedSparse.pcd";
 	  writer.write (filename.str(), *cloud_converg_sparse_correspond, false);
 	  filename.str("");
 
 	  std::cout << "##################### OVERLAP ###################: " << calculateOverlap(cloud_target, cloud_ransac_estimation) << "\n";
 
-	  return icp_wdf.getFitnessScore (0.05);
+	  return icp_wdf.getFitnessScore (0.01);
 
 }
 
@@ -389,7 +389,7 @@ float runICPSVDTest (std::string bagfilename, int messageIdx, std::string cloudD
 	writer.write (filename.str(), Final_reference, false);
 	filename.str("");
 
-	return icp.getFitnessScore (0.05);
+	return icp.getFitnessScore (0.01);
 }
 
 void runTests(std::vector<double>& results, std::string filename, int id, std::string cloudDist)
@@ -421,31 +421,14 @@ int main (int argc, char** argv)
 	reader.read (argv[2], *cloudTarget);
 	std::cout << "overlap:" << 100 * calculateOverlap(cloudSource, cloudTarget) << "% \n";*/
 
-	/*runTests(results, "NoFeatureNonStructured1-features2", 1, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 2, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 3, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 4, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 5, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 6, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 7, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 8, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 9, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 10, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 11, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 12, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 13, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 14, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 15, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 16, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 17, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 18, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 19, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 20, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 21, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 22, "close"); //close
-		runTests(results, "NoFeatureNonStructured1-features2", 23, "close"); //close*/
-
-
+/*	runTests(results, "NoFeatureStructured3-features2", 4, "close"); //close
+	runTests(results, "NoFeatureStructured3-features2", 5, "close"); //close
+	runTests(results, "NoFeatureStructured3-features2", 6, "close"); //close
+	runTests(results, "NoFeatureStructured3-features2", 7, "close"); //close
+	runTests(results, "NoFeatureStructured3-features2", 8, "close"); //close
+	runTests(results, "NoFeatureStructured3-features2", 9, "close"); //close
+	runTests(results, "NoFeatureStructured3-features2", 10, "close"); //close
+*/
 //	runTests(results, "bench1-2sweeps2", 8, "mid"); //close
 //	runTests(results, "bench1-2sweeps2", 12, "far"); //close
 
@@ -460,11 +443,11 @@ int main (int argc, char** argv)
 	runTests(results, "NoFeatureStructured3-features", 16, "close"); //close
 	runTests(results, "NoFeatureStructured3-features", 18, "mid"); //med
 	runTests(results, "NoFeatureStructured3-features", 17, "far"); //far
-
-	runTests(results, "NoFeatureNonStructured1-features", 73, "close"); //close
-	runTests(results, "NoFeatureNonStructured1-features", 74, "mid"); //med
-	runTests(results, "NoFeatureNonStructured1-features", 75, "far"); //far
-
+*/
+//	runTests(results, "NoFeatureNonStructured1-features", 73, "close"); //close
+//	runTests(results, "NoFeatureNonStructured1-features", 74, "mid"); //med
+//	runTests(results, "NoFeatureNonStructured1-features", 93, "far"); //far
+/*
 	runTests(results, "desk-close1-features", 50, "close"); //close
 	runTests(results, "desk-close1-features", 52, "mid"); //med
 	runTests(results, "desk-close1-features", 51, "far"); //far
@@ -475,19 +458,20 @@ int main (int argc, char** argv)
 
 	runTests(results, "desk-far1-features", 46, "close"); //close
 	runTests(results, "desk-far1-features", 47, "mid"); //med
-	runTests(results, "desk-far1-features", 48, "far"); //far*/
-
+	runTests(results, "desk-far1-features", 48, "far"); //far
+*/
+	// ############FINAL TEST SET HERE################
 	runTests(results, "bench1-2sweeps5", 1, "close"); //close
 	runTests(results, "bench1-2sweeps5", 17, "mid"); //medr
 	runTests(results, "bench1-2sweeps5", 32, "far"); //far
 
 	runTests(results, "featureNonStructured3-features", 78, "close"); //close
-	runTests(results, "featureNonStructured3-features", 80, "mid"); //med
+	runTests(results, "featureNonStructured3-features", 75, "mid"); //med
 	runTests(results, "featureNonStructured3-features", 79, "far"); //far
 
-	runTests(results, "NoFeatureStructured3-features", 16, "close"); //close
-	runTests(results, "NoFeatureStructured3-features", 18, "mid"); //med
-	runTests(results, "NoFeatureStructured3-features", 17, "far"); //far
+	runTests(results, "NoFeatureStructured3-features2", 1, "close"); //close
+	runTests(results, "NoFeatureStructured3-features2", 2, "mid"); //close
+	runTests(results, "NoFeatureStructured3-features2", 3, "far"); //close
 
 	runTests(results, "NoFeatureNonStructured1-features2", 10, "close"); //close
 	runTests(results, "NoFeatureNonStructured1-features2", 23, "mid"); //med
@@ -505,7 +489,12 @@ int main (int argc, char** argv)
 	runTests(results, "desk-far1-features2", 7, "mid"); //med
 	runTests(results, "desk-far1-features2", 23, "far"); //far
 
-/*	runTests(results, "bench1-2sweeps", 16, "close"); //close
+/*
+	runTests(results, "featureNonStructured3-features", 75, "mid"); //med
+	runTests(results, "featureNonStructured3-features", 74, "mid"); //med
+	runTests(results, "featureNonStructured3-features", 72, "mid"); //med
+	runTests(results, "featureNonStructured3-features", 71, "mid"); //med
+	runTests(results, "bench1-2sweeps", 16, "close"); //close
 	runTests(results, "bench1-2sweeps", 26, "close"); //close
 	runTests(results, "bench1-2sweeps", 36, "close"); //close
 	runTests(results, "bench1-2sweeps", 46, "close"); //close
