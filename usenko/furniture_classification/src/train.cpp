@@ -1,76 +1,97 @@
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/core/core.hpp"
+/*
+ * scan.cpp
+ *
+ *  Created on: Apr 17, 2012
+ *      Author: vsu
+ */
+
 #include <iostream>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/surface/mls.h>
+#include <pcl/segmentation/region_growing.h>
 
-using namespace cv;
-using namespace std;
-
-void help()
+int main(int argc, char** argv)
 {
-        cout << "\nThis program demonstrates kmeans clustering.\n"
-                        "It generates an image with random points, then assigns a random number of cluster\n"
-                        "centers and uses kmeans to move those cluster centers to their representitive location\n"
-                        "Call\n"
-                        "./kmeans\n" << endl;
-}
+  pcl::PointCloud<pcl::PointXYZ> cloud;
+  pcl::io::loadPCDFile("data/scans/Aluminium_Group_EA_119_0000F152-centered/rotation0_distance4_tilt-15_shift0.pcd",
+                       cloud);
 
-int main( int /*argc*/, char** /*argv*/ )
-{
-    const int MAX_CLUSTERS = 5;
-    Scalar colorTab[] =
+  // Create a KD-Tree
+  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+
+  // Output has the PointNormal type in order to store the normals calculated by MLS
+  pcl::PointCloud<pcl::PointNormal> mls_points;
+
+  // Init object (second point type is for the normals, even if unused)
+  pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls;
+
+  mls.setComputeNormals(true);
+
+  // Set parameters
+  mls.setInputCloud(cloud.makeShared());
+  mls.setPolynomialFit(true);
+  mls.setPolynomialOrder(2);
+  mls.setSearchMethod(tree);
+  mls.setSearchRadius(0.03);
+
+  // Reconstruct
+  mls.process(mls_points);
+
+  pcl::PointCloud<pcl::PointXYZ> mls_cloud;
+  pcl::PointCloud<pcl::Normal> mls_normal;
+  pcl::copyPointCloud(mls_points, mls_cloud);
+  pcl::copyPointCloud(mls_points, mls_normal);
+
+  std::vector<std::vector<int> > segment_indices;
+
+  pcl::RegionGrowing<pcl::PointXYZ> region_growing;
+  region_growing.setCloud(mls_cloud.makeShared());
+  region_growing.setNormals(mls_normal.makeShared());
+  region_growing.setNeighbourSearchMethod(tree);
+  region_growing.setResidualTest(true);
+  region_growing.setResidualThreshold(0.05);
+  region_growing.setCurvatureTest(false);
+  region_growing.setSmoothMode(false);
+  region_growing.setSmoothnessThreshold(40*M_PI/180);
+  region_growing.segmentPoints();
+  segment_indices = region_growing.getSegments();
+
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> segments;
+
+  for (size_t i = 0; i < segment_indices.size(); i++)
+  {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr segment_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    for (size_t j = 0; j < segment_indices[i].size(); j++)
     {
-        Scalar(0, 0, 255),
-        Scalar(0,255,0),
-        Scalar(255,100,100),
-        Scalar(255,0,255),
-        Scalar(0,255,255)
-    };
-
-    Mat img(500, 500, CV_8UC3);
-    RNG rng(12345);
-
-    for(;;)
-    {
-        int k, clusterCount = rng.uniform(2, MAX_CLUSTERS+1);
-        int i, sampleCount = rng.uniform(1, 1001);
-        Mat points(sampleCount, 1, CV_32FC2), labels;
-
-        clusterCount = MIN(clusterCount, sampleCount);
-        Mat centers(clusterCount, 1, points.type());
-
-        /* generate random sample from multigaussian distribution */
-        for( k = 0; k < clusterCount; k++ )
-        {
-            Point center;
-            center.x = rng.uniform(0, img.cols);
-            center.y = rng.uniform(0, img.rows);
-            Mat pointChunk = points.rowRange(k*sampleCount/clusterCount,
-                                             k == clusterCount - 1 ? sampleCount :
-                                             (k+1)*sampleCount/clusterCount);
-            rng.fill(pointChunk, CV_RAND_NORMAL, Scalar(center.x, center.y), Scalar(img.cols*0.05, img.rows*0.05));
-        }
-
-        randShuffle(points, 1, &rng);
-
-        kmeans(points, clusterCount, labels,
-               TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 1.0),
-               3, KMEANS_PP_CENTERS, centers);
-
-        img = Scalar::all(0);
-
-        for( i = 0; i < sampleCount; i++ )
-        {
-            int clusterIdx = labels.at<int>(i);
-            Point ipt = points.at<Point2f>(i);
-            circle( img, ipt, 2, colorTab[clusterIdx], CV_FILLED, CV_AA );
-        }
-
-        imshow("clusters", img);
-
-        char key = (char)waitKey();
-        if( key == 27 || key == 'q' || key == 'Q' ) // 'ESC'
-            break;
+      segment_cloud->points.push_back(cloud.points[segment_indices[i][j]]);
     }
 
-    return 0;
+    segment_cloud->is_dense = true;
+    segment_cloud->width = segment_cloud->points.size();
+    segment_cloud->height = 1;
+    segments.push_back(segment_cloud);
+  }
+
+  pcl::visualization::PCLVisualizer viz;
+  viz.initCameraParameters();
+  viz.addCoordinateSystem(0.1);
+  //viz.addPointCloudNormals<pcl::PointNormal>(mls_points.makeShared(), 10, 0.05);
+  //viz.addPointCloudNormals<pcl::PointXYZ, pcl::Normal> (mls_cloud.makeShared(), mls_normal.makeShared(), 10, 0.05);
+
+
+  for (size_t i = 0; i < segments.size(); i++)
+  {
+    pcl::visualization::PointCloudColorHandlerRandom<pcl::PointXYZ> color_handler(segments[i]);
+    std::strstream ss;
+    ss << "cloud" << i;
+    viz.addPointCloud(segments[i], color_handler, ss.str());
+  }
+
+  viz.spin();
+
+  return 0;
 }

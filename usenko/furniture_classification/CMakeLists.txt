@@ -27,7 +27,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_add_boost_directories()
 rosbuild_add_executable(train src/train.cpp)
 rosbuild_link_boost(train system filesystem)
-target_link_libraries(train vtkCommon vtkIO vtkFiltering vtkGraphics)
+target_link_libraries(train vtkCommon vtkIO vtkFiltering vtkGraphics vtkRendering)
 
 rosbuild_add_executable(scan src/scan.cpp)
 rosbuild_link_boost(scan system filesystem)
