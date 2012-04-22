@@ -1,0 +1,19 @@
+<package>
+  <description brief="simple_features">
+
+     simple_features
+
+  </description>
+  <author>Stefan</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/simple_features</url>
+  <depend package="pcl" />
+
+  <export>
+    <cpp lflags="-roscpp_serialization" />
+  </export>
+
+</package>
+
+
