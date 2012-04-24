@@ -211,7 +211,7 @@ int main(int argc, char** argv)
             transform->RotateZ(angle);
 
             // Render pointcloud
-            viz.renderView(640, 640, cloud);
+            viz.renderView(640, 480, cloud);
 
             //Add noise
             addNoise(cloud, noise_std);

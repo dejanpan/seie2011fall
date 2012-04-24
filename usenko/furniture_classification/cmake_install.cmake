@@ -1,4 +1,4 @@
-# Install script for directory: /home/vsu/workspace/repo/furniture_classification
+# Install script for directory: /home/vsu/workspace/seie2011fall/usenko/furniture_classification
 
 # Set the install prefix
 IF(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -38,7 +38,7 @@ ELSE(CMAKE_INSTALL_COMPONENT)
   SET(CMAKE_INSTALL_MANIFEST "install_manifest.txt")
 ENDIF(CMAKE_INSTALL_COMPONENT)
 
-FILE(WRITE "/home/vsu/workspace/repo/furniture_classification/${CMAKE_INSTALL_MANIFEST}" "")
+FILE(WRITE "/home/vsu/workspace/seie2011fall/usenko/furniture_classification/${CMAKE_INSTALL_MANIFEST}" "")
 FOREACH(file ${CMAKE_INSTALL_MANIFEST_FILES})
-  FILE(APPEND "/home/vsu/workspace/repo/furniture_classification/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
+  FILE(APPEND "/home/vsu/workspace/seie2011fall/usenko/furniture_classification/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
 ENDFOREACH(file)

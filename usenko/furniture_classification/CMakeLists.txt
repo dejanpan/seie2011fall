@@ -21,13 +21,15 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
+include_directories(../../loibl/simple_features/include)
+
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 rosbuild_add_executable(train src/train.cpp)
 rosbuild_link_boost(train system filesystem)
-target_link_libraries(train vtkCommon vtkIO vtkFiltering vtkGraphics vtkRendering)
+target_link_libraries(train vtkCommon vtkIO vtkFiltering vtkGraphics vtkRendering yaml-cpp)
 
 rosbuild_add_executable(scan src/scan.cpp)
 rosbuild_link_boost(scan system filesystem)
