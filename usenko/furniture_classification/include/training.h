@@ -13,7 +13,6 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
-#include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/surface/mls.h>
 #include <pcl/segmentation/region_growing.h>
@@ -58,5 +57,29 @@ void create_codebook(const std::vector<featureType> & features, const std::vecto
 
 void save_codebook(const std::string & filename, const std::map<featureType, std::map<std::string, std::vector<
     Eigen::Vector4f> > > & codebook);
+
+void load_codebook(const std::string & filename, std::map<featureType, std::map<std::string, std::vector<
+    Eigen::Vector4f> > > & codebook);
+
+template<int N>
+  YAML::Emitter& operator <<(YAML::Emitter& out, const pcl::Histogram<N> & h)
+  {
+    out << YAML::Flow << YAML::BeginSeq;
+    for (int j = 0; j < N; j++)
+    {
+      out << h.histogram[j];
+    }
+    out << YAML::EndSeq << YAML::Block;
+    return out;
+  }
+
+template<int N>
+  void operator >>(const YAML::Node& node, pcl::Histogram<N> & h)
+  {
+    for (int j = 0; j < N; j++)
+    {
+      node[j] >> h.histogram[j];
+    }
+  }
 
 #endif /* TRAINING_H_ */

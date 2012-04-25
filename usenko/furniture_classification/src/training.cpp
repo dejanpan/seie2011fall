@@ -5,9 +5,7 @@
  *      Author: vsu
  */
 
-
 #include <training.h>
-
 
 void filter_segments(const std::vector<std::vector<int> > & segment_indices,
                      std::vector<std::vector<int> > & new_segment_indices, size_t min_points_in_segment)
@@ -194,12 +192,7 @@ void save_codebook(const std::string & filename, const std::map<featureType, std
     std::map<std::string, std::vector<Eigen::Vector4f> > class_centroid_map = it->second;
     out << YAML::BeginMap;
     out << YAML::Key << "cluster_center";
-    out << YAML::Value << YAML::Flow << YAML::BeginSeq;
-    for (int j = 0; j < featureLength; j++)
-    {
-      out << cluster_center.histogram[j];
-    }
-    out << YAML::EndSeq << YAML::Block;
+    out << YAML::Value << cluster_center;
 
     out << YAML::Key << "classes";
     out << YAML::Value << YAML::BeginSeq;
@@ -234,5 +227,31 @@ void save_codebook(const std::string & filename, const std::map<featureType, std
   f << out.c_str();
   f.close();
 
+}
+
+void load_codebook(const std::string & filename, std::map<featureType, std::map<std::string, std::vector<
+    Eigen::Vector4f> > > & codebook)
+{
+  std::ifstream fin(filename.c_str());
+  YAML::Parser parser(fin);
+  YAML::Node doc;
+  parser.GetNextDocument(doc);
+  for (size_t i = 0; i < doc.size(); i++)
+  {
+    featureType cluster_center;
+    doc[i]["cluster_center"] >> cluster_center;
+    for(size_t j=0; j<doc[i]["classes"].size(); j++){
+      std::string class_name;
+      doc[i]["classes"][j]["class_name"] >> class_name;
+      for(size_t k=0; k<doc[i]["classes"][j]["centroids"].size(); k++){
+        Eigen::Vector4f centr;
+        doc[i]["classes"][j]["centroids"][k][0] >> centr[0];
+        doc[i]["classes"][j]["centroids"][k][1] >> centr[1];
+        doc[i]["classes"][j]["centroids"][k][2] >> centr[2];
+        codebook[cluster_center][class_name].push_back(centr);
+      }
+
+    }
+  }
 }
 

@@ -35,6 +35,8 @@ target_link_libraries(training yaml-cpp)
 rosbuild_add_executable(train src/train.cpp)
 target_link_libraries(train training)
 
+rosbuild_add_executable(classify src/classify.cpp)
+target_link_libraries(classify training)
 
 rosbuild_add_executable(scan src/scan.cpp)
 rosbuild_link_boost(scan system filesystem)
