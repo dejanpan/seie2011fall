@@ -27,9 +27,14 @@ include_directories(../../loibl/simple_features/include)
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
+
+rosbuild_add_library(training src/training.cpp)
+rosbuild_link_boost(training system filesystem)
+target_link_libraries(training yaml-cpp)
+
 rosbuild_add_executable(train src/train.cpp)
-rosbuild_link_boost(train system filesystem)
-target_link_libraries(train vtkCommon vtkIO vtkFiltering vtkGraphics vtkRendering yaml-cpp)
+target_link_libraries(train training)
+
 
 rosbuild_add_executable(scan src/scan.cpp)
 rosbuild_link_boost(scan system filesystem)
