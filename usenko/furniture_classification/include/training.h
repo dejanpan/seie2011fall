@@ -16,8 +16,8 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/surface/mls.h>
 #include <pcl/segmentation/region_growing.h>
-#include <pcl/features/sgf6.h>
-#include <pcl/features/sgf4.h>
+#include <pcl/features/sgfall.h>
+
 #include <opencv2/core/core.hpp>
 #include <yaml-cpp/yaml.h>
 #include <boost/filesystem.hpp>
@@ -32,9 +32,9 @@ template<int N>
   }
 }
 
-const int featureLength = pcl::SGF4_SIZE;
+const int featureLength = pcl::SGFALL_SIZE;
 typedef pcl::Histogram<featureLength> featureType;
-typedef pcl::SGF4Estimation<pcl::PointXYZ, featureType> featureEstimation;
+typedef pcl::SGFALLEstimation<pcl::PointXYZ, featureType> featureEstimation;
 
 void filter_segments(const std::vector<std::vector<int> > & segment_indices,
                      std::vector<std::vector<int> > & new_segment_indices, size_t min_points_in_segment);

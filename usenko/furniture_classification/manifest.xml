@@ -10,7 +10,7 @@
   <url>http://ros.org/wiki/furniture_classification</url>
   <depend package="pcl"/>
   <depend package="opencv2"/>
-  <depend package="simple_features"/>
+  <depend package="furniture_features"/>
   <rosdep name="yaml-cpp" />
 
 </package>
