@@ -5,7 +5,6 @@
  *      Author: vsu
  */
 
-
 #include <pcl/console/parse.h>
 #include <training.h>
 
@@ -47,6 +46,8 @@ int main(int argc, char** argv)
     append_segments_from_file(files_to_process[i], features, centroids, classes, min_points_in_segment);
   }
 
+  normalizeFeatures(features);
+
   cluster_features(features, num_clusters, cluster_centers, cluster_labels);
 
   std::map<featureType, std::map<std::string, std::vector<Eigen::Vector4f> > > codebook;
@@ -57,3 +58,4 @@ int main(int argc, char** argv)
 
   return 0;
 }
+

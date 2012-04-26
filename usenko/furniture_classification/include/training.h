@@ -81,4 +81,40 @@ template<int N>
     }
   }
 
+template<int N>
+  void normalizeFeatures(std::vector<pcl::Histogram<N> > & features)
+  {
+    pcl::Histogram<N> min, max;
+
+    // Init max and min vales with first feature
+    for (int j = 0; j < N; j++)
+    {
+      min.histogram[j] = features[0].histogram[j];
+      max.histogram[j] = features[0].histogram[j];
+    }
+
+    // Find max and min values
+    for (size_t i = 0; i < features.size(); i++)
+    {
+      for (int j = 0; j < N; j++)
+      {
+        if (features[i].histogram[j] < min.histogram[j])
+          min.histogram[j] = features[i].histogram[j];
+        if (features[i].histogram[j] > max.histogram[j])
+          max.histogram[j] = features[i].histogram[j];
+      }
+    }
+
+    // Normalize
+    for (size_t i = 0; i < features.size(); i++)
+    {
+      for (int j = 0; j < N; j++)
+      {
+        features[i].histogram[j] = (features[i].histogram[j] - min.histogram[j])
+            / (max.histogram[j] - min.histogram[j]);
+      }
+    }
+
+  }
+
 #endif /* TRAINING_H_ */
