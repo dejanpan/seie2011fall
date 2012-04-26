@@ -22,6 +22,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_gensrv()
 
 include_directories(../furniture_features/include)
+include_directories(/home/vsu/workspace/perception_pcl_electric_unstable/pcl/build/pcl_trunk/apps/include/pcl/apps)
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)

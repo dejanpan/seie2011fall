@@ -58,7 +58,7 @@ void save_codebook(const std::string & filename, const std::map<featureType, std
     Eigen::Vector4f> > > & codebook);
 
 void load_codebook(const std::string & filename, std::map<featureType, std::map<std::string, std::vector<
-    Eigen::Vector4f> > > & codebook);
+    Eigen::Vector4f> > > & codebook, pcl::PointCloud<featureType> & feature_cloud);
 
 template<int N>
   YAML::Emitter& operator <<(YAML::Emitter& out, const pcl::Histogram<N> & h)

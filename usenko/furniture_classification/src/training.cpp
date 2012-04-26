@@ -235,8 +235,10 @@ void save_codebook(const std::string & filename, const std::map<featureType, std
 }
 
 void load_codebook(const std::string & filename, std::map<featureType, std::map<std::string, std::vector<
-    Eigen::Vector4f> > > & codebook)
+    Eigen::Vector4f> > > & codebook, pcl::PointCloud<featureType> & feature_cloud)
 {
+  feature_cloud.points.clear();
+
   std::ifstream fin(filename.c_str());
   YAML::Parser parser(fin);
   YAML::Node doc;
@@ -244,6 +246,7 @@ void load_codebook(const std::string & filename, std::map<featureType, std::map<
   for (size_t i = 0; i < doc.size(); i++)
   {
     featureType cluster_center;
+    feature_cloud.points.push_back(cluster_center);
     doc[i]["cluster_center"] >> cluster_center;
     for (size_t j = 0; j < doc[i]["classes"].size(); j++)
     {
@@ -260,5 +263,9 @@ void load_codebook(const std::string & filename, std::map<featureType, std::map<
 
     }
   }
+
+  feature_cloud.width = feature_cloud.points.size();
+  feature_cloud.height = 1;
+  feature_cloud.is_dense = true;
 }
 
