@@ -17,7 +17,6 @@
 #include <pcl/surface/mls.h>
 #include <pcl/segmentation/region_growing.h>
 #include <pcl/features/sgfall.h>
-
 #include <opencv2/core/core.hpp>
 #include <yaml-cpp/yaml.h>
 #include <boost/filesystem.hpp>

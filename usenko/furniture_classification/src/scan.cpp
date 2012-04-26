@@ -13,6 +13,7 @@
 #include <pcl/console/parse.h>
 #include <pcl/io/vtk_lib_io.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/common/transforms.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
 void addNoise(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, double noise_std)
@@ -29,15 +30,18 @@ void addNoise(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, double noise_std)
 
 }
 
-void moveToNewCenter(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, double new_center[3])
+void moveToNewCenterAndAlign(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed, double new_center[3], double tilt_angle)
 {
-  for (size_t cp = 0; cp < cloud->points.size(); cp++)
-  {
-    //NOTE: vtk view coordinate system is different than the standard camera coordinates (z forward, y down, x right)
-    cloud->points[cp].x += new_center[1];
-    cloud->points[cp].y += new_center[2];
-    cloud->points[cp].z -= new_center[0];
-  }
+
+  Eigen::Affine3f view_transform;
+  view_transform.setIdentity();
+  Eigen::Translation<float, 3> translation(new_center[1], new_center[2], -new_center[0]);
+  Eigen::AngleAxis<float> tilt_rotation(tilt_angle * M_PI / 180 + M_PI, Eigen::Vector3f(1, 0, 0));
+  view_transform *= tilt_rotation;
+  view_transform *= translation;
+
+  pcl::transformPointCloud(*cloud, *cloud_transformed, view_transform);
+
 
 }
 
@@ -220,15 +224,18 @@ int main(int argc, char** argv)
             double new_center[3];
             transform->TransformPoint(center, new_center);
 
-            // Shift origin of the poincloud to the model center
-            moveToNewCenter(cloud, new_center);
+
+
+            // Shift origin of the poincloud to the model center and align with initial coordinate system.
+            pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZ>());
+            moveToNewCenterAndAlign(cloud, cloud_transformed, new_center, tilt[tilt_index]);
 
             // Compute file name for this pointcloud and save it
             std::stringstream ss;
             ss << dirname << "/rotation" << angle << "_distance" << distances[distance_index] << "_tilt"
                 << tilt[tilt_index] << "_shift" << shift[shift_index] << ".pcd";
             PCL_INFO("Writing %d points to file %s\n", cloud->points.size(), ss.str().c_str());
-            pcl::io::savePCDFile(ss.str(), *cloud);
+            pcl::io::savePCDFile(ss.str(), *cloud_transformed);
 
             // increment angle by step
             angle += angle_step;
