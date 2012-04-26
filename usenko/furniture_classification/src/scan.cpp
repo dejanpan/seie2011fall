@@ -30,7 +30,9 @@ void addNoise(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, double noise_std)
 
 }
 
-void moveToNewCenterAndAlign(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed, double new_center[3], double tilt_angle)
+void moveToNewCenterAndAlign(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+                             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed, double new_center[3],
+                             double tilt_angle)
 {
 
   Eigen::Affine3f view_transform;
@@ -41,7 +43,6 @@ void moveToNewCenterAndAlign(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::Poi
   view_transform *= translation;
 
   pcl::transformPointCloud(*cloud, *cloud_transformed, view_transform);
-
 
 }
 
@@ -126,11 +127,15 @@ int main(int argc, char** argv)
   boost::filesystem::directory_iterator end_iter;
   for (boost::filesystem::directory_iterator iter(input_path); iter != end_iter; iter++)
   {
-    boost::filesystem::path file(*iter);
-    if (file.extension() == ".vtk")
+    boost::filesystem::path class_dir_path(*iter);
+    for (boost::filesystem::directory_iterator iter2(class_dir_path); iter2 != end_iter; iter2++)
     {
-      files_to_process.push_back(file.c_str());
-      PCL_INFO("\t%s\n", file.c_str());
+      boost::filesystem::path file(*iter2);
+      if (file.extension() == ".vtk")
+      {
+        files_to_process.push_back(file.c_str());
+        PCL_INFO("\t%s\n", file.c_str());
+      }
     }
 
   }
@@ -153,9 +158,10 @@ int main(int argc, char** argv)
     // Compute output directory for this model
     std::vector<std::string> st;
     boost::split(st, files_to_process.at(i), boost::is_any_of("/"), boost::token_compress_on);
+    std::string class_dirname = st.at(st.size() - 2);
     std::string dirname = st.at(st.size() - 1);
     dirname = dirname.substr(0, dirname.size() - 4);
-    dirname = output_dir + dirname;
+    dirname = output_dir + class_dirname + "/" + dirname;
 
     // Check if output directory for this model exists. If not create
     boost::filesystem::path dirpath(dirname);
@@ -223,8 +229,6 @@ int main(int argc, char** argv)
             // Compute new coordinates of the model center
             double new_center[3];
             transform->TransformPoint(center, new_center);
-
-
 
             // Shift origin of the poincloud to the model center and align with initial coordinate system.
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed(new pcl::PointCloud<pcl::PointXYZ>());

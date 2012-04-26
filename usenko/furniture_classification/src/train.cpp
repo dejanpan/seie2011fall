@@ -6,15 +6,31 @@
  */
 
 
+#include <pcl/console/parse.h>
 #include <training.h>
-
 
 int main(int argc, char** argv)
 {
-  size_t min_points_in_segment = 300;
+
+  if (argc < 5)
+  {
+    PCL_INFO ("Usage %s -input_dir /dir/with/pointclouds -output_file /where/to/put/database [options]\n", argv[0]);
+    PCL_INFO (" * where options are:\n"
+        "         -min_points_in_segment <X>  : set minimal number of points in segment to X. Default : 300\n"
+        "         -num_clusters <X>           : set Number of clusters. Default : 5\n"
+        "");
+    return -1;
+  }
+
+  int min_points_in_segment = 300;
   int num_clusters = 5;
-  std::string input_dir = "data/scans/";
-  std::string output_file = "data/codebook.yaml";
+  std::string input_dir;
+  std::string output_file;
+
+  pcl::console::parse_argument(argc, argv, "-input_dir", input_dir);
+  pcl::console::parse_argument(argc, argv, "-output_file", output_file);
+  pcl::console::parse_argument(argc, argv, "-num_clusters", num_clusters);
+  pcl::console::parse_argument(argc, argv, "-min_points_in_segment", min_points_in_segment);
 
   std::vector<featureType> features;
   std::vector<Eigen::Vector4f> centroids;

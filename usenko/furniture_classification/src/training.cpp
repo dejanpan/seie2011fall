@@ -54,7 +54,7 @@ void append_segments_from_file(const std::string & filename, std::vector<feature
 {
   std::vector<std::string> st;
   boost::split(st, filename, boost::is_any_of("/"), boost::token_compress_on);
-  std::string class_name = st.at(st.size() - 2);
+  std::string class_name = st.at(st.size() - 3);
 
   pcl::PointCloud<pcl::PointXYZ> cloud;
   pcl::io::loadPCDFile(filename, cloud);
@@ -140,15 +140,20 @@ void get_files_to_process(const std::string & input_dir, std::vector<std::string
   boost::filesystem::directory_iterator end_iter;
   for (boost::filesystem::directory_iterator iter(input_path); iter != end_iter; iter++)
   {
-    boost::filesystem::path sub_dir(*iter);
-    for (boost::filesystem::directory_iterator iter2(sub_dir); iter2 != end_iter; iter2++)
+    boost::filesystem::path class_dir_path(*iter);
+    for (boost::filesystem::directory_iterator iter2(class_dir_path); iter2 != end_iter; iter2++)
     {
-      boost::filesystem::path file(*iter2);
-      if (file.extension() == ".pcd")
+      boost::filesystem::path model_dir_path(*iter2);
+      for (boost::filesystem::directory_iterator iter3(model_dir_path); iter3 != end_iter; iter3++)
       {
-        files_to_process.push_back(file.c_str());
-        PCL_INFO("\t%s\n", file.c_str());
+        boost::filesystem::path file(*iter3);
+        if (file.extension() == ".pcd")
+        {
+          files_to_process.push_back(file.c_str());
+          PCL_INFO("\t%s\n", file.c_str());
+        }
       }
+
     }
 
   }
@@ -240,10 +245,12 @@ void load_codebook(const std::string & filename, std::map<featureType, std::map<
   {
     featureType cluster_center;
     doc[i]["cluster_center"] >> cluster_center;
-    for(size_t j=0; j<doc[i]["classes"].size(); j++){
+    for (size_t j = 0; j < doc[i]["classes"].size(); j++)
+    {
       std::string class_name;
       doc[i]["classes"][j]["class_name"] >> class_name;
-      for(size_t k=0; k<doc[i]["classes"][j]["centroids"].size(); k++){
+      for (size_t k = 0; k < doc[i]["classes"][j]["centroids"].size(); k++)
+      {
         Eigen::Vector4f centr;
         doc[i]["classes"][j]["centroids"][k][0] >> centr[0];
         doc[i]["classes"][j]["centroids"][k][1] >> centr[1];
