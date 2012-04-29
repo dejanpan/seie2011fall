@@ -34,6 +34,7 @@ template<int N>
 const int featureLength = pcl::SGFALL_SIZE;
 typedef pcl::Histogram<featureLength> featureType;
 typedef pcl::SGFALLEstimation<pcl::PointXYZ, featureType> featureEstimation;
+typedef std::map<featureType, std::map<std::string, pcl::PointCloud<pcl::PointXYZ> > > databaseType;
 
 void filter_segments(const std::vector<std::vector<int> > & segment_indices,
                      std::vector<std::vector<int> > & new_segment_indices, size_t min_points_in_segment);
@@ -41,24 +42,21 @@ void filter_segments(const std::vector<std::vector<int> > & segment_indices,
 cv::Mat transform_to_mat(const std::vector<featureType> & features);
 void transform_to_features(const cv::Mat & mat, std::vector<featureType> & features);
 
-void append_segments_from_file(const std::string & filename, std::vector<featureType> & features, std::vector<
-    Eigen::Vector4f> & centroids, std::vector<std::string> & classes, size_t min_points_in_segment);
+void append_segments_from_file(const std::string & filename, std::vector<featureType> & features, pcl::PointCloud<
+    pcl::PointXYZ> & centroids, std::vector<std::string> & classes, size_t min_points_in_segment);
 
 void get_files_to_process(const std::string & input_dir, std::vector<std::string> & files_to_process);
 
 void cluster_features(const std::vector<featureType> & features, int num_clusters,
                       std::vector<featureType> & cluster_centers, std::vector<int> & cluster_labels);
 
-void create_codebook(const std::vector<featureType> & features, const std::vector<Eigen::Vector4f> & centroids,
+void create_codebook(const std::vector<featureType> & features, const pcl::PointCloud<pcl::PointXYZ> & centroids,
                      const std::vector<std::string> & classes, const std::vector<featureType> & cluster_centers,
-                     const std::vector<int> & cluster_labels, std::map<featureType, std::map<std::string, std::vector<
-                         Eigen::Vector4f> > > & codebook);
+                     const std::vector<int> & cluster_labels, databaseType & codebook);
 
-void save_codebook(const std::string & filename, const std::map<featureType, std::map<std::string, std::vector<
-    Eigen::Vector4f> > > & codebook);
+void save_codebook(const std::string & filename, const databaseType & database);
 
-void load_codebook(const std::string & filename, std::map<featureType, std::map<std::string, std::vector<
-    Eigen::Vector4f> > > & codebook, pcl::PointCloud<featureType> & feature_cloud);
+void load_codebook(const std::string & filename, databaseType & codebook, pcl::PointCloud<featureType> & feature_cloud);
 
 template<int N>
   YAML::Emitter& operator <<(YAML::Emitter& out, const pcl::Histogram<N> & h)
@@ -79,6 +77,40 @@ template<int N>
     {
       node[j] >> h.histogram[j];
     }
+  }
+
+template<typename PointT>
+  YAML::Emitter& operator <<(YAML::Emitter& out, const pcl::PointCloud<PointT> & cloud)
+  {
+    out << YAML::BeginSeq;
+    for (size_t i = 0; i < cloud.points.size(); i++)
+    {
+      out << YAML::Flow << YAML::BeginSeq << cloud.points[i].x << cloud.points[i].y << cloud.points[i].z
+          << YAML::EndSeq << YAML::Block;
+    }
+    out << YAML::EndSeq;
+
+    return out;
+  }
+
+template<typename PointT>
+  void operator >>(const YAML::Node& node, pcl::PointCloud<PointT> & cloud)
+  {
+    cloud.clear();
+
+    for (size_t i = 0; i < node.size(); i++)
+    {
+      PointT point;
+      node[i][0] >> point.x;
+      node[i][1] >> point.y;
+      node[i][2] >> point.z;
+      cloud.points.push_back(point);
+
+    }
+
+    cloud.width = cloud.points.size();
+    cloud.height = 1;
+    cloud.is_dense = true;
   }
 
 template<int N>

@@ -32,7 +32,7 @@ int main(int argc, char** argv)
   pcl::console::parse_argument(argc, argv, "-min_points_in_segment", min_points_in_segment);
 
   std::vector<featureType> features;
-  std::vector<Eigen::Vector4f> centroids;
+  pcl::PointCloud<pcl::PointXYZ> centroids;
   std::vector<std::string> classes;
 
   std::vector<featureType> cluster_centers;
@@ -46,15 +46,19 @@ int main(int argc, char** argv)
     append_segments_from_file(files_to_process[i], features, centroids, classes, min_points_in_segment);
   }
 
+
+  // Transform to model centroinds in local coordinate frame of the segment
+  centroids.getMatrixXfMap() *= -1;
+
   normalizeFeatures(features);
 
   cluster_features(features, num_clusters, cluster_centers, cluster_labels);
 
-  std::map<featureType, std::map<std::string, std::vector<Eigen::Vector4f> > > codebook;
+  databaseType database;
 
-  create_codebook(features, centroids, classes, cluster_centers, cluster_labels, codebook);
+  create_codebook(features, centroids, classes, cluster_centers, cluster_labels, database);
 
-  save_codebook(output_file, codebook);
+  save_codebook(output_file, database);
 
   return 0;
 }

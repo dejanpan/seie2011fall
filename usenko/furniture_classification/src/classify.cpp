@@ -13,10 +13,8 @@
 #include <pcl/search/flann_search.h>
 #include <pcl/search/impl/flann_search.hpp>
 
-
-
-template class pcl::KdTreeFLANN<featureType>;
-template class pcl::search::KdTree<featureType>;
+//template class pcl::KdTreeFLANN<featureType>;
+//template class pcl::search::KdTree<featureType>;
 
 int main(int argc, char** argv)
 {
@@ -26,12 +24,12 @@ int main(int argc, char** argv)
       "data/test/Chairs/Aluminium_Group_EA_119_0000F152-centered/rotation30_distance4_tilt-15_shift0.pcd";
   int min_points_in_segment = 300;
 
-  std::map<featureType, std::map<std::string, std::vector<Eigen::Vector4f> > > codebook;
+  databaseType database;
   pcl::PointCloud<featureType> feature_cloud;
-  load_codebook(database_file_name, codebook, feature_cloud);
+  load_codebook(database_file_name, database, feature_cloud);
 
   std::vector<featureType> features;
-  std::vector<Eigen::Vector4f> centroids;
+  pcl::PointCloud<pcl::PointXYZ> centroids;
   std::vector<std::string> classes;
 
   append_segments_from_file(scene_file_name, features, centroids, classes, min_points_in_segment);
@@ -40,17 +38,9 @@ int main(int argc, char** argv)
 
   std::cout << "Found segments " << features.size() << " Cluster size " << feature_cloud.points.size() << std::endl;
 
-  pcl::search::KdTree<featureType> aa;
-
-  //pcl::NNClassification<featureType> a;
-
-  //a.setTrainingFeatures(feature_cloud.makeShared());
-
-  //pcl::KdTree<featureType>::Ptr tree;
-  //typename pcl::CustomPointRepresentation<featureType>::Ptr cpr (new pcl::CustomPointRepresentation<featureType> (INT_MAX, 0));
-  //tree.reset(new pcl::KdTreeFLANN<featureType>);
+  pcl::search::KdTree<featureType> feature_search;
+  feature_search.setInputCloud(feature_cloud);
 
   return 0;
 }
-
 

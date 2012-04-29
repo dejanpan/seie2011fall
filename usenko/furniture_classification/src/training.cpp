@@ -49,8 +49,8 @@ void transform_to_features(const cv::Mat & mat, std::vector<featureType> & featu
 
 }
 
-void append_segments_from_file(const std::string & filename, std::vector<featureType> & features, std::vector<
-    Eigen::Vector4f> & centroids, std::vector<std::string> & classes, size_t min_points_in_segment)
+void append_segments_from_file(const std::string & filename, std::vector<featureType> & features, pcl::PointCloud<
+    pcl::PointXYZ> & centroids, std::vector<std::string> & classes, size_t min_points_in_segment)
 {
   std::vector<std::string> st;
   boost::split(st, filename, boost::is_any_of("/"), boost::token_compress_on);
@@ -121,15 +121,21 @@ void append_segments_from_file(const std::string & filename, std::vector<feature
     // Compute centroid of segment
     Eigen::Vector4f centroid;
     pcl::compute3DCentroid(mls_cloud, new_segment_indices[i], centroid);
-    // Assuming that center of the model is at (0,0,0)
-    // we get the vector from segment centroid to model center.
-    centroid *= -1;
+    pcl::PointXYZ centroid_point;
+    centroid_point.x = centroid[0];
+    centroid_point.y = centroid[1];
+    centroid_point.z = centroid[2];
 
     features.push_back(feature.points[0]);
-    centroids.push_back(centroid);
     classes.push_back(class_name);
 
+    centroids.points.push_back(centroid_point);
+
   }
+
+  centroids.width = centroids.points.size();
+  centroids.height = 1;
+  centroids.is_dense = true;
 
 }
 
@@ -172,29 +178,31 @@ void cluster_features(const std::vector<featureType> & features, int num_cluster
   cluster_labels = labels;
 }
 
-void create_codebook(const std::vector<featureType> & features, const std::vector<Eigen::Vector4f> & centroids,
+void create_codebook(const std::vector<featureType> & features, const pcl::PointCloud<pcl::PointXYZ> & centroids,
                      const std::vector<std::string> & classes, const std::vector<featureType> & cluster_centers,
-                     const std::vector<int> & cluster_labels, std::map<featureType, std::map<std::string, std::vector<
-                         Eigen::Vector4f> > > & codebook)
+                     const std::vector<int> & cluster_labels, databaseType & codebook)
 {
   for (size_t i = 0; i < cluster_labels.size(); i++)
   {
-    codebook[cluster_centers[cluster_labels[i]]][classes[i]].push_back(centroids[i]);
+    codebook[cluster_centers[cluster_labels[i]]][classes[i]].points.push_back(centroids[i]);
+    codebook[cluster_centers[cluster_labels[i]]][classes[i]].width
+        = codebook[cluster_centers[cluster_labels[i]]][classes[i]].points.size();
+    codebook[cluster_centers[cluster_labels[i]]][classes[i]].height = 1;
+    codebook[cluster_centers[cluster_labels[i]]][classes[i]].is_dense = true;
+
   }
 }
 
-void save_codebook(const std::string & filename, const std::map<featureType, std::map<std::string, std::vector<
-    Eigen::Vector4f> > > & codebook)
+void save_codebook(const std::string & filename, const databaseType & database)
 {
 
   YAML::Emitter out;
   out << YAML::BeginSeq;
 
-  for (std::map<featureType, std::map<std::string, std::vector<Eigen::Vector4f> > >::const_iterator it =
-      codebook.begin(); it != codebook.end(); it++)
+  for (databaseType::const_iterator it = database.begin(); it != database.end(); it++)
   {
     featureType cluster_center = it->first;
-    std::map<std::string, std::vector<Eigen::Vector4f> > class_centroid_map = it->second;
+    std::map<std::string, pcl::PointCloud<pcl::PointXYZ> > class_centroid_map = it->second;
     out << YAML::BeginMap;
     out << YAML::Key << "cluster_center";
     out << YAML::Value << cluster_center;
@@ -202,21 +210,16 @@ void save_codebook(const std::string & filename, const std::map<featureType, std
     out << YAML::Key << "classes";
     out << YAML::Value << YAML::BeginSeq;
 
-    for (std::map<std::string, std::vector<Eigen::Vector4f> >::const_iterator it2 = class_centroid_map.begin(); it2
+    for (std::map<std::string,pcl::PointCloud<pcl::PointXYZ> >::const_iterator it2 = class_centroid_map.begin(); it2
         != class_centroid_map.end(); it2++)
     {
       std::string class_name = it2->first;
-      std::vector<Eigen::Vector4f> centroids = it2->second;
+      pcl::PointCloud<pcl::PointXYZ> centroids = it2->second;
       out << YAML::BeginMap << YAML::Key << "class_name";
       out << YAML::Value << class_name;
       out << YAML::Key << "centroids";
-      out << YAML::Value << YAML::BeginSeq;
-      for (size_t i = 0; i < centroids.size(); i++)
-      {
-        out << YAML::Flow << YAML::BeginSeq << centroids[i][0] << centroids[i][1] << centroids[i][2] << YAML::EndSeq
-            << YAML::Block;
-      }
-      out << YAML::EndSeq << YAML::EndMap;
+      out << YAML::Value << centroids;
+      out << YAML::EndMap;
 
     }
 
@@ -234,8 +237,7 @@ void save_codebook(const std::string & filename, const std::map<featureType, std
 
 }
 
-void load_codebook(const std::string & filename, std::map<featureType, std::map<std::string, std::vector<
-    Eigen::Vector4f> > > & codebook, pcl::PointCloud<featureType> & feature_cloud)
+void load_codebook(const std::string & filename, databaseType & codebook, pcl::PointCloud<featureType> & feature_cloud)
 {
   feature_cloud.points.clear();
 
@@ -246,21 +248,14 @@ void load_codebook(const std::string & filename, std::map<featureType, std::map<
   for (size_t i = 0; i < doc.size(); i++)
   {
     featureType cluster_center;
-    feature_cloud.points.push_back(cluster_center);
     doc[i]["cluster_center"] >> cluster_center;
+    feature_cloud.points.push_back(cluster_center);
+
     for (size_t j = 0; j < doc[i]["classes"].size(); j++)
     {
       std::string class_name;
       doc[i]["classes"][j]["class_name"] >> class_name;
-      for (size_t k = 0; k < doc[i]["classes"][j]["centroids"].size(); k++)
-      {
-        Eigen::Vector4f centr;
-        doc[i]["classes"][j]["centroids"][k][0] >> centr[0];
-        doc[i]["classes"][j]["centroids"][k][1] >> centr[1];
-        doc[i]["classes"][j]["centroids"][k][2] >> centr[2];
-        codebook[cluster_center][class_name].push_back(centr);
-      }
-
+      doc[i]["classes"][j]["centroids"] >> codebook[cluster_center][class_name];
     }
   }
 
