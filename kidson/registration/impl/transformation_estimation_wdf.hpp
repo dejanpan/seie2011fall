@@ -352,7 +352,7 @@ TransformationEstimationWDF<PointSource, PointTarget>::OptimizationFunctor::oper
 	estimator_->warp_point_->setParam (params);
 
 	Eigen::Matrix4f curr_transformation_matrix = estimator_->warp_point_->getTransform ();
-	std::cout << "[OptimizationFunctor::operator()] current transform = " << std::endl << curr_transformation_matrix << std::endl;
+	//std::cout << "[OptimizationFunctor::operator()] current transform = " << std::endl << curr_transformation_matrix << std::endl;
 
 	// Sum of squared distances of distinctive feature points
 //	double diff_value_dfp = 0;
@@ -368,7 +368,7 @@ TransformationEstimationWDF<PointSource, PointTarget>::OptimizationFunctor::oper
 
 		// Estimate the distance (cost function)
 //		diff_value_dfp += estimator_->computeDistance (p_src_warped, p_tgt);
-		fvec[i] = dfp_factor * estimator_->computeDistancePointToPlane (p_src_warped, p_tgt);
+		fvec[i] = dfp_factor * estimator_->computeDistance (p_src_warped, p_tgt);
 	}
 
 	const double p_factor = (1-alpha)/number_p;
@@ -383,7 +383,7 @@ TransformationEstimationWDF<PointSource, PointTarget>::OptimizationFunctor::oper
 
 		// Estimate the distance (cost function)
 //		diff_value_p += estimator_->computeDistance (p_src_warped, p_tgt);
-		fvec[i+number_dfp] = p_factor * estimator_->computeDistance (p_src_warped, p_tgt);
+		fvec[i+number_dfp] = p_factor * estimator_->computeDistancePointToPlane (p_src_warped, p_tgt);
 	}
 	// Divide by number of points
 //	diff_value_p = diff_value_p/number_p;
