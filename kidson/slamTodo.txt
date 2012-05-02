@@ -2,28 +2,19 @@
 ToDo
 ----------
 
-1. testing rgbdicp
-	-different pointclouds
-	-varying texture/geometry etc.
-	-do some metric, write results
-	-experiment with parameters; alpha, ransac rejection rates
-	-dense correspondence rejection - boundery points (due to bogas planes)
-	-investigate depth error affecting joint icp
+0. Try nikos code with nodes for each feature point
 
-	-write up 1 page on results, change error metric
-	-look into original icp paper for icp metric
+1. Add registration based on handles to joint optimization
 
-2. integrate into rgbdslam
+2. integrate joint optimization into rgbdslam
 	-test comparing with original
 
-3. Demo/paper for the conference in April
-	-Working version of the above code
+3. Demo for spmk conference
+	-Point clouds that show an improvement incorporating features
 
--Plane registration
-	-read paper, think about implementation
-
--Segmentation
-	-lucci code
+4. Plane registration
+	-talk with Darko
+	-add to joint optimization
 
 -Collect data
 	-go into homes
@@ -31,10 +22,6 @@ ToDo
 
 -Mesh reconstruction/ikea model demo
 	-bug dejan to run his code
-
-
--Mapping for Fraunhoffer - find out how to map an entire room with running into memory/processing problems
-	-Will this be needed?
 
 ---------------
 Personal todo

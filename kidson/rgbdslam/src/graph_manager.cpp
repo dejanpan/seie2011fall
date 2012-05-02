@@ -349,7 +349,7 @@ bool GraphManager::addNode(Node* new_node) {
         new_node->buildFlannIndex(); // create index so that next nodes can use it
         graph_[new_node->id_] = new_node;
         new_node->cachePointCloudToFile();
-        //new_node->clearPointCloud();
+        new_node->clearPointCloud();
         g2o::VertexSE3* reference_pose = new g2o::VertexSE3;
         reference_pose->setId(0);
         reference_pose->setEstimate(g2o::SE3Quat());
@@ -541,7 +541,7 @@ bool GraphManager::addNode(Node* new_node) {
         graph_[new_node->id_] = new_node;
         ROS_INFO("Added Node, new Graphsize: %i", (int) graph_.size());
         new_node->cachePointCloudToFile();
-        //new_node->clearPointCloud();
+        new_node->clearPointCloud();
         if((optimizer_->vertices().size() % ParameterServer::instance()->get<int>("optimizer_skip_step")) == 0){ 
           optimizeGraph();
         } else {
