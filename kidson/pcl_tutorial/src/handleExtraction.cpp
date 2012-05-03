@@ -22,7 +22,7 @@
 
 #include "tf/tf.h"
 
-typedef pcl::PointXYZ Point;
+typedef pcl::PointXYZRGB Point;
 typedef pcl::PointCloud<Point> PointCloud;
 typedef PointCloud::Ptr PointCloudPtr;
 typedef PointCloud::Ptr PointCloudPtr;
@@ -58,7 +58,7 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	double eps_angle_, seg_prob_;
 	int k_, max_iter_, min_table_inliers_, nr_cluster_;
 
-	sac_distance_ = 0.02;
+	sac_distance_ = 0.05;  //0.02
 	normal_distance_weight_ = 0.05;
 	max_iter_ = 500;
 	eps_angle_ = 30.0; //20.0
@@ -90,14 +90,14 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	cluster_min_height_ = 0.03;
 	cluster_max_height_ = 0.1;
 
-	handle_cluster_tolerance_ = 0.02;
+	handle_cluster_tolerance_ = 0.03; //0.02
 	handle_cluster_min_size_ = 40;
 	handle_cluster_max_size_ = 500;
 	handle_cluster_.setClusterTolerance(handle_cluster_tolerance_);
 	//handle_cluster_.setSpatialLocator(0);
 	handle_cluster_.setMinClusterSize(handle_cluster_min_size_);
-	handle_cluster_.setMaxClusterSize(handle_cluster_max_size_);
-	cluster_.setSearchMethod(clusters_tree_);
+	//handle_cluster_.setMaxClusterSize(handle_cluster_max_size_);
+	handle_cluster_.setSearchMethod(clusters_tree_);
 
 	seg_line_.setModelType(pcl::SACMODEL_LINE);
 	seg_line_.setMethodType(pcl::SAC_RANSAC);
@@ -215,6 +215,10 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	PointCloudPtr handles(new PointCloud());
 	pcl::copyPointCloud(*cloudInput, *handles_indices, *handles);
 
+	pcl::PCDWriter writer;
+	writer.write("hull.pcd", *cloudInput, handles_indices->indices, true);
+	writer.write("plane.pcd", *cloud_z_ptr, table_inliers->indices, true);
+
 	handle_cluster_.setInputCloud(cloudInput);
 	handle_cluster_.setIndices(handles_indices);
 	handle_cluster_.extract(handle_clusters);
@@ -223,16 +227,23 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	if ((int) handle_clusters.size() == 0)
 		return;
 
+	std::cout << "seg fault check 0" << "\n";
 	PointCloudPtr handle_final(new PointCloud());
 	pcl::ModelCoefficients::Ptr line_coeff(new pcl::ModelCoefficients());
 	pcl::PointIndices::Ptr line_inliers(new pcl::PointIndices());
 
 	//fit lines, project points into perfect lines
+	std::cout << "seg fault check 1" << "\n";
 	for (int i = 0; i < (int) handle_clusters.size(); i++) {
+		std::cout << "seg fault check 2" << "\n";
 		pcl::copyPointCloud(*handles, handle_clusters[i], *handle_final);
+		std::cout << "seg fault check 3" << "\n";
 		seg_line_.setInputCloud(handle_final);
+		std::cout << "seg fault check 4" << "\n";
 		seg_line_.segment(*line_inliers, *line_coeff);
+		std::cout << "seg fault check 5" << "\n";
 		ROS_INFO("line_inliers %ld", line_inliers->indices.size());
+		std::cout << "seg fault check 6" << "\n";
 	}
 
 }
@@ -256,7 +267,11 @@ int main(int argc, char** argv) {
 
 	extractHandles(cloudSource, sourceHandleClusters);
 
+	int i=1;
 	pcl::PCDWriter writer;
-	writer.write("handle1.pcd", *cloudSource, sourceHandleClusters[0].indices);
+	for(std::vector<pcl::PointIndices>::iterator iterator_ = sourceHandleClusters.begin(); iterator_ != sourceHandleClusters.end(); ++iterator_) {
+		std::cout << i++ << "\n";
+		writer.write("handle1.pcd", *cloudSource, iterator_->indices, true);
+	}
 
 }
