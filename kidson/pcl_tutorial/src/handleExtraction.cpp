@@ -1,34 +1,38 @@
 #include <iostream>
-#include <pcl/io/pcd_io.h>
+
+// PCL stuff
 #include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/ros/conversions.h>
+#include "pcl/sample_consensus/method_types.h"
+#include "pcl/sample_consensus/model_types.h"
+#include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/filters/project_inliers.h>
+#include <pcl/surface/convex_hull.h>
+#include "pcl/filters/extract_indices.h"
+#include "pcl/segmentation/extract_polygonal_prism_data.h"
+#include "pcl/common/common.h"
+#include <pcl/io/pcd_io.h>
+#include "pcl/segmentation/extract_clusters.h"
+#include <pcl/features/normal_3d.h>
+#include <pcl/common/angles.h>
+#include "pcl/common/common.h"
 
-typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
-typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr PointCloudPtr;
+#include "tf/tf.h"
 
-int
-main (int argc, char** argv)
-{
-  if (argc != 3)
-  {
-    std::cerr << "please provide 2 point clouds as arguments)" << std::endl;
-    exit(0);
-  }
-  PointCloudPtr cloudSource (new PointCloud);
-  PointCloudPtr cloudTarget (new PointCloud);
+typedef pcl::PointXYZ Point;
+typedef pcl::PointCloud<Point> PointCloud;
+typedef PointCloud::Ptr PointCloudPtr;
+typedef PointCloud::Ptr PointCloudPtr;
+typedef PointCloud::ConstPtr PointCloudConstPtr;
+typedef pcl::search::KdTree<Point> KdTree;
+typedef KdTree::Ptr KdTreePtr;
+//typedef pcl::KdTree<Point>::Ptr KdTreePtr;
+//typedef typename pcl::search::Search<Point>::Ptr KdTreePtr;
 
-  //Fill in the cloud data
-  pcl::PCDReader reader;
-  // Replace the path below with the path where you saved your file
-  reader.read (argv[1], *cloudSource);
-  reader.read (argv[2], *cloudTarget);
-
-
-}
-
-
-void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& indicesOutput)
-{
+void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& handle_clusters) {
 	// PCL objects
 	//pcl::PassThrough<Point> vgrid_;                   // Filtering + downsampling object
 	pcl::VoxelGrid<Point> vgrid_; // Filtering + downsampling object
@@ -43,7 +47,80 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& indicesOutput)
 	pcl::ExtractPolygonalPrismData<Point> prism_;
 	pcl::PointCloud<Point> cloud_objects_;
 	pcl::EuclideanClusterExtraction<Point> cluster_, handle_cluster_;
-	KdTreePtr clusters_tree_, normals_tree_;
+
+	double object_cluster_tolerance_, handle_cluster_tolerance_,
+			cluster_min_height_, cluster_max_height_, voxel_size_;
+	int object_cluster_min_size_, object_cluster_max_size_,
+			handle_cluster_min_size_, handle_cluster_max_size_;
+
+	double sac_distance_, normal_distance_weight_, z_min_limit_, z_max_limit_;
+	double y_min_limit_, y_max_limit_, x_min_limit_, x_max_limit_;
+	double eps_angle_, seg_prob_;
+	int k_, max_iter_, min_table_inliers_, nr_cluster_;
+
+	sac_distance_ = 0.02;
+	normal_distance_weight_ = 0.05;
+	max_iter_ = 500;
+	eps_angle_ = 30.0; //20.0
+	seg_prob_ = 0.99;
+	btVector3 axis(0.0, 0.0, 1.0);
+
+	seg_.setModelType(pcl::SACMODEL_NORMAL_PARALLEL_PLANE);
+	seg_.setMethodType(pcl::SAC_RANSAC);
+	seg_.setDistanceThreshold(sac_distance_);
+	seg_.setNormalDistanceWeight(normal_distance_weight_);
+	seg_.setOptimizeCoefficients(true);
+	seg_.setAxis(Eigen::Vector3f(fabs(axis.getX()), fabs(axis.getY()), fabs(axis.getZ())));
+	seg_.setEpsAngle(pcl::deg2rad(eps_angle_));
+	seg_.setMaxIterations(max_iter_);
+	seg_.setProbability(seg_prob_);
+
+	object_cluster_tolerance_ = 0.03;
+	object_cluster_min_size_ = 200;
+	cluster_.setClusterTolerance(object_cluster_tolerance_);
+	//cluster_.setSpatialLocator(0);
+	cluster_.setMinClusterSize(object_cluster_min_size_);
+	//clusters_tree_ = boost::make_shared<pcl::KdTreeFLANN<Point> >();
+	KdTreePtr clusters_tree_(new KdTree);
+	clusters_tree_->setEpsilon(1);
+	cluster_.setSearchMethod(clusters_tree_);
+
+	nr_cluster_ = 1;
+
+	cluster_min_height_ = 0.03;
+	cluster_max_height_ = 0.1;
+
+	handle_cluster_tolerance_ = 0.02;
+	handle_cluster_min_size_ = 40;
+	handle_cluster_max_size_ = 500;
+	handle_cluster_.setClusterTolerance(handle_cluster_tolerance_);
+	//handle_cluster_.setSpatialLocator(0);
+	handle_cluster_.setMinClusterSize(handle_cluster_min_size_);
+	handle_cluster_.setMaxClusterSize(handle_cluster_max_size_);
+	cluster_.setSearchMethod(clusters_tree_);
+
+	seg_line_.setModelType(pcl::SACMODEL_LINE);
+	seg_line_.setMethodType(pcl::SAC_RANSAC);
+	seg_line_.setDistanceThreshold(0.05);
+	seg_line_.setOptimizeCoefficients(true);
+	seg_line_.setMaxIterations(max_iter_);
+	seg_line_.setProbability(seg_prob_);
+
+	min_table_inliers_ = 100;
+	voxel_size_ = 0.01;
+
+	k_ = 30;
+	//normals_tree_ = boost::make_shared<pcl::KdTreeFLANN<Point> >();
+	KdTreePtr normals_tree_(new KdTree);
+	n3d_.setKSearch(k_);
+	n3d_.setSearchMethod(normals_tree_);
+
+	z_min_limit_ = 0.1;
+	z_max_limit_ = 3.0;
+	y_min_limit_ = -0.5;
+	y_max_limit_ = 0.5;
+	x_min_limit_ = 0.0;
+	x_max_limit_ = 1.0;
 
 	PointCloudPtr cloud_x_ptr(new PointCloud());
 	PointCloudPtr cloud_y_ptr(new PointCloud());
@@ -54,22 +131,21 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& indicesOutput)
 	vgrid_.setLeafSize(voxel_size_, voxel_size_, voxel_size_);
 	//Filter x
 	vgrid_.setFilterFieldName("x");
-	vgrid_.setFilterLimits(x_min_limit_, x_max_limit_);
+	//vgrid_.setFilterLimits(x_min_limit_, x_max_limit_);
 	vgrid_.filter(*cloud_x_ptr);
 	//Filter y
 	vgrid_.setInputCloud(cloud_x_ptr);
 	vgrid_.setFilterFieldName("y");
-	vgrid_.setFilterLimits(y_min_limit_, y_max_limit_);
+	//vgrid_.setFilterLimits(y_min_limit_, y_max_limit_);
 	vgrid_.filter(*cloud_y_ptr);
 	//Filter z
 	vgrid_.setInputCloud(cloud_y_ptr);
 	vgrid_.setFilterFieldName("z");
-	vgrid_.setFilterLimits(z_min_limit_, z_max_limit_);
+	//vgrid_.setFilterLimits(z_min_limit_, z_max_limit_);
 	vgrid_.filter(*cloud_z_ptr);
 
 	//Estimate Point Normals
-	pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(
-			new pcl::PointCloud<pcl::Normal>());
+	pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>());
 	n3d_.setInputCloud(cloud_z_ptr);
 	n3d_.compute(*cloud_normals);
 
@@ -79,8 +155,9 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& indicesOutput)
 	seg_.setInputCloud(cloud_z_ptr);
 	seg_.setInputNormals(cloud_normals);
 	seg_.segment(*table_inliers, *table_coeff);
-	ROS_INFO(
-			"[%s] Table model: [%f, %f, %f, %f] with %d inliers.", getName ().c_str (), table_coeff->values[0], table_coeff->values[1], table_coeff->values[2], table_coeff->values[3], (int)table_inliers->indices.size ());
+	ROS_INFO("Table model: [%f, %f, %f, %f] with %d inliers.",
+			table_coeff->values[0], table_coeff->values[1],
+			table_coeff->values[2], table_coeff->values[3], (int)table_inliers->indices.size ());
 
 	if ((int) table_inliers->indices.size() <= min_table_inliers_) {
 		ROS_ERROR("table has to few inliers");
@@ -105,9 +182,6 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& indicesOutput)
 	}
 	ROS_INFO(
 			"Found biggest face with %ld points", biggest_face->points.size());
-	//For Debug
-	//cloud_pub_.publish(*biggest_face);
-	//return;
 
 	//Project Points into the Perfect plane
 	PointCloudPtr cloud_projected(new PointCloud());
@@ -115,9 +189,6 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& indicesOutput)
 	proj_.setModelCoefficients(table_coeff);
 	proj_.setModelType(pcl::SACMODEL_PARALLEL_PLANE);
 	proj_.filter(*cloud_projected);
-	//For Debug
-	//cloud_pub_.publish(*cloud_projected);
-	//return;
 
 	PointCloudPtr cloud_hull(new PointCloud());
 	// Create a Convex Hull representation of the projected inliers
@@ -130,9 +201,6 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& indicesOutput)
 				"Convex hull has: %d data points. Returning.", (int)cloud_hull->points.size ());
 		return;
 	}
-	//For Debug
-	cloud_pub_.publish(*cloud_hull);
-	//return;
 
 	// Extract the handle clusters using a polygonal prism
 	pcl::PointIndices::Ptr handles_indices(new pcl::PointIndices());
@@ -141,58 +209,54 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& indicesOutput)
 	prism_.setInputCloud(cloudInput);
 	prism_.setInputPlanarHull(cloud_hull);
 	prism_.segment(*handles_indices);
-	ROS_INFO(
-			"[%s] Number of handle candidates: %d.", getName ().c_str (), (int)handles_indices->indices.size ());
+	ROS_INFO("Number of handle candidates: %d.", (int)handles_indices->indices.size ());
 
 	//Cluster handles
 	PointCloudPtr handles(new PointCloud());
 	pcl::copyPointCloud(*cloudInput, *handles_indices, *handles);
-	//For Debug
-	//cloud_pub_.publish(*handles);
-	//return;
 
-	 std::vector<pcl::PointIndices> handle_clusters;
-	        //      handle_cluster_.setInputCloud(handles);
-	        handle_cluster_.setInputCloud(*cloud_raw_ptr);
-	        handle_cluster_.setIndices(*handles_indices);
-	        handle_cluster_.extract(handle_clusters);
-
-
-	std::vector<pcl::PointIndices> handle_clusters;
-	handle_cluster_.setInputCloud(handles);
+	handle_cluster_.setInputCloud(cloudInput);
+	handle_cluster_.setIndices(handles_indices);
 	handle_cluster_.extract(handle_clusters);
-	ROS_INFO(
-			"[%s] Found handle clusters: %d.", getName ().c_str (), (int)handle_clusters.size ());
-	if ((int) handle_clusters.size() == 0) {
-	  result_.number_of_handles_detected = 0;
-	  result_.handles.resize(0);
-	  as_.setSucceeded(result_);
+
+	ROS_INFO("Found handle clusters: %d.", (int)handle_clusters.size ());
+	if ((int) handle_clusters.size() == 0)
 		return;
-	}
 
 	PointCloudPtr handle_final(new PointCloud());
 	pcl::ModelCoefficients::Ptr line_coeff(new pcl::ModelCoefficients());
 	pcl::PointIndices::Ptr line_inliers(new pcl::PointIndices());
 
-	// determine the number of handles that will be returned
-	int handle_clusters_size;
-	if ((int)handle_clusters.size() < goal->number_of_handles) {
-		handle_clusters_size = handle_clusters.size();
-	} else {
-		handle_clusters_size = goal->number_of_handles;
-	}
-
-	// init the result message accordingly
-	result_.number_of_handles_detected = handle_clusters_size;
-	result_.handles.resize(0);
-
 	//fit lines, project points into perfect lines
-	for (int i = 0; i < handle_clusters_size; i++) {
+	for (int i = 0; i < (int) handle_clusters.size(); i++) {
 		pcl::copyPointCloud(*handles, handle_clusters[i], *handle_final);
 		seg_line_.setInputCloud(handle_final);
 		seg_line_.segment(*line_inliers, *line_coeff);
 		ROS_INFO("line_inliers %ld", line_inliers->indices.size());
 	}
 
+}
+
+int main(int argc, char** argv) {
+	if (argc != 3) {
+		std::cerr << "please provide 2 point clouds as arguments)" << std::endl;
+		exit(0);
+	}
+	PointCloudPtr cloudSource(new PointCloud);
+	PointCloudPtr cloudTarget(new PointCloud);
+
+	//Fill in the cloud data
+	pcl::PCDReader reader;
+	// Replace the path below with the path where you saved your file
+	reader.read(argv[1], *cloudSource);
+	reader.read(argv[2], *cloudTarget);
+
+	std::vector<pcl::PointIndices> sourceHandleClusters;
+	std::vector<pcl::PointIndices> targetHandleClusters;
+
+	extractHandles(cloudSource, sourceHandleClusters);
+
+	pcl::PCDWriter writer;
+	writer.write("handle1.pcd", *cloudSource, sourceHandleClusters[0].indices);
 
 }
