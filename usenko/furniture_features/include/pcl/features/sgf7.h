@@ -123,10 +123,10 @@ namespace pcl
         std::sort (proj_cloud3, proj_cloud3 + cloud->width * cloud->height);
 
 
-        // Compute the medium
-        float med1 = proj_cloud1[(int) floor (cloud->width * cloud->height / 2)];
-        float med2 = proj_cloud2[(int) floor (cloud->width * cloud->height / 2)];
-        float med3 = proj_cloud3[(int) floor (cloud->width * cloud->height / 2)];
+        // Compute the median?
+        float med1 = proj_cloud1[cloud->width * cloud->height / 2];
+        float med2 = proj_cloud2[cloud->width * cloud->height / 2];
+        float med3 = proj_cloud3[cloud->width * cloud->height / 2];
 
 
         // Compute the distance to the farthest points

@@ -115,6 +115,7 @@ template<typename PointInT, typename PointOutT>
       pcl::SGF2Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF2_SIZE> > sgf2;
       sgf2.setInputCloud(input_);
       sgf2.setIndices(indices_);
+      sgf2.setKSearch(k_);
       sgf2.compute(*sgf2s);
 
       for (int n = 0; n < pcl::SGF2_SIZE; ++n)

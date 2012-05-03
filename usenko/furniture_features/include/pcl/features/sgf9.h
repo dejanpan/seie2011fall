@@ -104,7 +104,7 @@ namespace pcl
 
 
         // Compute the volume of the oriented bounding box
-        float box_vol = eigen_values[0] * eigen_values[1] * eigen_values[2];
+        float box_vol = 8 * eigen_values[0] * eigen_values[1] * eigen_values[2];
 
 
         // Compute the feature vector

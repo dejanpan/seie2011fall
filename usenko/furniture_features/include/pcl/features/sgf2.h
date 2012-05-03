@@ -39,81 +39,72 @@
 #define PCL_FEATURES_SGF2_H_
 
 #include <pcl/features/feature.h>
+#include <pcl/features/normal_3d.h>
+#include <numeric>
 
-namespace pcl
-{
-  const int SGF2_SIZE = 1;
+namespace pcl {
+const int SGF2_SIZE = 1;
 
-  template <typename PointInT, typename PointOutT>
-  class SGF2Estimation : public Feature<PointInT, PointOutT>
-  {
+template<typename PointInT, typename PointOutT>
+class SGF2Estimation: public Feature<PointInT, PointOutT> {
 
-    public:
+public:
 
-      using Feature<PointInT, PointOutT>::feature_name_;
-      using Feature<PointInT, PointOutT>::input_;
-      using Feature<PointInT, PointOutT>::indices_;
-      using Feature<PointInT, PointOutT>::k_;
+	using Feature<PointInT, PointOutT>::feature_name_;
+	using Feature<PointInT, PointOutT>::input_;
+	using Feature<PointInT, PointOutT>::indices_;
+	using Feature<PointInT, PointOutT>::search_parameter_;
+	using Feature<PointInT, PointOutT>::k_;
 
-      typedef typename Feature<PointInT, PointOutT>::PointCloudOut PointCloudOut;
-      typedef typename Feature<PointInT, PointOutT>::PointCloudIn  PointCloudIn;
+	typedef typename Feature<PointInT, PointOutT>::PointCloudOut PointCloudOut;
+	typedef typename Feature<PointInT, PointOutT>::PointCloudIn PointCloudIn;
 
-      /** \brief Empty constructor. */
-      SGF2Estimation ()
-      {
-        feature_name_ = "SGF2Estimation";
-        k_ = 1;
-      };
+	/** \brief Empty constructor. */
+	SGF2Estimation() {
+		feature_name_ = "SGF2Estimation";
+		k_ = 1;
+	}
+	;
 
+	/////////////////////////////////////////////////////////////////////////////
+	void computeFeature(PointCloudOut &output) {
 
-      /////////////////////////////////////////////////////////////////////////////
-      void
-      computeFeature (PointCloudOut &output)
-      {
-        // Copy the points specified by the index vector into a new cloud
-        typename PointCloud<PointInT>::Ptr cloud (new PointCloud<PointInT> ());
-        cloud->width = indices_->size ();
-        cloud->height = 1;
-        cloud->points.resize (cloud->width * cloud->height);
-        for (size_t idx = 0; idx < indices_->size (); ++idx)
-        {
-          cloud->points[idx] = input_->points[(*indices_)[idx]];
-        }
+		PointCloud<Normal>::Ptr normals(new PointCloud<Normal> ());
+		NormalEstimation<PointXYZ, Normal> n;
 
+		std::vector<int> nn_indices;
+		std::vector<float> nn_sqr_dists;
+		Eigen::Vector4f parameters;
+		std::vector<float> vec;
 
-        // Compute eigenvectors and eigenvalues
-        EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
-        Eigen::Vector4f centroid3;
-        compute3DCentroid (*cloud, centroid3);
-        computeCovarianceMatrix (*cloud, centroid3, covariance_matrix);
-        EIGEN_ALIGN16 Eigen::Vector3f eigen_values;
-        EIGEN_ALIGN16 Eigen::Matrix3f eigen_vectors;
-        pcl::eigen33 (covariance_matrix, eigen_vectors, eigen_values);
+		for (size_t idx = 0; idx < indices_->size(); ++idx) {
+			float curvature;
+			this->searchForNeighbors((*indices_)[idx], search_parameter_,
+					nn_indices, nn_sqr_dists);
+			n.computePointNormal(*input_, nn_indices, parameters, curvature);
+			vec.push_back(curvature);
+			//std::cerr << "Curv 2: " << curvature << std::endl;
+		}
 
+		float sum = 0;// = std::accumulate(vec.begin(), vec.end(), 0);
+		for (std::vector<float>::iterator j = vec.begin(); j != vec.end(); ++j)
+			sum += *j;
 
-        // Compute the feature vector
-        float eigen_sum = eigen_values.sum ();
+		output.points[0].histogram[0] = sum / vec.size();
+		//std::cerr << "Feature 2: " << sum << " " << vec.size() << std::endl;
 
-        if (eigen_sum != 0)
-        {
-          output.points[0].histogram[0] = eigen_values[0] / eigen_sum;
-        }
-        else
-        {
-          output.points[0].histogram[0] = 0;
-        }
-      }
-      /////////////////////////////////////////////////////////////////////////////
+	}
+	/////////////////////////////////////////////////////////////////////////////
 
 
-    private:
+private:
 
-      /** \brief Make the computeFeature (&Eigen::MatrixXf); inaccessible from outside the class
-       * \param[out] output the output point cloud
-       */
-      void
-      computeFeatureEigen (pcl::PointCloud<Eigen::MatrixXf> &) {}
-  };
+	/** \brief Make the computeFeature (&Eigen::MatrixXf); inaccessible from outside the class
+	 * \param[out] output the output point cloud
+	 */
+	void computeFeatureEigen(pcl::PointCloud<Eigen::MatrixXf> &) {
+	}
+};
 }
 
 #endif  //#ifndef PCL_FEATURES_SGF2_H_
