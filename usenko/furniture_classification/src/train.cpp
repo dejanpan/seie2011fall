@@ -50,7 +50,8 @@ int main(int argc, char** argv)
   // Transform to model centroinds in local coordinate frame of the segment
   centroids.getMatrixXfMap() *= -1;
 
-  normalizeFeatures(features);
+  featureType min, max;
+  normalizeFeatures(features, min, max);
 
   cluster_features(features, num_clusters, cluster_centers, cluster_labels);
 
@@ -58,7 +59,7 @@ int main(int argc, char** argv)
 
   create_codebook(features, centroids, classes, cluster_centers, cluster_labels, database);
 
-  save_codebook(output_file, database);
+  save_codebook(output_file, database, min, max);
 
   return 0;
 }
