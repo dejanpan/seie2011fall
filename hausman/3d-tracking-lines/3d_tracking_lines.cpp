@@ -43,6 +43,8 @@
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/segmentation/extract_clusters.h>
 
+#include <pcl/keypoints/harris_keypoint3D.h>
+
 #include <pcl/surface/convex_hull.h>
 
 #include <pcl/search/pcl_search.h>
@@ -106,11 +108,16 @@ public:
 		KdTreePtr tree(new KdTree(false));
 		ne_.setSearchMethod(tree);
 		ne_.setRadiusSearch(0.03);
+		//std::vector<double> default_step_covariance = std::vector<double>(6,
+		//		0.015 * 0.015);
 		std::vector<double> default_step_covariance = std::vector<double>(6,
-				0.015 * 0.015);
+				0.005 * 0.015);
 		default_step_covariance[3] *= 40.0;
 		default_step_covariance[4] *= 40.0;
 		default_step_covariance[5] *= 40.0;
+
+		std::cerr << "step covariance: " << default_step_covariance.size()
+				<< std::endl;
 
 		std::vector<double> initial_noise_covariance = std::vector<double>(6,
 				0.00001);
@@ -125,7 +132,10 @@ public:
 					KLDAdaptiveParticleFilterOMPTracker<RefPointType, ParticleT> > tracker(
 					new KLDAdaptiveParticleFilterOMPTracker<RefPointType,
 							ParticleT>(thread_nr));
-			tracker->setMaximumParticleNum(500);
+			//here
+			//tracker->setMaximumParticleNum(500);
+			tracker->setMaximumParticleNum(1000);
+
 			tracker->setDelta(0.99);
 			tracker->setEpsilon(0.2);
 			ParticleT bin_size;
@@ -145,11 +155,15 @@ public:
 		tracker_->setInitialNoiseMean(default_initial_mean);
 		tracker_->setIterationNum(1);
 
-		tracker_->setParticleNum(400);
+		//here
+
+//		tracker_->setParticleNum(400);
+		tracker_->setParticleNum(800);
+
 		tracker_->setResampleLikelihoodThr(0.00);
 		tracker_->setUseNormal(false);
 		//mycode
-		tracker_->setMotionRatio(0.0);
+		tracker_->setMotionRatio(0.2);
 
 		// setup coherences
 		ApproxNearestPairPointCloudCoherence<RefPointType>::Ptr coherence =
@@ -194,13 +208,13 @@ public:
 				}
 
 				{
-				/*	pcl::visualization::PointCloudColorHandlerCustom<
-							pcl::PointXYZ> blue_color(particle_cloud, 250, 99,
-							71);
-					if (!viz.updatePointCloud(particle_cloud, blue_color,
-							"particle cloud"))
-						viz.addPointCloud(particle_cloud, blue_color,
-								"particle cloud");*/
+					/*	pcl::visualization::PointCloudColorHandlerCustom<
+					 pcl::PointXYZ> blue_color(particle_cloud, 250, 99,
+					 71);
+					 if (!viz.updatePointCloud(particle_cloud, blue_color,
+					 "particle cloud"))
+					 viz.addPointCloud(particle_cloud, blue_color,
+					 "particle cloud");*/
 				}
 			}
 			return true;
@@ -212,24 +226,50 @@ public:
 
 	void drawResult(pcl::visualization::PCLVisualizer& viz) {
 		ParticleXYZRPY result = tracker_->getResult();
-		Eigen::Affine3f transformation = tracker_->toEigenMatrix(result);
-		// move a little bit for better visualization
-		transformation.translation() += Eigen::Vector3f(0.0, 0.0, -0.005);
+		bool non_tracking=true;
+
+		if (non_tracking)
+		{
+			if (counter_<13){
+
+				Eigen::Affine3f transformation = tracker_->toEigenMatrix(result);
+				// move a little bit for better visualization
+				transformation.translation() += Eigen::Vector3f(0.0, 0.0, -0.005);
+				transformation_=transformation;
+				}
+		}
+		else
+		{
+			Eigen::Affine3f transformation = tracker_->toEigenMatrix(result);
+							// move a little bit for better visualization
+							transformation.translation() += Eigen::Vector3f(0.0, 0.0, -0.005);
+							transformation_=transformation;
+		}
+
+
 		RefCloudPtr result_cloud(new RefCloud());
 
 		if (!visualize_non_downsample_)
 			pcl::transformPointCloud<RefPointType>(
 					*(tracker_->getReferenceCloud()), *result_cloud,
-					transformation);
+					transformation_);
 		else
 			pcl::transformPointCloud<RefPointType>(*reference_, *result_cloud,
-					transformation);
+					transformation_);
 
 		{
 			pcl::visualization::PointCloudColorHandlerCustom<RefPointType> red_color(
 					result_cloud, 0, 0, 255);
 			if (!viz.updatePointCloud(result_cloud, red_color, "resultcloud"))
 				viz.addPointCloud(result_cloud, red_color, "resultcloud");
+
+
+			 viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4, "resultcloud");
+			 //pcl::PointXYZ o;
+			   // o.x = 1.0;
+			    //o.y = 0;
+			    //o.z = 0;
+			   // viz.addSphere (o, 0.25, "sphere", 0);
 		}
 
 	}
@@ -321,16 +361,11 @@ public:
 		pcl::EuclideanClusterExtraction<PointType> ec;
 		KdTreePtr tree(new KdTree());
 
-
 		ec.setClusterTolerance(0.05); // 2cm
-		//ec.setClusterTolerance(0.02);
 
-		//HERE
 		ec.setMinClusterSize(50);
-		//ec.setMinClusterSize(10);
 
 		ec.setMaxClusterSize(25000);
-		//ec.setMaxClusterSize (400);
 		ec.setSearchMethod(tree);
 		ec.setInputCloud(cloud);
 		ec.extract(cluster_indices);
@@ -523,11 +558,11 @@ public:
 		}
 //DEBUG
 		/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
-		for (size_t i = 0; i < inliers->indices.size(); ++i)
-			std::cerr << inliers->indices[i] << "    "
-					<< cloud->points[inliers->indices[i]].x << " "
-					<< cloud->points[inliers->indices[i]].y << " "
-					<< cloud->points[inliers->indices[i]].z << std::endl;*/
+		 for (size_t i = 0; i < inliers->indices.size(); ++i)
+		 std::cerr << inliers->indices[i] << "    "
+		 << cloud->points[inliers->indices[i]].x << " "
+		 << cloud->points[inliers->indices[i]].y << " "
+		 << cloud->points[inliers->indices[i]].z << std::endl;*/
 
 		for (size_t i = 0; i < inliers->indices.size(); i++) {
 			PointType point = cloud->points[inliers->indices[i]];
@@ -570,14 +605,94 @@ public:
 
 	}
 
+	void extractCorners(const CloudConstPtr &cloud, Cloud &result, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity) {
+
+
+		 //cloud_intensity= new pcl::PointCloud<pcl::PointXYZI>;
+
+		//pcl::PointXYZRGB pcl::PointXYZI
+		 pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>* harris3D = new pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI> (pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>::HARRIS);
+		 harris3D->setNonMaxSupression(true);
+		 harris3D->setThreshold(0.0009);
+//		 harris3D->setThreshold(0.00011);
+
+
+		 harris3D->setRadius (0.01);
+		 harris3D->setRadiusSearch (0.01);
+		 harris3D->setInputCloud(cloud);
+		 harris3D->setRefine(false);
+		 harris3D->setMethod(pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>::HARRIS);
+		 harris3D->compute(*cloud_intensity);
+		 //std::cerr<<"number of points: "<<cloud_intensity->size()<<std::endl;
+		 //cloud_intensity_=cloud_intensity;
+
+		 cloud_intensity_.reset(new pcl::PointCloud<pcl::PointXYZI>);
+		 pcl::copyPointCloud(*cloud_intensity, *cloud_intensity_);
+
+		 pcl::copyPointCloud(*cloud_intensity, result);
+
+		  /*boost::shared_ptr<pcl::Keypoint<pcl::PointXYZRGB, pcl::PointXYZI> > keypoint_detector;
+		  keypoint_detector.reset();
+
+		 for (int i = 0; i < cloud_intensity->size(); i++) {
+
+		 				result.push_back(cloud_intensity->points.at(i));
+
+		 		}
+		 		result.width = result.points.size();
+		 		result.height = 1;
+		 		result.is_dense = true;*/
+
+
+	}
+
 	void cloud_cb(const CloudConstPtr &cloud) {
 		boost::mutex::scoped_lock lock(mtx_);
 		double start = pcl::getTime();
 		FPS_CALC_BEGIN;
+		bool online = true;
+
+		if (online)
 		cloud_pass_.reset(new Cloud);
+
 		cloud_pass_downsampled_.reset(new Cloud);
 		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
 		pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+
+
+
+
+		if(!online){
+
+			if (counter_==0){
+
+			cloud_pass_.reset(new Cloud);
+
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud23 (new pcl::PointCloud<pcl::PointXYZRGB>);
+		//CloudPtr cloud23(new CloudPtr);
+
+		  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> ("cloud1.pcd", *cloud23) == -1) //* load the file
+		  {
+		    PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
+		  }
+
+		  CloudPtr cloud22(new Cloud);
+
+		  pcl::copyPointCloud(*cloud23, *cloud22);
+
+		  filterPassThrough(cloud22, *cloud_pass_);
+
+
+			}
+		}
+
+
+
+
+
+
+
+		if (online)
 		filterPassThrough(cloud, *cloud_pass_);
 		if (counter_ < 10) {
 			gridSample(cloud_pass_, *cloud_pass_downsampled_,
@@ -608,6 +723,11 @@ public:
 				PCL_WARN("without plane segmentation\n");
 				target_cloud = cloud_pass_downsampled_;
 			}
+
+
+
+
+
 
 			if (target_cloud != NULL) {
 				PCL_INFO("segmentation, please wait...\n");
@@ -648,9 +768,16 @@ public:
 
 
 
+
+
+
 					RefCloudPtr nonzero_ref_lines(new RefCloud);
 					RefCloudPtr nonzero_ref_boundary(new RefCloud);
+					RefCloudPtr nonzero_ref_corners(new RefCloud);
+					pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity(new pcl::PointCloud<pcl::PointXYZI>);
+
 					findBoundaries(nonzero_ref, *nonzero_ref_boundary);
+					extractCorners(nonzero_ref, *nonzero_ref_corners,cloud_intensity);
 					extractLinesNew(nonzero_ref_boundary, *nonzero_ref_lines);
 
 
@@ -664,13 +791,13 @@ public:
 
 					RefCloudPtr transed_ref(new RefCloud);
 					//pcl::compute3DCentroid<RefPointType> (*nonzero_ref, c);
-					pcl::compute3DCentroid<RefPointType>(*nonzero_ref, c);
+					pcl::compute3DCentroid<RefPointType>(*nonzero_ref_corners, c);
 
 					Eigen::Affine3f trans = Eigen::Affine3f::Identity();
 					trans.translation() = Eigen::Vector3f(c[0], c[1], c[2]);
 					//pcl::transformPointCloudWithNormals<RefPointType> (*ref_cloud, *transed_ref, trans.inverse());
 					//pcl::transformPointCloud<RefPointType> (*nonzero_ref, *transed_ref, trans.inverse());
-					pcl::transformPointCloud<RefPointType>(*nonzero_ref,
+					pcl::transformPointCloud<RefPointType>(*nonzero_ref_corners,
 							*transed_ref, trans.inverse());
 
 					CloudPtr transed_ref_downsampled(new Cloud);
@@ -702,6 +829,16 @@ public:
 		double end = pcl::getTime();
 		computation_time_ = end - start;
 		FPS_CALC_END("computation");
+		if (cloud_intensity_ !=NULL)
+		{
+		 //std::cerr<<"number of points: "<<cloud_intensity_->size()<<std::endl;
+			std::cerr<<"START"<<std::endl;
+		 for (size_t i = 0; i < cloud_intensity_->size(); ++i)
+		     std::cerr << "    " << cloud_intensity_->points[i].intensity << std::endl;
+			std::cerr<<"STOP"<<std::endl;
+
+
+		}
 		counter_++;
 	}
 
@@ -731,6 +868,12 @@ public:
 	CloudPtr cloud_hull_;
 	CloudPtr segmented_cloud_;
 	CloudPtr reference_;
+
+	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity_;
+
+	Eigen::Affine3f transformation_;
+
+
 	std::vector<pcl::Vertices> hull_vertices_;
 
 	std::string device_id_;
