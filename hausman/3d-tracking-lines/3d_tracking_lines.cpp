@@ -662,9 +662,7 @@ public:
 	void extractCorners(const CloudConstPtr &cloud, Cloud &result, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity) {
 
 
-		 //cloud_intensity= new pcl::PointCloud<pcl::PointXYZI>;
 
-		//pcl::PointXYZRGB pcl::PointXYZI
 		 pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>* harris3D = new pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI> (pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>::HARRIS);
 		 harris3D->setNonMaxSupression(true);
 		 harris3D->setThreshold(0.0009);
@@ -677,25 +675,40 @@ public:
 		 harris3D->setRefine(false);
 		 harris3D->setMethod(pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>::HARRIS);
 		 harris3D->compute(*cloud_intensity);
-		 //std::cerr<<"number of points: "<<cloud_intensity->size()<<std::endl;
-		 //cloud_intensity_=cloud_intensity;
+
 
 		 cloud_intensity_.reset(new pcl::PointCloud<pcl::PointXYZI>);
 		 pcl::copyPointCloud(*cloud_intensity, *cloud_intensity_);
 
-		 pcl::copyPointCloud(*cloud_intensity, result);
+//		 get the best corner
 
-		  /*boost::shared_ptr<pcl::Keypoint<pcl::PointXYZRGB, pcl::PointXYZI> > keypoint_detector;
-		  keypoint_detector.reset();
+		 bool best_corner=true;
 
-		 for (int i = 0; i < cloud_intensity->size(); i++) {
+		 if (best_corner)
+		 {
+		 pcl::PointXYZI max=cloud_intensity_->points[1];
+		 	 for (size_t i = 0; i < cloud_intensity_->size(); ++i)
+		 	 {
+		 		   if (max.intensity < cloud_intensity_->points[i].intensity) {
+		 			   max = cloud_intensity_->points[i];
+		 		   }
 
-		 				result.push_back(cloud_intensity->points.at(i));
 
-		 		}
+
+		 	 }
+
+			 cloud_intensity_.reset(new pcl::PointCloud<pcl::PointXYZI>);
+		 	 cloud_intensity_->push_back(max);
+
+		 }
+
+
+		 pcl::copyPointCloud(*cloud_intensity_, result);
+
+
 		 		result.width = result.points.size();
 		 		result.height = 1;
-		 		result.is_dense = true;*/
+		 		result.is_dense = true;
 
 
 	}
