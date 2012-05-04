@@ -226,7 +226,7 @@ public:
 
 	void drawResult(pcl::visualization::PCLVisualizer& viz) {
 		ParticleXYZRPY result = tracker_->getResult();
-		bool non_tracking=true;
+		bool non_tracking=false;
 
 		if (non_tracking)
 		{
@@ -605,6 +605,60 @@ public:
 
 	}
 
+	void extractNeighbor(const CloudConstPtr &cloud,Cloud &searchCloud, Cloud &result){
+
+		  pcl::KdTreeFLANN<PointType> kdtree;
+
+		  kdtree.setInputCloud (cloud);
+
+		  PointType searchPoint;
+
+		  std::vector<int> pointIdxRadiusSearch;
+		  std::vector<float> pointRadiusSquaredDistance;
+
+		   float radius = 0.03;
+
+
+
+
+		   for (size_t i = 0; i < searchCloud.size(); ++i){
+			   searchPoint=searchCloud.points.at(i);
+
+	   		   	  result.push_back(searchPoint);
+
+
+
+			   	   if ( kdtree.radiusSearch (searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 )
+			   	   	   {
+			   		   	   for (size_t i = 0; i < pointIdxRadiusSearch.size (); ++i)
+
+			   		   		   	  result.push_back(cloud->points[ pointIdxRadiusSearch[i] ]);
+
+			   		   	   //DEBUG
+			   		   	   /*std::cout << "    "  <<   cloud->points[ pointIdxRadiusSearch[i] ].x
+		                 << " " << cloud->points[ pointIdxRadiusSearch[i] ].y
+		                 << " " << cloud->points[ pointIdxRadiusSearch[i] ].z
+		                 << " (squared distance: " << pointRadiusSquaredDistance[i] << ")" << std::endl;*/
+			   	   	   	 }
+
+
+		   	 }
+
+		   CloudPtr resultPtr(new Cloud(result));
+
+		   pcl::VoxelGrid<PointType> sor;
+		   sor.setInputCloud (resultPtr);
+		   sor.setLeafSize (0.001f, 0.001f, 0.001f);
+		   sor.filter (result);
+
+
+		   result.width = result.points.size();
+		   		 		result.height = 1;
+		   		 		result.is_dense = true;
+
+
+	}
+
 	void extractCorners(const CloudConstPtr &cloud, Cloud &result, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity) {
 
 
@@ -774,11 +828,15 @@ public:
 					RefCloudPtr nonzero_ref_lines(new RefCloud);
 					RefCloudPtr nonzero_ref_boundary(new RefCloud);
 					RefCloudPtr nonzero_ref_corners(new RefCloud);
+					RefCloudPtr nonzero_ref_final_cloud(new RefCloud);
+
 					pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity(new pcl::PointCloud<pcl::PointXYZI>);
 
 					findBoundaries(nonzero_ref, *nonzero_ref_boundary);
 					extractCorners(nonzero_ref, *nonzero_ref_corners,cloud_intensity);
 					extractLinesNew(nonzero_ref_boundary, *nonzero_ref_lines);
+
+					extractNeighbor(nonzero_ref,*nonzero_ref_corners, *nonzero_ref_final_cloud);
 
 
 
@@ -791,13 +849,13 @@ public:
 
 					RefCloudPtr transed_ref(new RefCloud);
 					//pcl::compute3DCentroid<RefPointType> (*nonzero_ref, c);
-					pcl::compute3DCentroid<RefPointType>(*nonzero_ref_corners, c);
+					pcl::compute3DCentroid<RefPointType>(*nonzero_ref_final_cloud, c);
 
 					Eigen::Affine3f trans = Eigen::Affine3f::Identity();
 					trans.translation() = Eigen::Vector3f(c[0], c[1], c[2]);
 					//pcl::transformPointCloudWithNormals<RefPointType> (*ref_cloud, *transed_ref, trans.inverse());
 					//pcl::transformPointCloud<RefPointType> (*nonzero_ref, *transed_ref, trans.inverse());
-					pcl::transformPointCloud<RefPointType>(*nonzero_ref_corners,
+					pcl::transformPointCloud<RefPointType>(*nonzero_ref_final_cloud,
 							*transed_ref, trans.inverse());
 
 					CloudPtr transed_ref_downsampled(new Cloud);
