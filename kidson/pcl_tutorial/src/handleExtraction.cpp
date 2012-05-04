@@ -149,6 +149,28 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	n3d_.setInputCloud(cloud_z_ptr);
 	n3d_.compute(*cloud_normals);
 
+	// Segment planes
+	pcl::OrganizedMultiPlaneSegmentation mps;
+	mps.setMinInliers (10000);
+	mps.setAngularThreshold (0.017453 * 30.0); // 2 degrees
+	mps.setDistanceThreshold (0.05); // 2cm
+	mps.setInputNormals (cloud_normals);
+	mps.setInputCloud (cloudInput);
+	std::vector > regions;
+	mps.segmentAndRefine (regions);
+
+	for (size_t i = 0; i < regions.size (); i++)
+	{
+	  Eigen::Vector3f centroid = regions[i].getCentroid ();
+	  Eigen::Vector4f model = regions[i].getCoefficients ();
+	  pcl::PointCloud boundary_cloud;
+	  boundary_cloud.points = regions[i].getContour ();
+	  printf ("Centroid: (%f, %f, %f)\n  Coefficients: (%f, %f, %f, %f)\n Inliers: %d\n",
+	          centroid[0], centroid[1], centroid[2],
+	          model[0], model[1], model[2], model[3],
+	          boundary_cloud.points.size ());
+	 }
+
 	//Segment the biggest furniture_face plane
 	pcl::ModelCoefficients::Ptr table_coeff(new pcl::ModelCoefficients());
 	pcl::PointIndices::Ptr table_inliers(new pcl::PointIndices());
@@ -241,7 +263,6 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 		seg_line_.segment(*line_inliers, *line_coeff);
 		ROS_INFO("line_inliers %ld", line_inliers->indices.size());
 	}
-
 }
 
 int main(int argc, char** argv) {
@@ -269,5 +290,4 @@ int main(int argc, char** argv) {
 		std::cout << i++ << "\n";
 		writer.write("handle1.pcd", *cloudSource, iterator_->indices, true);
 	}
-
 }
