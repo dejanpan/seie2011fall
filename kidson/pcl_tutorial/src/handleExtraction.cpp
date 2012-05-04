@@ -216,7 +216,7 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	pcl::copyPointCloud(*cloudInput, *handles_indices, *handles);
 
 	pcl::PCDWriter writer;
-	writer.write("hull.pcd", *cloudInput, handles_indices->indices, true);
+	writer.write("hull.pcd", *handles, true); //*cloudInput, handles_indices->indices, true);
 	writer.write("plane.pcd", *cloud_z_ptr, table_inliers->indices, true);
 
 	handle_cluster_.setInputCloud(cloudInput);
@@ -234,16 +234,12 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 
 	//fit lines, project points into perfect lines
 	std::cout << "seg fault check 1" << "\n";
-	for (int i = 0; i < (int) handle_clusters.size(); i++) {
-		std::cout << "seg fault check 2" << "\n";
-		pcl::copyPointCloud(*handles, handle_clusters[i], *handle_final);
-		std::cout << "seg fault check 3" << "\n";
+	//for (int i = 0; i < (int) handle_clusters.size(); i++) {
+	for(std::vector<pcl::PointIndices>::iterator iterator_ = handle_clusters.begin(); iterator_ != handle_clusters.end(); ++iterator_) {
+		pcl::copyPointCloud(*cloudInput, *iterator_, *handle_final);
 		seg_line_.setInputCloud(handle_final);
-		std::cout << "seg fault check 4" << "\n";
 		seg_line_.segment(*line_inliers, *line_coeff);
-		std::cout << "seg fault check 5" << "\n";
 		ROS_INFO("line_inliers %ld", line_inliers->indices.size());
-		std::cout << "seg fault check 6" << "\n";
 	}
 
 }
