@@ -21,9 +21,6 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
-include_directories(../furniture_features/include)
-include_directories(/home/vsu/workspace/perception_pcl_electric_unstable/pcl/build/pcl_trunk/apps/include/pcl/apps)
-
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
@@ -43,3 +40,7 @@ target_link_libraries(classify vtkCommon vtkIO vtkFiltering vtkGraphics)
 rosbuild_add_executable(scan src/scan.cpp)
 rosbuild_link_boost(scan system filesystem)
 target_link_libraries(scan vtkCommon vtkIO vtkFiltering vtkGraphics)
+
+rosbuild_add_gtest(utest test/utest.cpp)
+target_link_libraries(utest training)
+
