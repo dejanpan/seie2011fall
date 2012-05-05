@@ -75,23 +75,17 @@ public:
 		std::vector<int> nn_indices;
 		std::vector<float> nn_sqr_dists;
 		Eigen::Vector4f parameters;
-		std::vector<float> vec;
+		Eigen::VectorXf vec(indices_->size());
 
 		for (size_t idx = 0; idx < indices_->size(); ++idx) {
 			float curvature;
 			this->searchForNeighbors((*indices_)[idx], search_parameter_,
 					nn_indices, nn_sqr_dists);
 			n.computePointNormal(*input_, nn_indices, parameters, curvature);
-			vec.push_back(curvature);
-			//std::cerr << "Curv 2: " << curvature << std::endl;
+			vec[idx] = curvature;
 		}
 
-		float sum = 0;// = std::accumulate(vec.begin(), vec.end(), 0);
-		for (std::vector<float>::iterator j = vec.begin(); j != vec.end(); ++j)
-			sum += *j;
-
-		output.points[0].histogram[0] = sum / vec.size();
-		//std::cerr << "Feature 2: " << sum << " " << vec.size() << std::endl;
+		output.points[0].histogram[0] = vec.mean();
 
 	}
 	/////////////////////////////////////////////////////////////////////////////

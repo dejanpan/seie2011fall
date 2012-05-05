@@ -120,31 +120,6 @@ namespace pcl
       /////////////////////////////////////////////////////////////////////////////
 
 
-//      // to get the 4 x 4 matrix of the pose
-//      bool convertPointNormalstoGraps(pcl::PointCloud<pcl::PointNormal>& cloud, std::vector<Eigen::Matrix4f>& poses){
-//      	poses.reserve(cloud.points.size());
-//      	BOOST_FOREACH(pcl::PointNormal& p, cloud.points){
-//      		Eigen::Matrix4f pose;
-//      //		position
-//      		pose.block<3,1>(0,3) = p.getVector3fMap();
-//      //		x rotation
-//      		pose.block<3,1>(0,0) = p.getNormalVector3fMap();
-//      //		get y direction if the dot product is 1 then take the other one
-//      		Eigen::Vector3f orth(0,1,0);
-//      		if ( std::abs(orth.dot(pose.block<3,1>(0,0))) > 0.9 ){
-//      			orth = Eigen::Vector3f(1,0,0);
-//      		}
-//      //		compute the z direction
-//      		pose.block<3,1>(0,2) = orth.cross(pose.block<3,1>(0,0));
-//      		pose.block<3,1>(0,1) = pose.block<3,1>(0,2).cross(pose.block<3,1>(0,0));
-//      		poses.push_back(pose);
-//      	}
-//
-//      	return true;
-//
-//      }
-
-
     private:
 
       Eigen::Vector3f axis1_;

@@ -5,5 +5,4 @@ rosbuild_init()
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-include_directories(include/)
-rosbuild_add_library(sgf src/sgf.cpp)
+rosbuild_add_gtest(utest test/utest.cpp)

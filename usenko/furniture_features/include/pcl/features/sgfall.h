@@ -51,7 +51,7 @@
 
 namespace pcl
 {
-const int SGFALL_SIZE = 24;
+const int SGFALL_SIZE = 25;
 
 template<typename PointInT, typename PointOutT>
   class SGFALLEstimation : public Feature<PointInT, PointOutT>
