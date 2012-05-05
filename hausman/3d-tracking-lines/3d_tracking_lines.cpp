@@ -520,23 +520,24 @@ public:
 	void extractLinesNew(const CloudConstPtr &cloud, Cloud &result) {
 		std::vector<int> inliers;
 
-		//pcl::SampleConsensusModelSphere<pcl::PointXYZ>::Ptr
-		//  model_s(new pcl::SampleConsensusModelSphere<pcl::PointXYZ> (cloud));
 
 		typename pcl::SampleConsensusModelLine<PointType>::Ptr model_l(
 				new pcl::SampleConsensusModelLine<PointType>(cloud));
 
 		pcl::RandomSampleConsensus<PointType> ransac(model_l);
-		ransac.setDistanceThreshold(.02);
+		ransac.setDistanceThreshold(.002);
 		ransac.computeModel();
 		ransac.getInliers(inliers);
 
 		// copies all inliers of the model computed to another PointCloud
 		pcl::copyPointCloud<PointType>(*cloud, inliers, result);
 
+
+
+
 	}
 
-	void extractLines(const CloudConstPtr &cloud, Cloud &result) {
+	void extractLines(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud) {
 
 		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -554,7 +555,7 @@ public:
 		seg.segment(*inliers, *coefficients);
 		if (inliers->indices.size() == 0) {
 			PCL_ERROR(
-					"Could not estimate a planar model for the given dataset.");
+					"Could not estimate a line model for the given dataset.");
 		}
 //DEBUG
 		/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
@@ -564,13 +565,64 @@ public:
 		 << cloud->points[inliers->indices[i]].y << " "
 		 << cloud->points[inliers->indices[i]].z << std::endl;*/
 
+		pcl::copyPointCloud<PointType>(*cloud,newCloud);
+
+
 		for (size_t i = 0; i < inliers->indices.size(); i++) {
 			PointType point = cloud->points[inliers->indices[i]];
 			result.points.push_back(point);
+			//newCloud.erase(newCloud.begin()+i);
+
 		}
+
+		//newCloud.width = newCloud.points.size();
+		//newCloud.height = 1;
+		//newCloud.is_dense = true;
+
 		result.width = result.points.size();
 		result.height = 1;
 		result.is_dense = true;
+
+		//removing line
+
+		RefCloudPtr thickResult(new RefCloud);
+
+		std::cerr<<"result size: "<<result.points.size()<<std::endl;
+
+		std::cerr<<"boundary size: "<<cloud->points.size()<<std::endl;
+
+
+		extractNeighbor(cloud,result,*thickResult);
+
+		std::cerr<<"thick result size: "<<thickResult->points.size()<<std::endl;
+
+		for (size_t i = 0; i < thickResult->points.size(); i++) {
+					PointType point = thickResult->points[i];
+					//result.points.push_back(point);
+					//newCloud.erase(newCloud.begin()+i);
+
+					for(size_t j = 0; j < newCloud.points.size(); j++){
+
+						PointType pointNew = newCloud.points[j];
+
+						float dist= sqrt((point.x-pointNew.x)*(point.x-pointNew.x)+(point.y-pointNew.y)*(point.y-pointNew.y)+(point.z-pointNew.z)*(point.z-pointNew.z));
+						if(dist<0.00001)
+							newCloud.erase(newCloud.begin()+j);
+
+
+
+					}
+
+
+
+
+				}
+
+		std::cerr<<"new cloud size: "<<newCloud.points.size()<<std::endl;
+
+		newCloud.width = newCloud.points.size();
+		newCloud.height = 1;
+		newCloud.is_dense = true;
 
 	}
 
@@ -616,7 +668,7 @@ public:
 		  std::vector<int> pointIdxRadiusSearch;
 		  std::vector<float> pointRadiusSquaredDistance;
 
-		   float radius = 0.03;
+		   float radius = 0.02;
 
 
 
@@ -658,6 +710,10 @@ public:
 
 
 	}
+
+
+
+
 
 	void extractCorners(const CloudConstPtr &cloud, Cloud &result, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity) {
 
@@ -839,17 +895,26 @@ public:
 
 
 					RefCloudPtr nonzero_ref_lines(new RefCloud);
+					RefCloudPtr nonzero_ref_lines2(new RefCloud);
+
 					RefCloudPtr nonzero_ref_boundary(new RefCloud);
 					RefCloudPtr nonzero_ref_corners(new RefCloud);
 					RefCloudPtr nonzero_ref_final_cloud(new RefCloud);
+					RefCloudPtr nonzero_ref_no_line(new RefCloud);
+					RefCloudPtr nonzero_ref_no_line2(new RefCloud);
+
 
 					pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity(new pcl::PointCloud<pcl::PointXYZI>);
 
 					findBoundaries(nonzero_ref, *nonzero_ref_boundary);
 					extractCorners(nonzero_ref, *nonzero_ref_corners,cloud_intensity);
-					extractLinesNew(nonzero_ref_boundary, *nonzero_ref_lines);
+					extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line);
 
-					extractNeighbor(nonzero_ref,*nonzero_ref_corners, *nonzero_ref_final_cloud);
+					extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2);
+
+
+
+					extractNeighbor(nonzero_ref,*nonzero_ref_lines2, *nonzero_ref_final_cloud);
 
 
 
