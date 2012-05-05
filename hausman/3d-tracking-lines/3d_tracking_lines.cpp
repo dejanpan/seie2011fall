@@ -108,6 +108,8 @@ public:
 		KdTreePtr tree(new KdTree(false));
 		ne_.setSearchMethod(tree);
 		ne_.setRadiusSearch(0.03);
+
+		//here
 		//std::vector<double> default_step_covariance = std::vector<double>(6,
 		//		0.015 * 0.015);
 		std::vector<double> default_step_covariance = std::vector<double>(6,
@@ -162,7 +164,8 @@ public:
 
 		tracker_->setResampleLikelihoodThr(0.00);
 		tracker_->setUseNormal(false);
-		//mycode
+
+		//here
 		tracker_->setMotionRatio(0.2);
 
 		// setup coherences
@@ -193,6 +196,8 @@ public:
 	}
 
 	bool drawParticles(pcl::visualization::PCLVisualizer& viz) {
+
+		bool drawParticles= false;
 		ParticleFilter::PointCloudStatePtr particles = tracker_->getParticles();
 		if (particles) {
 			if (visualize_particles_) {
@@ -208,13 +213,13 @@ public:
 				}
 
 				{
-					/*	pcl::visualization::PointCloudColorHandlerCustom<
-					 pcl::PointXYZ> blue_color(particle_cloud, 250, 99,
-					 71);
+					if (drawParticles){
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> blue_color(particle_cloud, 250, 99,71);
 					 if (!viz.updatePointCloud(particle_cloud, blue_color,
 					 "particle cloud"))
 					 viz.addPointCloud(particle_cloud, blue_color,
-					 "particle cloud");*/
+					 "particle cloud");
+					}
 				}
 			}
 			return true;
@@ -263,13 +268,9 @@ public:
 			if (!viz.updatePointCloud(result_cloud, red_color, "resultcloud"))
 				viz.addPointCloud(result_cloud, red_color, "resultcloud");
 
-
+			//points' size
 			 viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4, "resultcloud");
-			 //pcl::PointXYZ o;
-			   // o.x = 1.0;
-			    //o.y = 0;
-			    //o.z = 0;
-			   // viz.addSphere (o, 0.25, "sphere", 0);
+
 		}
 
 	}
@@ -545,7 +546,6 @@ public:
 		pcl::SACSegmentation<PointType> seg;
 		// Optional
 		seg.setOptimizeCoefficients(true);
-		// Mandatory
 
 		seg.setModelType(pcl::SACMODEL_LINE);
 		seg.setMethodType(pcl::SAC_RANSAC);
@@ -571,13 +571,10 @@ public:
 		for (size_t i = 0; i < inliers->indices.size(); i++) {
 			PointType point = cloud->points[inliers->indices[i]];
 			result.points.push_back(point);
-			//newCloud.erase(newCloud.begin()+i);
 
 		}
 
-		//newCloud.width = newCloud.points.size();
-		//newCloud.height = 1;
-		//newCloud.is_dense = true;
+
 
 		result.width = result.points.size();
 		result.height = 1;
@@ -587,19 +584,20 @@ public:
 
 		RefCloudPtr thickResult(new RefCloud);
 
-		std::cerr<<"result size: "<<result.points.size()<<std::endl;
-
-		std::cerr<<"boundary size: "<<cloud->points.size()<<std::endl;
+		//DEBUG
+//		std::cerr<<"result size: "<<result.points.size()<<std::endl;
+//
+//		std::cerr<<"boundary size: "<<cloud->points.size()<<std::endl;
 
 
 		extractNeighbor(cloud,result,*thickResult);
 
-		std::cerr<<"thick result size: "<<thickResult->points.size()<<std::endl;
+		//DEBUG
+//		std::cerr<<"thick result size: "<<thickResult->points.size()<<std::endl;
 
 		for (size_t i = 0; i < thickResult->points.size(); i++) {
 					PointType point = thickResult->points[i];
-					//result.points.push_back(point);
-					//newCloud.erase(newCloud.begin()+i);
+
 
 					for(size_t j = 0; j < newCloud.points.size(); j++){
 
@@ -618,7 +616,8 @@ public:
 
 				}
 
-		std::cerr<<"new cloud size: "<<newCloud.points.size()<<std::endl;
+		//DEBUG
+		//std::cerr<<"new cloud size: "<<newCloud.points.size()<<std::endl;
 
 		newCloud.width = newCloud.points.size();
 		newCloud.height = 1;
@@ -906,14 +905,17 @@ public:
 
 					pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity(new pcl::PointCloud<pcl::PointXYZI>);
 
+					//finding boundaries
 					findBoundaries(nonzero_ref, *nonzero_ref_boundary);
+					//extract the corners
 					extractCorners(nonzero_ref, *nonzero_ref_corners,cloud_intensity);
+					//extracting first line
 					extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line);
 
+					//extracting second line
 					extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2);
 
-
-
+					//making point cloud thicker- in case of change(i.e. corner instead of the line or so) change second param
 					extractNeighbor(nonzero_ref,*nonzero_ref_lines2, *nonzero_ref_final_cloud);
 
 
@@ -967,12 +969,13 @@ public:
 		FPS_CALC_END("computation");
 		if (cloud_intensity_ !=NULL)
 		{
+			//DEBUG
 		 //std::cerr<<"number of points: "<<cloud_intensity_->size()<<std::endl;
-			std::cerr<<"START"<<std::endl;
+		/*	std::cerr<<"START"<<std::endl;
 		 for (size_t i = 0; i < cloud_intensity_->size(); ++i)
 		     std::cerr << "    " << cloud_intensity_->points[i].intensity << std::endl;
 			std::cerr<<"STOP"<<std::endl;
-
+		 */
 
 		}
 		counter_++;
