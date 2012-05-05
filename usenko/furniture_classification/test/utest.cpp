@@ -8,7 +8,7 @@
 #include <training.h>
 #include <gtest/gtest.h>
 
-// Runs Clustering with the same number of points as number of clusters
+// Runs clustering with the same number of points as number of clusters
 // Checks if returned cluster centers are the same as points
 TEST(ClusteringTest, SameNumberOfPointsAndClusters)
 {
@@ -39,6 +39,9 @@ TEST(ClusteringTest, SameNumberOfPointsAndClusters)
 	}
 }
 
+
+// Creates a vector of 6 points: 0, 0+delta, 0-delta, 1, 1+delta, 1-delta and runs clustering
+// Checks if first 3 points have centroids in 0 and last 3 in 1
 TEST(ClusteringTest, SymetricDelta)
 {
 
