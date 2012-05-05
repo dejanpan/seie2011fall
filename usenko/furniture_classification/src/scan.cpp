@@ -42,6 +42,14 @@ void moveToNewCenterAndAlign(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
   view_transform *= tilt_rotation;
   view_transform *= translation;
 
+  Eigen::Affine3f change_coords;
+  change_coords.matrix() << 0,  0, -1, 0,
+						   -1,  0,  0, 0,
+							0,  1,  0, 0,
+							0,  0,  0, 1;
+
+  view_transform.matrix() = change_coords.matrix() * view_transform.matrix();
+
   pcl::transformPointCloud(*cloud, *cloud_transformed, view_transform);
 
 }

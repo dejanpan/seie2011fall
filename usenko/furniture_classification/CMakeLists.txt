@@ -41,6 +41,9 @@ rosbuild_add_executable(scan src/scan.cpp)
 rosbuild_link_boost(scan system filesystem)
 target_link_libraries(scan vtkCommon vtkIO vtkFiltering vtkGraphics)
 
+rosbuild_add_executable(convert src/convert.cpp)
+rosbuild_link_boost(convert system filesystem)
+
 rosbuild_add_gtest(utest test/utest.cpp)
 target_link_libraries(utest training)
 

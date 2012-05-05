@@ -14,22 +14,30 @@
 #include <pcl/search/impl/flann_search.hpp>
 #include <pcl/common/transforms.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/console/parse.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-//template class pcl::KdTreeFLANN<featureType>;
-//template class pcl::search::KdTree<featureType>;
-
 int main(int argc, char** argv) {
 
-	std::string database_file_name = "data/database40.yaml";
-	std::string
-			scene_file_name =
-					"data/scans/Chairs/Aluminium_Group_EA_119_0000F152-centered/rotation0_distance4_tilt-15_shift0.pcd";
+	if (argc < 5) {
+		PCL_INFO ("Usage %s -database_file_name /database.yaml -scene_file_name /scene.pcd [options]\n", argv[0]);
+		PCL_INFO (" * where options are:\n"
+				"         -num_neighbours <X>  : number of neighbours. Default : 1\n"
+				"");
+		return -1;
+	}
+
+	std::string database_file_name = "database.yaml";
+	std::string scene_file_name;
 	//"data/scans/Sideboards/Spatio_Sideboard_160_0000F1C5_squished-centered/rotation0_distance4_tilt-15_shift0.pcd";
 	int min_points_in_segment = 300;
 	int num_neighbours = 1;
 	float cell_size = 0.01;
+
+	pcl::console::parse_argument(argc, argv, "-database_file_name", database_file_name);
+	pcl::console::parse_argument(argc, argv, "-scene_file_name", scene_file_name);
+	pcl::console::parse_argument(argc, argv, "-num_neighbours", num_neighbours);
 
 	databaseType database;
 	pcl::PointCloud<featureType>::Ptr feature_cloud(new pcl::PointCloud<
@@ -87,7 +95,8 @@ int main(int argc, char** argv) {
 				for (size_t i = 0; i
 						< model_centers_transformed_weighted.size(); i++) {
 					model_centers_transformed_weighted.points[i].intensity
-							= (1.0/distances[j]) *  (1.0 / model_centers.size());
+							= (1.0 / distances[j]) * (1.0
+									/ model_centers.size());
 				}
 
 				votes[class_name] += model_centers_transformed_weighted;
@@ -120,7 +129,7 @@ int main(int argc, char** argv) {
 		std::string class_name = it->first;
 		pcl::PointCloud<pcl::PointXYZI> model_centers = it->second;
 
-		pcl::io::savePCDFileASCII("data/" + class_name + ".pcd", model_centers);
+		pcl::io::savePCDFileASCII(class_name + ".pcd", model_centers);
 
 		cv::Mat image = cv::Mat::zeros(image_x_width, image_y_width, CV_32FC1);
 
@@ -128,7 +137,7 @@ int main(int argc, char** argv) {
 			int vote_x = (model_centers.points[i].x - min_bound.x) / cell_size;
 			int vote_y = (model_centers.points[i].y - min_bound.y) / cell_size;
 			if ((vote_x > 0) && (vote_y > 0) && (vote_x < image.rows)
-					&& (vote_x < image.cols))
+					&& (vote_x < image.cols) && (model_centers.points[i].z > 0))
 				image.at<float> (vote_x, vote_y)
 						+= model_centers.points[i].intensity;
 		}
@@ -143,7 +152,7 @@ int main(int argc, char** argv) {
 		//image_normalized.convertTo(image_normalized_char, CV_8UC3);
 		//image_normalized_char.at<char> (-min_bound.x / cell_size, -min_bound.y
 		//		/ cell_size, 1) = 250;
-		cv::imwrite("data/" + class_name + ".png", image_normalized);
+		cv::imwrite(class_name + ".png", image_normalized);
 
 	}
 
