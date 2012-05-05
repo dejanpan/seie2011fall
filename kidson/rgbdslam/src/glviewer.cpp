@@ -30,6 +30,11 @@
 
 const double PI= 3.14159265358979323846;
 
+bool hasValidXYZ (const point_type& p)
+  {
+    return (pcl_isfinite (p.x) && pcl_isfinite (p.y) && pcl_isfinite (p.z));
+  }
+
 GLViewer::GLViewer(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers|QGL::StereoBuffers), parent),
       xRot(180*16.0),
