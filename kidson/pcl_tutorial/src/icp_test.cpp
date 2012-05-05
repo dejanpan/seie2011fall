@@ -2,7 +2,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
-#include <pcl/registration/icp_features.h>
+//#include <pcl/registration/icp_features.h>
 #include <pcl/features/normal_3d.h>
 #include "pcl_ros/transforms.h"
 #include <pcl/filters/voxel_grid.h>

@@ -13,6 +13,7 @@
 #include <pcl/surface/convex_hull.h>
 #include "pcl/filters/extract_indices.h"
 #include "pcl/segmentation/extract_polygonal_prism_data.h"
+#include "pcl/segmentation/organized_multi_plane_segmentation.h"
 #include "pcl/common/common.h"
 #include <pcl/io/pcd_io.h>
 #include "pcl/segmentation/extract_clusters.h"
@@ -47,6 +48,7 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	pcl::ExtractPolygonalPrismData<Point> prism_;
 	pcl::PointCloud<Point> cloud_objects_;
 	pcl::EuclideanClusterExtraction<Point> cluster_, handle_cluster_;
+	pcl::PCDWriter writer;
 
 	double object_cluster_tolerance_, handle_cluster_tolerance_,
 			cluster_min_height_, cluster_max_height_, voxel_size_;
@@ -145,31 +147,44 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	vgrid_.filter(*cloud_z_ptr);
 
 	//Estimate Point Normals
+	pcl::PointCloud<pcl::Normal>::Ptr cloud_normalss(new pcl::PointCloud<pcl::Normal>());
+	n3d_.setInputCloud(cloudInput);
+	n3d_.compute(*cloud_normalss);
+
+	// Segment planes
+	pcl::OrganizedMultiPlaneSegmentation<Point, pcl::Normal, pcl::Label> mps;
+	mps.setMinInliers (1000);
+	mps.setAngularThreshold (0.017453 * 30.0); // 2 degrees
+	mps.setDistanceThreshold (0.02); // 2cm
+	mps.setInputNormals (cloud_normalss);
+	mps.setInputCloud (cloudInput);
+	std::vector<pcl::PlanarRegion<Point> > regions;
+	std::vector<pcl::PointIndices> regionPoints;
+	std::vector< pcl::ModelCoefficients > coefs;
+	mps.segmentAndRefine (regions);
+	mps.segment(coefs, regionPoints);
+	ROS_INFO_STREAM("Number of regions:" << regions.size());
+
+  	std::stringstream filename;
+	for (size_t i = 0; i < regionPoints.size (); i++)
+	{
+		filename << "plane" << i << ".pcd";
+		writer.write(filename.str(), *cloudInput, regionPoints[i].indices, true);
+		filename.str("");
+	  //Eigen::Vector3f centroid = regions[i].getCentroid ();
+	  //Eigen::Vector4f model = regions[i].getCoefficients ();
+		//PointCloud boundary_cloud;
+		//boundary_cloud.points = regions[i].getContour ();
+		//printf ("Centroid: (%f, %f, %f)\n  Coefficients: (%f, %f, %f, %f)\n Inliers: %d\n",
+		//    centroid[0], centroid[1], centroid[2],
+		//    model[0], model[1], model[2], model[3],
+		//    boundary_cloud.points.size ());
+	 }
+
+	//Estimate Point Normals
 	pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>());
 	n3d_.setInputCloud(cloud_z_ptr);
 	n3d_.compute(*cloud_normals);
-
-	// Segment planes
-	pcl::OrganizedMultiPlaneSegmentation mps;
-	mps.setMinInliers (10000);
-	mps.setAngularThreshold (0.017453 * 30.0); // 2 degrees
-	mps.setDistanceThreshold (0.05); // 2cm
-	mps.setInputNormals (cloud_normals);
-	mps.setInputCloud (cloudInput);
-	std::vector > regions;
-	mps.segmentAndRefine (regions);
-
-	for (size_t i = 0; i < regions.size (); i++)
-	{
-	  Eigen::Vector3f centroid = regions[i].getCentroid ();
-	  Eigen::Vector4f model = regions[i].getCoefficients ();
-	  pcl::PointCloud boundary_cloud;
-	  boundary_cloud.points = regions[i].getContour ();
-	  printf ("Centroid: (%f, %f, %f)\n  Coefficients: (%f, %f, %f, %f)\n Inliers: %d\n",
-	          centroid[0], centroid[1], centroid[2],
-	          model[0], model[1], model[2], model[3],
-	          boundary_cloud.points.size ());
-	 }
 
 	//Segment the biggest furniture_face plane
 	pcl::ModelCoefficients::Ptr table_coeff(new pcl::ModelCoefficients());
@@ -237,7 +252,6 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	PointCloudPtr handles(new PointCloud());
 	pcl::copyPointCloud(*cloudInput, *handles_indices, *handles);
 
-	pcl::PCDWriter writer;
 	writer.write("hull.pcd", *handles, true); //*cloudInput, handles_indices->indices, true);
 	writer.write("plane.pcd", *cloud_z_ptr, table_inliers->indices, true);
 

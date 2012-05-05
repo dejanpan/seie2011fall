@@ -2,7 +2,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
-#include <pcl/registration/icp_features.h>
+//#include <pcl/registration/icp_features.h>
 #include <pcl/features/normal_3d.h>
 #include "pcl_ros/transforms.h"
 #include <pcl/filters/voxel_grid.h>
@@ -73,7 +73,7 @@ void getTestDataFromBag(std::string bagfilename, PointCloudPtr cloud_source, Poi
 
   	pcl::PCDWriter writer;
   	std::stringstream filename;
-  	filename << "/home/ross/ros_workspace/bagfiles/scenesAllMatches/" << bagfilename << ".bag";
+  	filename << "/media/PATRIOT/rosspcl/" << bagfilename << ".bag";
 
 	rosbag::Bag bag;
 	bag.open(filename.str(), rosbag::bagmode::Read);
