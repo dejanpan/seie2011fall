@@ -158,28 +158,48 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 		}
 
 		// Extract the handle clusters using a polygonal prism
-		pcl::PointIndices::Ptr handles_indices(new pcl::PointIndices());
+		pcl::PointIndices::Ptr handlesIndicesPtr(new pcl::PointIndices());
 		prism_.setHeightLimits(0.03, 0.1);
 		prism_.setInputCloud(cloudInput);
 		prism_.setInputPlanarHull(cloud_hull);
-		prism_.segment(*handles_indices);
+		prism_.segment(*handlesIndicesPtr);
 
 		//Cluster handles
 		PointCloudPtr handles(new PointCloud());
-		pcl::copyPointCloud(*cloudInput, *handles_indices, *handles);
+		pcl::copyPointCloud(*cloudInput, *handlesIndicesPtr, *handles);
 
 		filename.str("");
-		filename << "xhull" << i << ".pcd";
-		writer.write(filename.str(), *handles, true); //*cloudInput, handles_indices->indices, true);
+		filename << "xhull" << i << ".pcd";			  // prefix x so it appears at the bottom of the list with ls
+		writer.write(filename.str(), *cloudInput, handlesIndicesPtr->indices, true);
 
-		ROS_INFO("Number of handle candidates: %d.", (int)handles_indices->indices.size ());
-		if((int)handles_indices->indices.size () > 500)
+		ROS_INFO("Number of handle candidates: %d.", (int)handlesIndicesPtr->indices.size ());
+		std::vector<pcl::PointIndices> handle_clusters_local;
+		if((int)handlesIndicesPtr->indices.size () > 500)
 		{
 			//handle_cluster_.setInputCloud(cloudInput);
 			//handle_cluster_.setIndices(handles_indices);
 			handle_clusters.clear();
 			handle_cluster_.setInputCloud(handles);
-			handle_cluster_.extract(handle_clusters);
+			//handle_cluster_.setIndices(handlesIndicesPtr);
+			handle_cluster_.extract(handle_clusters_local);
+		/*	for(size_t i = 0; i < handle_clusters_local.size(); i++)
+			{
+				pcl::PointIndices handleIndicesTemp;
+				for(size_t j = 0; j < handle_clusters_local[i].indices.size(); i++)
+				{
+					for(size_t k = 0; k < cloudInput->points.size(); i++)
+					{
+						if(handles->points[j].x == cloudInput->points[k].x
+								&& handles->points[j].y == cloudInput->points[k].y
+								&& handles->points[j].z == cloudInput->points[k].z)
+						{
+							handleIndicesTemp.addIndices(k);
+							k = cloudInput->points.size();
+						}
+					}
+				}
+				handle_clusters.push_back(handleIndicesTemp);
+			}*/
 		}
 		else
 			ROS_INFO("Not enough points to look for handles");
