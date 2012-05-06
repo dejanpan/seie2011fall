@@ -36,6 +36,20 @@ int
       cloud_out->points[i].y << " " << cloud_out->points[i].z << std::endl;
   //------- finished creating cloud data */
 
+  /*scale down code
+  for (size_t i = 0; i < cloud_in->points.size (); ++i)
+  {
+	  cloud_in->points[i].x = cloud_in->points[i].x * 0.1;
+	  cloud_in->points[i].y = cloud_in->points[i].y * 0.1;
+	  cloud_in->points[i].z = cloud_in->points[i].z * 0.1;
+  }
+  for (size_t i = 0; i < cloud_out->points.size (); ++i)
+  {
+	  cloud_out->points[i].x = cloud_out->points[i].x * 0.1;
+	  cloud_out->points[i].y = cloud_out->points[i].y * 0.1;
+	  cloud_out->points[i].z = cloud_out->points[i].z * 0.1;
+  }*/
+
   //Fill in the cloud data
   pcl::PCDReader reader;
   reader.read (argv[1], *cloud_in);
@@ -61,7 +75,8 @@ int
   std::cout << icp.getFinalTransformation() << std::endl;
 
   pcl::PCDWriter writer;
-    writer.write ("output.pcd", Final, false);
+    writer.write ("converged.pcd", Final, false);
+    //writer.write ("cloud_out.pcd", *cloud_out, false);
 
  return (0);
 }

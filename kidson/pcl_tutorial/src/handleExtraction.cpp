@@ -33,6 +33,17 @@ typedef KdTree::Ptr KdTreePtr;
 //typedef pcl::KdTree<Point>::Ptr KdTreePtr;
 //typedef typename pcl::search::Search<Point>::Ptr KdTreePtr;
 
+void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointCloudIn, pcl::PointCloud<pcl::Normal>::Ptr& normals)
+{
+  // Create the normal estimation class, and pass the input dataset to it
+  pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+  ne.setInputCloud (pointCloudIn);
+  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
+  ne.setSearchMethod (tree);
+  ne.setRadiusSearch (0.03);
+  ne.compute (*normals);
+}
+
 void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& handle_clusters) {
 	// PCL objects
 	//pcl::PassThrough<Point> vgrid_;                   // Filtering + downsampling object
@@ -50,15 +61,9 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	pcl::EuclideanClusterExtraction<Point> cluster_, handle_cluster_;
 	pcl::PCDWriter writer;
 
-	double object_cluster_tolerance_, handle_cluster_tolerance_,
-			cluster_min_height_, cluster_max_height_, voxel_size_;
-	int object_cluster_min_size_, object_cluster_max_size_,
-			handle_cluster_min_size_, handle_cluster_max_size_;
-
-	double sac_distance_, normal_distance_weight_, z_min_limit_, z_max_limit_;
-	double y_min_limit_, y_max_limit_, x_min_limit_, x_max_limit_;
+	double sac_distance_, normal_distance_weight_;
 	double eps_angle_, seg_prob_;
-	int k_, max_iter_, min_table_inliers_, nr_cluster_;
+	int max_iter_;
 
 	sac_distance_ = 0.05;  //0.02
 	normal_distance_weight_ = 0.05;
@@ -77,28 +82,14 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	seg_.setMaxIterations(max_iter_);
 	seg_.setProbability(seg_prob_);
 
-	object_cluster_tolerance_ = 0.03;
-	object_cluster_min_size_ = 200;
-	cluster_.setClusterTolerance(object_cluster_tolerance_);
-	//cluster_.setSpatialLocator(0);
-	cluster_.setMinClusterSize(object_cluster_min_size_);
-	//clusters_tree_ = boost::make_shared<pcl::KdTreeFLANN<Point> >();
+	cluster_.setClusterTolerance(0.03);
+	cluster_.setMinClusterSize(200);
 	KdTreePtr clusters_tree_(new KdTree);
 	clusters_tree_->setEpsilon(1);
 	cluster_.setSearchMethod(clusters_tree_);
 
-	nr_cluster_ = 1;
-
-	cluster_min_height_ = 0.03;
-	cluster_max_height_ = 0.1;
-
-	handle_cluster_tolerance_ = 0.03; //0.02
-	handle_cluster_min_size_ = 40;
-	handle_cluster_max_size_ = 500;
-	handle_cluster_.setClusterTolerance(handle_cluster_tolerance_);
-	//handle_cluster_.setSpatialLocator(0);
-	handle_cluster_.setMinClusterSize(handle_cluster_min_size_);
-	//handle_cluster_.setMaxClusterSize(handle_cluster_max_size_);
+	handle_cluster_.setClusterTolerance(0.03);
+	handle_cluster_.setMinClusterSize(200);
 	handle_cluster_.setSearchMethod(clusters_tree_);
 
 	seg_line_.setModelType(pcl::SACMODEL_LINE);
@@ -108,161 +99,97 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	seg_line_.setMaxIterations(max_iter_);
 	seg_line_.setProbability(seg_prob_);
 
-	min_table_inliers_ = 100;
-	voxel_size_ = 0.01;
-
-	k_ = 30;
-	//normals_tree_ = boost::make_shared<pcl::KdTreeFLANN<Point> >();
 	KdTreePtr normals_tree_(new KdTree);
-	n3d_.setKSearch(k_);
+	n3d_.setKSearch(100);
 	n3d_.setSearchMethod(normals_tree_);
-
-	z_min_limit_ = 0.1;
-	z_max_limit_ = 3.0;
-	y_min_limit_ = -0.5;
-	y_max_limit_ = 0.5;
-	x_min_limit_ = 0.0;
-	x_max_limit_ = 1.0;
-
-	PointCloudPtr cloud_x_ptr(new PointCloud());
-	PointCloudPtr cloud_y_ptr(new PointCloud());
-	PointCloudPtr cloud_z_ptr(new PointCloud());
-
-	//Downsample
-	vgrid_.setInputCloud(cloudInput);
-	vgrid_.setLeafSize(voxel_size_, voxel_size_, voxel_size_);
-	//Filter x
-	vgrid_.setFilterFieldName("x");
-	//vgrid_.setFilterLimits(x_min_limit_, x_max_limit_);
-	vgrid_.filter(*cloud_x_ptr);
-	//Filter y
-	vgrid_.setInputCloud(cloud_x_ptr);
-	vgrid_.setFilterFieldName("y");
-	//vgrid_.setFilterLimits(y_min_limit_, y_max_limit_);
-	vgrid_.filter(*cloud_y_ptr);
-	//Filter z
-	vgrid_.setInputCloud(cloud_y_ptr);
-	vgrid_.setFilterFieldName("z");
-	//vgrid_.setFilterLimits(z_min_limit_, z_max_limit_);
-	vgrid_.filter(*cloud_z_ptr);
 
 	//Estimate Point Normals
 	pcl::PointCloud<pcl::Normal>::Ptr cloud_normalss(new pcl::PointCloud<pcl::Normal>());
-	n3d_.setInputCloud(cloudInput);
-	n3d_.compute(*cloud_normalss);
+	normalEstimation(cloudInput, cloud_normalss);
 
 	// Segment planes
 	pcl::OrganizedMultiPlaneSegmentation<Point, pcl::Normal, pcl::Label> mps;
-	mps.setMinInliers (1000);
-	mps.setAngularThreshold (0.017453 * 30.0); // 2 degrees
-	mps.setDistanceThreshold (0.02); // 2cm
+	mps.setMinInliers (20000);
+	mps.setMaximumCurvature(0.02);
 	mps.setInputNormals (cloud_normalss);
 	mps.setInputCloud (cloudInput);
 	std::vector<pcl::PlanarRegion<Point> > regions;
 	std::vector<pcl::PointIndices> regionPoints;
-	std::vector< pcl::ModelCoefficients > coefs;
-	mps.segmentAndRefine (regions);
-	mps.segment(coefs, regionPoints);
-	ROS_INFO_STREAM("Number of regions:" << regions.size());
+	std::vector< pcl::ModelCoefficients > planes_coeff;
+	//mps.segmentAndRefine (regions);
+	mps.segment(planes_coeff, regionPoints);
+	//ROS_INFO_STREAM("Number of regions:" << regions.size());
+	ROS_INFO_STREAM("Number of regions:" << regionPoints.size());
+
+	if ((int) regionPoints.size() < 1) {
+		ROS_ERROR("no planes found");
+		return;
+	}
 
   	std::stringstream filename;
 	for (size_t i = 0; i < regionPoints.size (); i++)
 	{
+		filename.str("");
 		filename << "plane" << i << ".pcd";
 		writer.write(filename.str(), *cloudInput, regionPoints[i].indices, true);
-		filename.str("");
-	  //Eigen::Vector3f centroid = regions[i].getCentroid ();
-	  //Eigen::Vector4f model = regions[i].getCoefficients ();
-		//PointCloud boundary_cloud;
-		//boundary_cloud.points = regions[i].getContour ();
-		//printf ("Centroid: (%f, %f, %f)\n  Coefficients: (%f, %f, %f, %f)\n Inliers: %d\n",
-		//    centroid[0], centroid[1], centroid[2],
-		//    model[0], model[1], model[2], model[3],
-		//    boundary_cloud.points.size ());
-	 }
+		ROS_INFO("Plane model: [%f, %f, %f, %f] with %d inliers.",
+				planes_coeff[i].values[0], planes_coeff[i].values[1],
+				planes_coeff[i].values[2], planes_coeff[i].values[3], (int)regionPoints[i].indices.size ());
 
-	//Estimate Point Normals
-	pcl::PointCloud<pcl::Normal>::Ptr cloud_normals(new pcl::PointCloud<pcl::Normal>());
-	n3d_.setInputCloud(cloud_z_ptr);
-	n3d_.compute(*cloud_normals);
+		//Project Points into the Perfect plane
+		PointCloudPtr cloud_projected(new PointCloud());
+		pcl::PointIndicesPtr cloudPlaneIndicesPtr(new pcl::PointIndices(regionPoints[i]));
+		pcl::ModelCoefficientsPtr coeff(new pcl::ModelCoefficients(planes_coeff[i]));
+		proj_.setInputCloud(cloudInput);
+		proj_.setIndices(cloudPlaneIndicesPtr);
+		proj_.setModelCoefficients(coeff);
+		proj_.setModelType(pcl::SACMODEL_PARALLEL_PLANE);
+		proj_.filter(*cloud_projected);
 
-	//Segment the biggest furniture_face plane
-	pcl::ModelCoefficients::Ptr table_coeff(new pcl::ModelCoefficients());
-	pcl::PointIndices::Ptr table_inliers(new pcl::PointIndices());
-	seg_.setInputCloud(cloud_z_ptr);
-	seg_.setInputNormals(cloud_normals);
-	seg_.segment(*table_inliers, *table_coeff);
-	ROS_INFO("Table model: [%f, %f, %f, %f] with %d inliers.",
-			table_coeff->values[0], table_coeff->values[1],
-			table_coeff->values[2], table_coeff->values[3], (int)table_inliers->indices.size ());
-
-	if ((int) table_inliers->indices.size() <= min_table_inliers_) {
-		ROS_ERROR("table has to few inliers");
-		return;
-	}
-
-	//Extract the biggest cluster correponding to above inliers
-	std::vector<pcl::PointIndices> clusters;
-	cluster_.setInputCloud(cloud_z_ptr);
-	cluster_.setIndices(table_inliers);
-	cluster_.extract(clusters);
-
-	PointCloudPtr biggest_face(new PointCloud());
-	if (int(clusters.size()) >= nr_cluster_) {
-		for (int i = 0; i < nr_cluster_; i++) {
-			pcl::copyPointCloud(*cloud_z_ptr, clusters[i], *biggest_face);
+		PointCloudPtr cloud_hull(new PointCloud());
+		// Create a Convex Hull representation of the projected inliers
+		chull_.setInputCloud(cloud_projected);
+		chull_.reconstruct(*cloud_hull);
+		ROS_INFO("Convex hull has: %d data points.", (int)cloud_hull->points.size ());
+		if ((int) cloud_hull->points.size() == 0)
+		{
+			ROS_WARN("Convex hull has: %d data points. Returning.", (int)cloud_hull->points.size ());
+			return;
 		}
-	} else {
-		ROS_ERROR(
-				"Only %ld clusters found with size > %d points", clusters.size(), object_cluster_min_size_);
-		return;
+
+		// Extract the handle clusters using a polygonal prism
+		pcl::PointIndices::Ptr handles_indices(new pcl::PointIndices());
+		prism_.setHeightLimits(0.03, 0.1);
+		prism_.setInputCloud(cloudInput);
+		prism_.setInputPlanarHull(cloud_hull);
+		prism_.segment(*handles_indices);
+
+		//Cluster handles
+		PointCloudPtr handles(new PointCloud());
+		pcl::copyPointCloud(*cloudInput, *handles_indices, *handles);
+
+		filename.str("");
+		filename << "xhull" << i << ".pcd";
+		writer.write(filename.str(), *handles, true); //*cloudInput, handles_indices->indices, true);
+
+		ROS_INFO("Number of handle candidates: %d.", (int)handles_indices->indices.size ());
+		if((int)handles_indices->indices.size () > 500)
+		{
+			//handle_cluster_.setInputCloud(cloudInput);
+			//handle_cluster_.setIndices(handles_indices);
+			handle_clusters.clear();
+			handle_cluster_.setInputCloud(handles);
+			handle_cluster_.extract(handle_clusters);
+		}
+		else
+			ROS_INFO("Not enough points to look for handles");
+
+		ROS_INFO("Found handle clusters: %d.", (int)handle_clusters.size ());
+		//if ((int) handle_clusters.size() == 0)
+		//	return;
 	}
-	ROS_INFO(
-			"Found biggest face with %ld points", biggest_face->points.size());
 
-	//Project Points into the Perfect plane
-	PointCloudPtr cloud_projected(new PointCloud());
-	proj_.setInputCloud(biggest_face);
-	proj_.setModelCoefficients(table_coeff);
-	proj_.setModelType(pcl::SACMODEL_PARALLEL_PLANE);
-	proj_.filter(*cloud_projected);
-
-	PointCloudPtr cloud_hull(new PointCloud());
-	// Create a Convex Hull representation of the projected inliers
-	chull_.setInputCloud(cloud_projected);
-	chull_.reconstruct(*cloud_hull);
-	ROS_INFO(
-			"Convex hull has: %d data points.", (int)cloud_hull->points.size ());
-	if ((int) cloud_hull->points.size() == 0) {
-		ROS_WARN(
-				"Convex hull has: %d data points. Returning.", (int)cloud_hull->points.size ());
-		return;
-	}
-
-	// Extract the handle clusters using a polygonal prism
-	pcl::PointIndices::Ptr handles_indices(new pcl::PointIndices());
-	prism_.setHeightLimits(cluster_min_height_, cluster_max_height_);
-	//prism_.setInputCloud (cloud_z_ptr);
-	prism_.setInputCloud(cloudInput);
-	prism_.setInputPlanarHull(cloud_hull);
-	prism_.segment(*handles_indices);
-	ROS_INFO("Number of handle candidates: %d.", (int)handles_indices->indices.size ());
-
-	//Cluster handles
-	PointCloudPtr handles(new PointCloud());
-	pcl::copyPointCloud(*cloudInput, *handles_indices, *handles);
-
-	writer.write("hull.pcd", *handles, true); //*cloudInput, handles_indices->indices, true);
-	writer.write("plane.pcd", *cloud_z_ptr, table_inliers->indices, true);
-
-	handle_cluster_.setInputCloud(cloudInput);
-	handle_cluster_.setIndices(handles_indices);
-	handle_cluster_.extract(handle_clusters);
-
-	ROS_INFO("Found handle clusters: %d.", (int)handle_clusters.size ());
-	if ((int) handle_clusters.size() == 0)
-		return;
-
+	/*
 	std::cout << "seg fault check 0" << "\n";
 	PointCloudPtr handle_final(new PointCloud());
 	pcl::ModelCoefficients::Ptr line_coeff(new pcl::ModelCoefficients());
@@ -276,7 +203,7 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 		seg_line_.setInputCloud(handle_final);
 		seg_line_.segment(*line_inliers, *line_coeff);
 		ROS_INFO("line_inliers %ld", line_inliers->indices.size());
-	}
+	}*/
 }
 
 int main(int argc, char** argv) {
