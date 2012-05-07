@@ -52,6 +52,9 @@
 
 #include <boost/format.hpp>
 
+#include <fstream>
+#include <iostream>
+
 #define FPS_CALC_BEGIN                          \
     static double duration = 0;                 \
     double start_time = pcl::getTime ();        \
@@ -109,6 +112,7 @@ public:
 		ne_.setSearchMethod(tree);
 		ne_.setRadiusSearch(0.03);
 
+		a_file_.open("poses.txt");
 		//here
 		//std::vector<double> default_step_covariance = std::vector<double>(6,
 		//		0.015 * 0.015);
@@ -261,6 +265,18 @@ public:
 		else
 			pcl::transformPointCloud<RefPointType>(*reference_, *result_cloud,
 					transformation_);
+
+
+		Eigen::Vector4f center;
+		pcl::compute3DCentroid<RefPointType>(*result_cloud, center);
+
+
+		a_file_<< "x" << " " << "y" << " " << "z" << std::endl;
+		a_file_<< center[0] << " " << center[1] << " " << center[2] << std::endl;
+		std::cerr<<"center: "<<center<<std::endl;
+
+
+
 
 		{
 			pcl::visualization::PointCloudColorHandlerCustom<RefPointType> red_color(
@@ -634,8 +650,17 @@ public:
 		pcl::NormalEstimation<PointType, pcl::Normal> norm_est;
 		norm_est.setSearchMethod(KdTreePtr(new KdTree));
 		norm_est.setInputCloud(cloud);
-		norm_est.setRadiusSearch(0.01);
+		norm_est.setRadiusSearch(0.03);
 		norm_est.compute(*normals_cloud);
+
+		for (size_t i = 0; i < normals_cloud->size(); ++i)
+		{
+			std::cerr<<"CURVATURE: "<<normals_cloud->points[i].curvature<<std::endl;
+			if (normals_cloud->points[i].curvature > 0.055)
+				result.push_back(cloud->points.at(i));
+		}
+
+		/*
 
 		pcl::PointCloud<pcl::Boundary> boundaries;
 		pcl::BoundaryEstimation<PointType, pcl::Normal, pcl::Boundary> est;
@@ -650,6 +675,8 @@ public:
 				result.push_back(cloud->points.at(i));
 			}
 		}
+		*/
+
 		result.width = result.points.size();
 		result.height = 1;
 		result.is_dense = true;
@@ -916,7 +943,7 @@ public:
 					extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2);
 
 					//making point cloud thicker- in case of change(i.e. corner instead of the line or so) change second param
-					extractNeighbor(nonzero_ref,*nonzero_ref_lines2, *nonzero_ref_final_cloud);
+					extractNeighbor(nonzero_ref,*nonzero_ref_lines, *nonzero_ref_final_cloud);
 
 
 
@@ -996,6 +1023,8 @@ public:
 		while (!viewer_.wasStopped())
 			boost::this_thread::sleep(boost::posix_time::seconds(1));
 		interface->stop();
+	    a_file_.close();
+
 	}
 
 	pcl::visualization::CloudViewer viewer_;
@@ -1028,6 +1057,9 @@ public:
 	double computation_time_;
 	double downsampling_time_;
 	double downsampling_grid_size_;
+
+	std::ofstream a_file_ ;
+
 };
 
 void usage(char** argv) {
