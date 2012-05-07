@@ -26,32 +26,29 @@
 
 typedef pcl::PointXYZRGB Point;
 typedef pcl::PointCloud<Point> PointCloud;
-typedef PointCloud::Ptr PointCloudPtr;
-typedef PointCloud::Ptr PointCloudPtr;
-typedef PointCloud::ConstPtr PointCloudConstPtr;
+typedef pcl::PointXYZRGBNormal PointNormal;
+typedef pcl::PointCloud<PointNormal> PointCloudNormal;
 typedef pcl::search::KdTree<Point> KdTree;
 typedef KdTree::Ptr KdTreePtr;
 //typedef pcl::KdTree<Point>::Ptr KdTreePtr;
 //typedef typename pcl::search::Search<Point>::Ptr KdTreePtr;
 
-void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointCloudIn, pcl::PointCloud<pcl::Normal>::Ptr& normals)
+void normalEstimation(PointCloud::Ptr& pointCloudIn, PointCloudNormal::Ptr& pointCloudOut)
 {
   // Create the normal estimation class, and pass the input dataset to it
-  pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+  pcl::NormalEstimation<pcl::PointXYZRGB, pcl::PointXYZRGBNormal> ne;
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
   ne.setRadiusSearch (0.03);
-  ne.compute (*normals);
+  ne.compute (*pointCloudOut);
+  pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
 
-void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& handles) {
+void extractHandles(PointCloud::Ptr& cloudInput, PointCloudNormal::Ptr& pointCloudNormals, std::vector<int>& handles) {
 	// PCL objects
 	//pcl::PassThrough<Point> vgrid_;                   // Filtering + downsampling object
 	pcl::VoxelGrid<Point> vgrid_; // Filtering + downsampling object
-	pcl::NormalEstimation<Point, pcl::Normal> n3d_; //Normal estimation
-	// The resultant estimated point cloud normals for \a cloud_filtered_
-	pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_;
 	pcl::SACSegmentationFromNormals<Point, pcl::Normal> seg_; // Planar segmentation object
 	pcl::SACSegmentation<Point> seg_line_; // Planar segmentation object
 	pcl::ProjectInliers<Point> proj_; // Inlier projection object
@@ -96,28 +93,17 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& handles) {
 	seg_line_.setMaxIterations(max_iter_);
 	seg_line_.setProbability(seg_prob_);
 
-	KdTreePtr normals_tree_(new KdTree);
-	n3d_.setKSearch(100);
-	n3d_.setSearchMethod(normals_tree_);
-
-	//Estimate Point Normals
-	ROS_INFO("Calculating normals");
-	pcl::PointCloud<pcl::Normal>::Ptr cloud_normalss(new pcl::PointCloud<pcl::Normal>());
-	normalEstimation(cloudInput, cloud_normalss);
-
 	// Segment planes
+	pcl::OrganizedMultiPlaneSegmentation<Point, PointNormal, pcl::Label> mps;
 	ROS_INFO("Segmenting planes");
-	pcl::OrganizedMultiPlaneSegmentation<Point, pcl::Normal, pcl::Label> mps;
 	mps.setMinInliers (20000);
 	mps.setMaximumCurvature(0.02);
-	mps.setInputNormals (cloud_normalss);
+	mps.setInputNormals (pointCloudNormals);
 	mps.setInputCloud (cloudInput);
 	std::vector<pcl::PlanarRegion<Point> > regions;
 	std::vector<pcl::PointIndices> regionPoints;
 	std::vector< pcl::ModelCoefficients > planes_coeff;
-	//mps.segmentAndRefine (regions);
 	mps.segment(planes_coeff, regionPoints);
-	//ROS_INFO_STREAM("Number of regions:" << regions.size());
 	ROS_INFO_STREAM("Number of regions:" << regionPoints.size());
 
 	if ((int) regionPoints.size() < 1) {
@@ -136,7 +122,7 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& handles) {
 				planes_coeff[plane].values[2], planes_coeff[plane].values[3], (int)regionPoints[plane].indices.size ());
 
 		//Project Points into the Perfect plane
-		PointCloudPtr cloud_projected(new PointCloud());
+		PointCloud::Ptr cloud_projected(new PointCloud());
 		pcl::PointIndicesPtr cloudPlaneIndicesPtr(new pcl::PointIndices(regionPoints[plane]));
 		pcl::ModelCoefficientsPtr coeff(new pcl::ModelCoefficients(planes_coeff[plane]));
 		proj_.setInputCloud(cloudInput);
@@ -145,7 +131,7 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& handles) {
 		proj_.setModelType(pcl::SACMODEL_PARALLEL_PLANE);
 		proj_.filter(*cloud_projected);
 
-		PointCloudPtr cloud_hull(new PointCloud());
+		PointCloud::Ptr cloud_hull(new PointCloud());
 		// Create a Convex Hull representation of the projected inliers
 		chull_.setInputCloud(cloud_projected);
 		chull_.reconstruct(*cloud_hull);
@@ -183,7 +169,7 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& handles) {
 		}*/
 
 		pcl::StatisticalOutlierRemoval<Point> sor;
-		pcl::PointCloud<Point>::Ptr cloud_filtered (new pcl::PointCloud<Point>);
+		PointCloud::Ptr cloud_filtered (new pcl::PointCloud<Point>);
 		sor.setInputCloud (cloudInput);
 		sor.setIndices(handlesIndicesPtr);
 		sor.setMeanK (50);
@@ -206,8 +192,11 @@ int main(int argc, char** argv) {
 		std::cerr << "please provide 2 point clouds as arguments)" << std::endl;
 		exit(0);
 	}
-	PointCloudPtr cloudSource(new PointCloud);
-	PointCloudPtr cloudTarget(new PointCloud);
+	PointCloud::Ptr cloudSource(new PointCloud);
+	PointCloud::Ptr cloudTarget(new PointCloud);
+	PointCloudNormal::Ptr cloudSourceNormal(new PointCloudNormal);
+	PointCloudNormal::Ptr cloudTargetNormal(new PointCloudNormal);
+	std::vector<int> indicesSource, indicesTarget;
 
 	//Fill in the cloud data
 	ROS_INFO("Reading files....");
@@ -215,14 +204,50 @@ int main(int argc, char** argv) {
 	reader.read(argv[1], *cloudSource);
 	reader.read(argv[2], *cloudTarget);
 
+	ROS_INFO("Calculating normals....");
+	normalEstimation(cloudSource, cloudSourceNormal);
+	normalEstimation(cloudTarget, cloudTargetNormal);
+
 	std::vector<int> sourceHandleClusters;
 	std::vector<int> targetHandleClusters;
 
 	ROS_INFO("Extracting handles....");
-	extractHandles(cloudSource, sourceHandleClusters);
-	extractHandles(cloudTarget, targetHandleClusters);
+	extractHandles(cloudSource, cloudSourceNormal, sourceHandleClusters);
+	extractHandles(cloudTarget, cloudTargetNormal, targetHandleClusters);
 
-	int i=1;
+	 /*boost::shared_ptr< TransformationEstimationWDF<pcl::PointXYZRGBNormal,pcl::PointXYZRGBNormal> >
+	initialTransformWDF(new TransformationEstimationWDF<pcl::PointXYZRGBNormal,pcl::PointXYZRGBNormal>());
+
+	float alpha = 1.0;
+	initialTransformWDF->setAlpha(alpha);
+	initialTransformWDF->setCorrespondecesDFP(indicesSource, indicesTarget);
+
+	// Instantiate ICP
+	pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_wdf;
+
+	// Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
+	icp_wdf.setMaxCorrespondenceDistance (0.05);
+	// Set the maximum number of iterations (criterion 1)
+	icp_wdf.setMaximumIterations (75);
+	// Set the transformation epsilon (criterion 2)
+	icp_wdf.setTransformationEpsilon (1e-8);
+	// Set the euclidean distance difference epsilon (criterion 3)
+	icp_wdf.setEuclideanFitnessEpsilon (0); //1
+
+	// Set TransformationEstimationWDF as ICP transform estimator
+	icp_wdf.setTransformationEstimation (initialTransformWDF);
+
+	icp_wdf.setInputCloud( concatinatedSourceCloud);
+	icp_wdf.setInputTarget( concatinatedTargetCloud);
+
+	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_transformed( new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+	// As before, due to my initial bad naming, it is the "target" that is being transformed
+	//									set initial transform
+	icp_wdf.align ( *cloud_transformed, ransacInverse); //init_tr );
+	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icp_wdf.hasConverged() << std::endl <<
+				"	fitness score (SSD): " << icp_wdf.getFitnessScore (1000) << std::endl;
+	icp_wdf.getFinalTransformation ();
+*/
 	pcl::PCDWriter writer;
 	writer.write("handlesSource.pcd", *cloudSource, sourceHandleClusters, true);
 	writer.write("handlesTarget.pcd", *cloudTarget, targetHandleClusters, true);
