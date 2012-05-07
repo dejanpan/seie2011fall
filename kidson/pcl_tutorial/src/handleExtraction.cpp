@@ -86,7 +86,6 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	cluster_.setClusterTolerance(0.03);
 	cluster_.setMinClusterSize(200);
 	KdTreePtr clusters_tree_(new KdTree);
-	clusters_tree_->nearestKSearch
 	clusters_tree_->setEpsilon(1);
 	cluster_.setSearchMethod(clusters_tree_);
 
