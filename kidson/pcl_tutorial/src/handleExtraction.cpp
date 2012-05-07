@@ -20,6 +20,7 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/common/angles.h>
 #include "pcl/common/common.h"
+#include <pcl/filters/statistical_outlier_removal.h>
 
 #include "tf/tf.h"
 
@@ -85,12 +86,9 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	cluster_.setClusterTolerance(0.03);
 	cluster_.setMinClusterSize(200);
 	KdTreePtr clusters_tree_(new KdTree);
+	clusters_tree_->nearestKSearch
 	clusters_tree_->setEpsilon(1);
 	cluster_.setSearchMethod(clusters_tree_);
-
-	handle_cluster_.setClusterTolerance(0.03);
-	handle_cluster_.setMinClusterSize(200);
-	handle_cluster_.setSearchMethod(clusters_tree_);
 
 	seg_line_.setModelType(pcl::SACMODEL_LINE);
 	seg_line_.setMethodType(pcl::SAC_RANSAC);
@@ -173,36 +171,48 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 		writer.write(filename.str(), *cloudInput, handlesIndicesPtr->indices, true);
 
 		ROS_INFO("Number of handle candidates: %d.", (int)handlesIndicesPtr->indices.size ());
-		std::vector<pcl::PointIndices> handle_clusters_local;
-		if((int)handlesIndicesPtr->indices.size () > 500)
+
+		/*######### handle clustering code (DOES NOT WORK FOR INDICES)
+		handle_clusters.clear();
+		handle_cluster_.setClusterTolerance(0.03);
+		handle_cluster_.setMinClusterSize(200);
+		handle_cluster_.setSearchMethod(clusters_tree_);
+		handle_cluster_.setInputCloud(handles);
+		handle_cluster_.setIndices(handlesIndicesPtr);
+		handle_cluster_.extract(handle_clusters);
+		for(size_t j = 0; j < handle_clusters.size(); j++)
 		{
-			//handle_cluster_.setInputCloud(cloudInput);
-			//handle_cluster_.setIndices(handles_indices);
-			handle_clusters.clear();
-			handle_cluster_.setInputCloud(handles);
-			//handle_cluster_.setIndices(handlesIndicesPtr);
-			handle_cluster_.extract(handle_clusters_local);
-		/*	for(size_t i = 0; i < handle_clusters_local.size(); i++)
+			filename.str("");
+			filename << "handle" << (int)i << "-" << (int)j << ".pcd";
+			writer.write(filename.str(), *handles, handle_clusters[j].indices, true);
+		}*/
+
+		pcl::StatisticalOutlierRemoval<Point> sor(true);
+		pcl::PointCloud<Point>::Ptr cloud_filtered (new pcl::PointCloud<Point>);
+		sor.setInputCloud (cloudInput);
+		sor.setIndices(handlesIndicesPtr);
+		sor.setMeanK (50);
+		sor.setStddevMulThresh (1.0);
+		sor.filter (*cloud_filtered);
+		std::vector<int> filterIndices = *(sor.getRemovedIndices());
+
+		for(size_t j = 0; j < filterIndices.size(); j++)
+		{
+			ROS_INFO_STREAM("filter indice: " << (int)j << " value: " << filterIndices[j]);
+			for(size_t k = 0; k < handlesIndicesPtr->indices.size(); k++)
 			{
-				pcl::PointIndices handleIndicesTemp;
-				for(size_t j = 0; j < handle_clusters_local[i].indices.size(); i++)
+				//ROS_INFO_STREAM("filter indice: " << (int)j << " value: " << filterIndices[j] << " handle indice: " << (int)k << " value: " << (handlesIndicesPtr->indices)[k]);
+				if((handlesIndicesPtr->indices)[k] == filterIndices[j])
 				{
-					for(size_t k = 0; k < cloudInput->points.size(); i++)
-					{
-						if(handles->points[j].x == cloudInput->points[k].x
-								&& handles->points[j].y == cloudInput->points[k].y
-								&& handles->points[j].z == cloudInput->points[k].z)
-						{
-							handleIndicesTemp.addIndices(k);
-							k = cloudInput->points.size();
-						}
-					}
+					handlesIndicesPtr->indices.erase(handlesIndicesPtr->indices.begin() + k);
+					k = handlesIndicesPtr->indices.size();
 				}
-				handle_clusters.push_back(handleIndicesTemp);
-			}*/
+			}
 		}
-		else
-			ROS_INFO("Not enough points to look for handles");
+		filename.str("");
+		filename << "xhandle" << i << ".pcd";			  // prefix x so it appears at the bottom of the list with ls
+		writer.write(filename.str(), *cloudInput, handlesIndicesPtr->indices, true);
+
 
 		ROS_INFO("Found handle clusters: %d.", (int)handle_clusters.size ());
 		//if ((int) handle_clusters.size() == 0)
