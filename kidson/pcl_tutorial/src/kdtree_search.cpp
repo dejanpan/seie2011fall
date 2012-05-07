@@ -37,7 +37,8 @@ main (int argc, char** argv)
   indicesTest->push_back(507);
   indicesTest->push_back(508);
   indicesTest->push_back(509);
-  kdtree.setInputCloud(cloud, indicesTest);
+  //kdtree.setInputCloud(cloud, indicesTest);
+  kdtree.setInputCloud(cloud);
 
   pcl::PointXYZ searchPoint;
 

@@ -45,7 +45,7 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointCloudIn, pcl:
   ne.compute (*normals);
 }
 
-void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& handle_clusters) {
+void extractHandles(PointCloudPtr& cloudInput, std::vector<int>& handles) {
 	// PCL objects
 	//pcl::PassThrough<Point> vgrid_;                   // Filtering + downsampling object
 	pcl::VoxelGrid<Point> vgrid_; // Filtering + downsampling object
@@ -101,10 +101,12 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	n3d_.setSearchMethod(normals_tree_);
 
 	//Estimate Point Normals
+	ROS_INFO("Calculating normals");
 	pcl::PointCloud<pcl::Normal>::Ptr cloud_normalss(new pcl::PointCloud<pcl::Normal>());
 	normalEstimation(cloudInput, cloud_normalss);
 
 	// Segment planes
+	ROS_INFO("Segmenting planes");
 	pcl::OrganizedMultiPlaneSegmentation<Point, pcl::Normal, pcl::Label> mps;
 	mps.setMinInliers (20000);
 	mps.setMaximumCurvature(0.02);
@@ -124,19 +126,19 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 	}
 
   	std::stringstream filename;
-	for (size_t i = 0; i < regionPoints.size (); i++)
+	for (size_t plane = 0; plane < regionPoints.size (); plane++)
 	{
 		filename.str("");
-		filename << "plane" << i << ".pcd";
-		writer.write(filename.str(), *cloudInput, regionPoints[i].indices, true);
+		filename << "plane" << plane << ".pcd";
+		writer.write(filename.str(), *cloudInput, regionPoints[plane].indices, true);
 		ROS_INFO("Plane model: [%f, %f, %f, %f] with %d inliers.",
-				planes_coeff[i].values[0], planes_coeff[i].values[1],
-				planes_coeff[i].values[2], planes_coeff[i].values[3], (int)regionPoints[i].indices.size ());
+				planes_coeff[plane].values[0], planes_coeff[plane].values[1],
+				planes_coeff[plane].values[2], planes_coeff[plane].values[3], (int)regionPoints[plane].indices.size ());
 
 		//Project Points into the Perfect plane
 		PointCloudPtr cloud_projected(new PointCloud());
-		pcl::PointIndicesPtr cloudPlaneIndicesPtr(new pcl::PointIndices(regionPoints[i]));
-		pcl::ModelCoefficientsPtr coeff(new pcl::ModelCoefficients(planes_coeff[i]));
+		pcl::PointIndicesPtr cloudPlaneIndicesPtr(new pcl::PointIndices(regionPoints[plane]));
+		pcl::ModelCoefficientsPtr coeff(new pcl::ModelCoefficients(planes_coeff[plane]));
 		proj_.setInputCloud(cloudInput);
 		proj_.setIndices(cloudPlaneIndicesPtr);
 		proj_.setModelCoefficients(coeff);
@@ -161,17 +163,11 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 		prism_.setInputPlanarHull(cloud_hull);
 		prism_.segment(*handlesIndicesPtr);
 
-		//Cluster handles
-		PointCloudPtr handles(new PointCloud());
-		pcl::copyPointCloud(*cloudInput, *handlesIndicesPtr, *handles);
-
-		filename.str("");
-		filename << "xhull" << i << ".pcd";			  // prefix x so it appears at the bottom of the list with ls
-		writer.write(filename.str(), *cloudInput, handlesIndicesPtr->indices, true);
-
 		ROS_INFO("Number of handle candidates: %d.", (int)handlesIndicesPtr->indices.size ());
+		if((int)handlesIndicesPtr->indices.size () < 1100)
+			continue;
 
-		/*######### handle clustering code (DOES NOT WORK FOR INDICES)
+		/*######### handle clustering code
 		handle_clusters.clear();
 		handle_cluster_.setClusterTolerance(0.03);
 		handle_cluster_.setMinClusterSize(200);
@@ -186,53 +182,23 @@ void extractHandles(PointCloudPtr& cloudInput, std::vector<pcl::PointIndices>& h
 			writer.write(filename.str(), *handles, handle_clusters[j].indices, true);
 		}*/
 
-		pcl::StatisticalOutlierRemoval<Point> sor(true);
+		pcl::StatisticalOutlierRemoval<Point> sor;
 		pcl::PointCloud<Point>::Ptr cloud_filtered (new pcl::PointCloud<Point>);
 		sor.setInputCloud (cloudInput);
 		sor.setIndices(handlesIndicesPtr);
 		sor.setMeanK (50);
 		sor.setStddevMulThresh (1.0);
 		sor.filter (*cloud_filtered);
-		std::vector<int> filterIndices = *(sor.getRemovedIndices());
-
-		for(size_t j = 0; j < filterIndices.size(); j++)
+		pcl::KdTreeFLANN<Point> kdtreeNN;
+		std::vector<int> pointIdxNKNSearch(1);
+		std::vector<float> pointNKNSquaredDistance(1);
+		kdtreeNN.setInputCloud(cloudInput);
+		for(size_t j = 0; j < cloud_filtered->points.size(); j++)
 		{
-			ROS_INFO_STREAM("filter indice: " << (int)j << " value: " << filterIndices[j]);
-			for(size_t k = 0; k < handlesIndicesPtr->indices.size(); k++)
-			{
-				//ROS_INFO_STREAM("filter indice: " << (int)j << " value: " << filterIndices[j] << " handle indice: " << (int)k << " value: " << (handlesIndicesPtr->indices)[k]);
-				if((handlesIndicesPtr->indices)[k] == filterIndices[j])
-				{
-					handlesIndicesPtr->indices.erase(handlesIndicesPtr->indices.begin() + k);
-					k = handlesIndicesPtr->indices.size();
-				}
-			}
+			kdtreeNN.nearestKSearch(cloud_filtered->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+			handles.push_back(pointIdxNKNSearch[0]);
 		}
-		filename.str("");
-		filename << "xhandle" << i << ".pcd";			  // prefix x so it appears at the bottom of the list with ls
-		writer.write(filename.str(), *cloudInput, handlesIndicesPtr->indices, true);
-
-
-		ROS_INFO("Found handle clusters: %d.", (int)handle_clusters.size ());
-		//if ((int) handle_clusters.size() == 0)
-		//	return;
 	}
-
-	/*
-	std::cout << "seg fault check 0" << "\n";
-	PointCloudPtr handle_final(new PointCloud());
-	pcl::ModelCoefficients::Ptr line_coeff(new pcl::ModelCoefficients());
-	pcl::PointIndices::Ptr line_inliers(new pcl::PointIndices());
-
-	//fit lines, project points into perfect lines
-	std::cout << "seg fault check 1" << "\n";
-	//for (int i = 0; i < (int) handle_clusters.size(); i++) {
-	for(std::vector<pcl::PointIndices>::iterator iterator_ = handle_clusters.begin(); iterator_ != handle_clusters.end(); ++iterator_) {
-		pcl::copyPointCloud(*cloudInput, *iterator_, *handle_final);
-		seg_line_.setInputCloud(handle_final);
-		seg_line_.segment(*line_inliers, *line_coeff);
-		ROS_INFO("line_inliers %ld", line_inliers->indices.size());
-	}*/
 }
 
 int main(int argc, char** argv) {
@@ -244,20 +210,20 @@ int main(int argc, char** argv) {
 	PointCloudPtr cloudTarget(new PointCloud);
 
 	//Fill in the cloud data
+	ROS_INFO("Reading files....");
 	pcl::PCDReader reader;
-	// Replace the path below with the path where you saved your file
 	reader.read(argv[1], *cloudSource);
 	reader.read(argv[2], *cloudTarget);
 
-	std::vector<pcl::PointIndices> sourceHandleClusters;
-	std::vector<pcl::PointIndices> targetHandleClusters;
+	std::vector<int> sourceHandleClusters;
+	std::vector<int> targetHandleClusters;
 
+	ROS_INFO("Extracting handles....");
 	extractHandles(cloudSource, sourceHandleClusters);
+	extractHandles(cloudTarget, targetHandleClusters);
 
 	int i=1;
 	pcl::PCDWriter writer;
-	for(std::vector<pcl::PointIndices>::iterator iterator_ = sourceHandleClusters.begin(); iterator_ != sourceHandleClusters.end(); ++iterator_) {
-		std::cout << i++ << "\n";
-		writer.write("handle1.pcd", *cloudSource, iterator_->indices, true);
-	}
+	writer.write("handlesSource.pcd", *cloudSource, sourceHandleClusters, true);
+	writer.write("handlesTarget.pcd", *cloudTarget, targetHandleClusters, true);
 }
