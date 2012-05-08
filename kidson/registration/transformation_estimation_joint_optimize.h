@@ -276,10 +276,11 @@ protected:
 		const int m_inputs, m_values;
 
 		Functor () : m_inputs (InputsAtCompileTime), m_values (ValuesAtCompileTime) {}
-		Functor (int inputs, int values, int np, int ndfp) : m_inputs (inputs), m_values (values), number_p(np), number_dfp(ndfp) {}
+		Functor (int inputs, int values, int np, int ndfp, int nhandlep) : m_inputs (inputs), m_values (values), number_p(np), number_dfp(ndfp), number_handle_p(nhandlep) {}
 
 		int number_p; //!< Number of common points
 		int number_dfp; //!< Number of distinctive feature points
+		int number_handle_p; //!< Number of handle points
 
 		int inputs () const { return m_inputs; }
 		int values () const { return m_values; }
@@ -290,6 +291,8 @@ protected:
 		using Functor<double>::m_values;
 		using Functor<double>::number_p;
 		using Functor<double>::number_dfp;
+		using Functor<double>::number_handle_p;
+
 
 		/** Functor constructor
 		 * \param n Number of unknowns to be solved
@@ -315,6 +318,7 @@ protected:
 		using Functor<double>::m_values;
 		using Functor<double>::number_p;
 		using Functor<double>::number_dfp;
+		using Functor<double>::number_handle_p;
 
 		/** Functor constructor
 		 * \param n Number of unknowns to be solved

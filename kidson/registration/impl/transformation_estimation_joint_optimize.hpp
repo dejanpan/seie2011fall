@@ -170,8 +170,10 @@ template <typename PointSource, typename PointTarget> inline void
 TransformationEstimationJointOptimize<PointSource, PointTarget>::estimateRigidTransformation (
     const pcl::PointCloud<PointSource> &cloud_src,
     const std::vector<int> &indices_src,
+    const std::vector<int> &handles_indices_src,
     const pcl::PointCloud<PointTarget> &cloud_tgt,
     const std::vector<int> &indices_tgt,
+    const std::vector<int> &handles_indices_tgt,
     Eigen::Matrix4f &transformation_matrix )
 {
 	if (indices_src.size () != indices_tgt.size ())
@@ -213,6 +215,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::estimateRigidTr
 	int n_unknowns = warp_point_->getDimension ();  // get dimension of unknown space
 	int num_p = indices_src.size ();
 	int num_dfp = indices_src_dfp_.size ();
+	int num_handle_p = handles_indices_src.size ();
 	Eigen::VectorXd x(n_unknowns);
 	x.setConstant (n_unknowns, 0);
 
@@ -225,6 +228,9 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::estimateRigidTr
 	// ... DF points
 	tmp_idx_src_dfp_ = &indices_src_dfp_;
 	tmp_idx_tgt_dfp_ = &indices_tgt_dfp_;
+	// ... handles
+	tmp_idx_src_handles_ = &handles_indices_src;
+	tmp_idx_tgt_handles_ = &handles_indices_tgt;
 
 	std::cerr << "indices_src_dfp_ size " << indices_src_dfp_.size() << " \n ";
 	std::cerr << "indices_tgt_dfp_ size " << indices_tgt_dfp_.size() << " \n ";
@@ -235,7 +241,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::estimateRigidTr
 	if (weights_dfp_set_) {
 		// DF Weights are set
 		tmp_dfp_weights_ = &weights_dfp_;
-		OptimizationFunctorWithWeights functor (n_unknowns, num_p+num_dfp, num_p, num_dfp, this); // Initialize functor
+		OptimizationFunctorWithWeights functor (n_unknowns, num_p+num_dfp, num_p, num_dfp, num_handle_p, this); // Initialize functor
 		Eigen::NumericalDiff<OptimizationFunctorWithWeights> num_diff (functor); // Add derivative functionality
 		Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctorWithWeights> > lm (num_diff);
 		/* From Eigen::  enum  	Status {
@@ -248,7 +254,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::estimateRigidTr
 		iter = lm.iter;
 	} else {
 		// DF Weights are not set
-		OptimizationFunctor functor (n_unknowns, num_p+num_dfp, num_p, num_dfp, this); // Initialize functor
+		OptimizationFunctor functor (n_unknowns, num_p+num_dfp, num_p, num_dfp, num_handle_p, this); // Initialize functor
 		Eigen::NumericalDiff<OptimizationFunctor> num_diff (functor); // Add derivative functionality
 
 		Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctor> > lm (num_diff);
@@ -366,6 +372,21 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 		// Estimate the distance (cost function)
 //		diff_value_p += estimator_->computeDistance (p_src_warped, p_tgt);
 		fvec[i+number_dfp] = p_factor * estimator_->computeDistancePointToPlane (p_src_warped, p_tgt);
+	}
+
+	const double handle_factor = (handleWeight)/number_handle_p;
+	for (int i = 0; i < number_handle_p; ++i)
+	{
+		const PointSource & p_src = src_points.points[src_indices_handles[i]];
+		const PointTarget & p_tgt = tgt_points.points[tgt_indices_handles[i]];
+
+		// Transform the source point based on the current warp parameters
+		PointSource p_src_warped;
+		estimator_->warp_point_->warpPoint (p_src, p_src_warped);
+
+		// Estimate the distance (cost function)
+//		diff_value_p += estimator_->computeDistance (p_src_warped, p_tgt);
+		fvec[i+number_handle_p] = handle_factor * estimator_->computeDistance (p_src_warped, p_tgt);
 	}
 	// Divide by number of points
 //	diff_value_p = diff_value_p/number_p;

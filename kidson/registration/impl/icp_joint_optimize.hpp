@@ -82,6 +82,8 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
     int cnt = 0;
     std::vector<int> source_indices (indices_->size ());
     std::vector<int> target_indices (indices_->size ());
+    std::vector<int> handle_source_indices (handleSourceIndicesPtr->size ());
+    std::vector<int> handle_target_indices (handleSourceIndicesPtr->size ());
 
     // Iterating over the entire index vector and  find all correspondences
     for (size_t idx = 0; idx < indices_->size (); ++idx)
@@ -162,6 +164,7 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
     }
 
     // Find corrrespondences for the handles
+    cnt = 0;
     for (size_t idx = 0; idx < handleSourceIndices->size (); ++idx)
     {
     	if( kdtree.nearestKSearch (output.points[idx], 1, nn_indices, nn_dists) > 0)
@@ -169,13 +172,15 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
     		// Check if the distance to the nearest neighbor is smaller than the user imposed threshold
     		if (nn_dists[0] < dist_threshold)
     		{
-				source_indices[cnt] = (*indices_)[idx];
-				target_indices[cnt] = nn_indices[0];
+    			handle_source_indices[cnt] = (*handleSourceIndices)[idx];
+    			handle_target_indices[cnt] = nn_indices[0];
+    			cnt++;
     		}
     		// Save the nn_dists[0] to a global vector of distances
-    		correspondence_distances_[(*indices_)[idx]] = std::min (nn_dists[0], (float)dist_threshold);
+    		//correspondence_distances_[(*indices_)[idx]] = std::min (nn_dists[0], (float)dist_threshold);
     	}
     }
+    handle_source_indices.resize (cnt); handle_target_indices.resize (cnt);
 
     PCL_INFO ("[pcl::%s::computeTransformation] Iteration %d Number of correspondences %d [%f%%] out of %lu points [100.0%%], RANSAC rejected: %lu [%f%%].\n", getClassName ().c_str (), nr_iterations_, cnt, (cnt * 100.0) / indices_->size (), (unsigned long)indices_->size (), (unsigned long)source_indices.size () - cnt, (source_indices.size () - cnt) * 100.0 / source_indices.size ());
   
