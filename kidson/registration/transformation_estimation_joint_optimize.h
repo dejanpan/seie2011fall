@@ -338,4 +338,4 @@ protected:
 
 #include "impl/transformation_estimation_joint_optimize.hpp"
 
-#endif /* TRANSFORMATION_ESTIMATION_WDF_H */
+#endif /* TRANSFORMATION_ESTIMATION_JOINT_OPTIMIZE_H */
