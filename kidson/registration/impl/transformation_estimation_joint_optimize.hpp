@@ -55,26 +55,6 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::setCorrespondec
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget> inline void
-TransformationEstimationJointOptimize<PointSource, PointTarget>::setHandleSourceIndices( std::vector<int> &indices_src_handles_arg) {
-	// Copy data
-	indices_src_handles_ = indices_src_handles_arg;
-	// Update flags
-	//indices_src_dfp_set_ = true;
-	//indices_tgt_dfp_set_ = true;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget> inline void
-TransformationEstimationJointOptimize<PointSource, PointTarget>::setHandleTargetIndices( std::vector<int> &indices_tgt_handles_arg) {
-	// Copy data
-	indices_tgt_handles_ = indices_tgt_handles_arg;
-	// Update flags
-	//indices_src_dfp_set_ = true;
-	//indices_tgt_dfp_set_ = true;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget> inline void
 TransformationEstimationJointOptimize<PointSource, PointTarget>::setWeightsDFP (std::vector<float> weights_dfp_arg) {
 	weights_dfp_ = weights_dfp_arg;
 	weights_dfp_set_ = true;

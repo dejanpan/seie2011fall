@@ -35,8 +35,6 @@ class TransformationEstimationJointOptimize: public pcl::registration::Transform
 	float handleFeatureWeight; //<! weight used for the 3d handle component
 	std::vector<int> indices_src_dfp_; //!< the vector of indices describing distinctive feature points in source cloud
 	std::vector<int> indices_tgt_dfp_; //!< the vector of indices describing distinctive feature points in target cloud
-	std::vector<int> indices_src_handles_; //!< the vector of indices describing the handles
-	std::vector<int> indices_tgt_handles_; //!< the vector of indices describing the handles
 	bool indices_src_dfp_set_; //!< flag indicating if indices_src_dfp_ is set
 	bool indices_tgt_dfp_set_; //!< flag indicating if indices_tgt_dfp_ is set
 	std::vector<float> weights_dfp_; //!< the vector containing weights of distinctive feature points correspondences
