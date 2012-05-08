@@ -189,52 +189,83 @@ void extractHandles(PointCloud::Ptr& cloudInput, PointCloudNormal::Ptr& pointClo
 	}
 }
 
-
-//prepare point clouds - remove nans, get normals, write handles to disk
 int main(int argc, char** argv) {
-	if (argc != 3) {
-		std::cerr << "please provide 2 point clouds as arguments)" << std::endl;
+	if (argc != 5) {
+		std::cerr << "please provide 4 point clouds as arguments: source unfiltered, target unfiltered, source filtered, target filtered)" << std::endl;
 		exit(0);
 	}
 	PointCloud::Ptr cloudSource(new PointCloud);
 	PointCloud::Ptr cloudTarget(new PointCloud);
-	PointCloud::Ptr cloudSourceFiltered(new PointCloud);
-	PointCloud::Ptr cloudTargetFiltered(new PointCloud);
-	PointCloudNormal::Ptr cloudSourceNormalFiltered(new PointCloudNormal);
-	PointCloudNormal::Ptr cloudTargetNormalFiltered(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudSourceNormal(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudTargetNormal(new PointCloudNormal);
+	PointCloudNormal::Ptr cloudSourceFiltered(new PointCloudNormal);
+	PointCloudNormal::Ptr cloudTargetFiltered(new PointCloudNormal);
+	std::vector<int> indicesSource, indicesTarget;
 
 	//Fill in the cloud data
 	ROS_INFO("Reading files....");
 	pcl::PCDReader reader;
-	reader.read(argv[1], *cloudSource);
-	reader.read(argv[2], *cloudTarget);
+	reader.read(argv[1], *cloudSourceNormal);
+	reader.read(argv[2], *cloudTargetNormal);
+	reader.read(argv[3], *cloudSourceFiltered);
+	reader.read(argv[4], *cloudTargetFiltered);
+	pcl::copyPointCloud (*cloudSourceNormal, *cloudSource);
+	pcl::copyPointCloud (*cloudTargetNormal, *cloudTarget);
 
-	ROS_INFO("Calculating normals....");
-	normalEstimation(cloudSource, cloudSourceNormal);
-	normalEstimation(cloudTarget, cloudTargetNormal);
+	//ROS_INFO("Calculating normals....");
+	//normalEstimation(cloudSource, cloudSourceNormal);
+	//normalEstimation(cloudTarget, cloudTargetNormal);
 
 	std::vector<int> sourceHandleClusters;
 	std::vector<int> targetHandleClusters;
+
 	ROS_INFO("Extracting handles....");
 	extractHandles(cloudSource, cloudSourceNormal, sourceHandleClusters);
 	extractHandles(cloudTarget, cloudTargetNormal, targetHandleClusters);
 
-	std::vector<int> indices;
-	pcl::removeNaNFromPointCloud(*cloudSource, *cloudSourceFiltered, indices);
-	pcl::removeNaNFromPointCloud(*cloudTarget, *cloudTargetFiltered, indices);
+	ROS_INFO("Initialize transformation estimation object....");
+	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
+		transformationEstimation_(new TransformationEstimationJointOptimize<PointNormal, PointNormal>());
 
-	ROS_INFO("Calculating normals (filtered case)....");
-	normalEstimation(cloudSourceFiltered, cloudSourceNormalFiltered);
-	normalEstimation(cloudTargetFiltered, cloudTargetNormalFiltered);
+	float denseCloudWeight = 1.0;
+	float visualFeatureWeight = 0.0;
+	float handleFeatureWeight = 0.0;
+	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
+	transformationEstimation_->setCorrespondecesDFP(indicesSource, indicesTarget);
+
+	// custom icp
+	ROS_INFO("Initialize icp object....");
+	pcl::IterativeClosestPointJointOptimize<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
+	icpJointOptimize.setMaximumIterations (40);
+	icpJointOptimize.setTransformationEpsilon (1e-9);
+	icpJointOptimize.setMaxCorrespondenceDistance(0.1);
+	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
+	icpJointOptimize.setEuclideanFitnessEpsilon (0);
+	icpJointOptimize.setTransformationEstimation (transformationEstimation_);
+	icpJointOptimize.setHandleSourceIndices(sourceHandleClusters);
+	icpJointOptimize.setHandleTargetIndices(targetHandleClusters);
+	icpJointOptimize.setInputCloud(cloudSourceFiltered);
+	icpJointOptimize.setInputTarget(cloudTargetFiltered);
+
+	ROS_INFO("Running ICP....");
+	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
+	icpJointOptimize.align ( *cloud_transformed); //init_tr );
+	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icpJointOptimize.hasConverged() << std::endl <<
+				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl;
+	icpJointOptimize.getFinalTransformation ();
 
 	ROS_INFO("Writing output....");
 	pcl::PCDWriter writer;
-	writer.write("source_normals_unfilt.pcd", *cloudSourceNormal,  true);
-	writer.write("target_normals_unfilt.pcd", *cloudTargetNormal,  true);
-	writer.write("source_normals_filt.pcd", *cloudSourceNormalFiltered,  true);
-	writer.write("target_normals_filt.pcd", *cloudTargetNormalFiltered,  true);
-	writer.write("handlesSource.pcd", *cloudSource, sourceHandleClusters, true);
-	writer.write("handlesTarget.pcd", *cloudTarget, targetHandleClusters, true);
+
+	writer.write("converged.pcd", *cloud_transformed, true);
 }
+
+/*
+ * Run ICP with point to plane error metric
+has converged:1 score: 0.00104609
+     0.98492     0.171598   -0.0220549    0.0408765
+   -0.172011     0.984923   -0.0184277   -0.0478952
+   0.0185603    0.0219435     0.999587 -0.000478007
+           0            0            0            1
+ *
+*/

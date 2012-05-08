@@ -64,8 +64,8 @@ int
 		     0, 0, 0, 1;
 
   pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-  icp.setRANSACOutlierRejectionThreshold(10.0);
-  icp.setMaximumIterations (40);
+  //icp.setRANSACOutlierRejectionThreshold(10.0);
+  //icp.setMaximumIterations (40);
   icp.setInputCloud(cloud_in);
   icp.setInputTarget(cloud_out);
   pcl::PointCloud<pcl::PointXYZ> Final;
