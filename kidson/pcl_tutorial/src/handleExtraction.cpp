@@ -22,6 +22,7 @@
 #include "pcl/common/common.h"
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/registration/transformation_estimation_joint_optimize.h>
+#include <pcl/registration/icp_joint_optimize.h>
 
 #include "tf/tf.h"
 
@@ -202,12 +203,14 @@ int main(int argc, char** argv) {
 	//Fill in the cloud data
 	ROS_INFO("Reading files....");
 	pcl::PCDReader reader;
-	reader.read(argv[1], *cloudSource);
-	reader.read(argv[2], *cloudTarget);
+	reader.read(argv[1], *cloudSourceNormal);
+	reader.read(argv[2], *cloudTargetNormal);
+	pcl::copyPointCloud (*cloudSourceNormal, *cloudSource);
+	pcl::copyPointCloud (*cloudTargetNormal, *cloudTarget);
 
-	ROS_INFO("Calculating normals....");
-	normalEstimation(cloudSource, cloudSourceNormal);
-	normalEstimation(cloudTarget, cloudTargetNormal);
+	//ROS_INFO("Calculating normals....");
+	//normalEstimation(cloudSource, cloudSourceNormal);
+	//normalEstimation(cloudTarget, cloudTargetNormal);
 
 	std::vector<int> sourceHandleClusters;
 	std::vector<int> targetHandleClusters;
@@ -216,38 +219,45 @@ int main(int argc, char** argv) {
 	extractHandles(cloudSource, cloudSourceNormal, sourceHandleClusters);
 	extractHandles(cloudTarget, cloudTargetNormal, targetHandleClusters);
 
+	ROS_INFO("Initialize transformation estimation object....");
 	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
 		transformationEstimation_(new TransformationEstimationJointOptimize<PointNormal, PointNormal>());
 
-	float denseCloudWeight = 0.3;
+	float denseCloudWeight = 1.0;
 	float visualFeatureWeight = 0.0;
-	float handleFeatureWeight = 0.7;
+	float handleFeatureWeight = 0.0;
 	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
 	transformationEstimation_->setCorrespondecesDFP(indicesSource, indicesTarget);
 
 	// custom icp
-	pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
+	ROS_INFO("Initialize icp object....");
+	pcl::IterativeClosestPointJointOptimize<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
 	icpJointOptimize.setMaximumIterations (40);
 	icpJointOptimize.setTransformationEpsilon (1e-9);
 	icpJointOptimize.setMaxCorrespondenceDistance(0.1);
 	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
 	icpJointOptimize.setEuclideanFitnessEpsilon (0);
 	icpJointOptimize.setTransformationEstimation (transformationEstimation_);
-
-	//icpJointOptimize.setHandleSourceIndices(sourceHandleClusters);
-	//icpJointOptimize.setHandleTargetIndices(targetHandleClusters);
-
+	icpJointOptimize.setHandleSourceIndices(sourceHandleClusters);
+	icpJointOptimize.setHandleTargetIndices(targetHandleClusters);
 	icpJointOptimize.setInputCloud(cloudSourceNormal);
 	icpJointOptimize.setInputTarget(cloudTargetNormal);
 
 
+	ROS_INFO("Running ICP....");
 	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
 	icpJointOptimize.align ( *cloud_transformed); //init_tr );
 	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icpJointOptimize.hasConverged() << std::endl <<
 				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl;
 	icpJointOptimize.getFinalTransformation ();
 
+	ROS_INFO("Writing output....");
 	pcl::PCDWriter writer;
-	writer.write("handlesSource.pcd", *cloudSource, sourceHandleClusters, true);
-	writer.write("handlesTarget.pcd", *cloudTarget, targetHandleClusters, true);
+	//writer.write("handlesSource.pcd", *cloudSource, sourceHandleClusters, true);
+	//writer.write("handlesTarget.pcd", *cloudTarget, targetHandleClusters, true);
+
+	//writer.write("node_1_normals.pcd", *cloudSourceNormal,  true);
+	//writer.write("node_2_normals.pcd", *cloudTargetNormal,  true);
+
+	writer.write("converged.pcd", *cloud_transformed, true);
 }
