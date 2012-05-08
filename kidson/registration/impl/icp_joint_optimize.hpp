@@ -68,6 +68,9 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
   std::vector<float> previous_correspondence_distances (indices_->size ());
   correspondence_distances_.resize (indices_->size ());
 
+  pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+  kdtree.setInputCloud(cloud, handleTargetIndices);
+
   while (!converged_)           // repeat until convergence
   {
     // Save the previously estimated transformation
@@ -156,6 +159,34 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
       converged_ = false;
       return;
     }
+
+    // Find corrrespondences for the handles
+    for (size_t idx = 0; idx < handleSourceIndices->size (); ++idx)
+    {
+      if (!searchForNeighbors (output, (*indices_)[idx], nn_indices, nn_dists))
+      {
+        PCL_ERROR ("[pcl::%s::computeTransformation] Unable to find a nearest neighbor in the target dataset for point %d in the source!\n", getClassName ().c_str (), (*indices_)[idx]);
+        return;
+      }
+
+      // Check if the distance to the nearest neighbor is smaller than the user imposed threshold
+      if (nn_dists[0] < dist_threshold)
+      {
+        source_indices[cnt] = (*indices_)[idx];
+        target_indices[cnt] = nn_indices[0];
+        cnt++;
+      }
+
+      // Save the nn_dists[0] to a global vector of distances
+      correspondence_distances_[(*indices_)[idx]] = std::min (nn_dists[0], (float)dist_threshold);
+    }
+    if (cnt < min_number_correspondences_)
+    {
+      PCL_ERROR ("[pcl::%s::computeTransformation] Not enough correspondences found. Relax your threshold parameters.\n", getClassName ().c_str ());
+      converged_ = false;
+      return;
+    }
+
 
     PCL_INFO ("[pcl::%s::computeTransformation] Iteration %d Number of correspondences %d [%f%%] out of %lu points [100.0%%], RANSAC rejected: %lu [%f%%].\n", getClassName ().c_str (), nr_iterations_, cnt, (cnt * 100.0) / indices_->size (), (unsigned long)indices_->size (), (unsigned long)source_indices.size () - cnt, (source_indices.size () - cnt) * 100.0 / source_indices.size ());
   

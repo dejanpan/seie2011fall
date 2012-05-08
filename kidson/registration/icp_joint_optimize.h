@@ -105,18 +105,20 @@ namespace pcl
         reg_name_ = "IterativeClosestPointJointOptimize";
         //transformation_estimation_.reset (new pcl::registration::TransformationEstimationSVD<PointSource, PointTarget>);
         transformation_estimation_.reset (new pcl::registration::TransformationEstimationJointOptimize<PointSource, PointTarget>);
+        handleSourceIndicesPtr (new std::vector<int>);
+        handleTargetIndicesPtr (new std::vector<int>);
       };
 
       void
       setHandleSourceIndices(std::vector<int>& handleSourceIndicesArg)
       {
-    	  handleSourceIndices = handleSourceIndicesArg;
+    	  *handleSourceIndicesPtr = handleSourceIndicesArg;
       }
 
       void
       setHandleTargetIndices(std::vector<int>& handleTargetIndicesArg)
       {
-    	  handleTargetIndices = handleTargetIndicesArg;
+    	  *handleTargetIndicesPtr = handleTargetIndicesArg;
       }
 
     protected:
@@ -127,8 +129,8 @@ namespace pcl
       virtual void 
       computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess);
 
-      std::vector<int> handleSourceIndices;
-      std::vector<int> handleTargetIndices;
+      pcl::IndicesPtr handleSourceIndicesPtr;
+      pcl::IndicesPtr handleTargetIndicesPtr;
 
       using Registration<PointSource, PointTarget>::reg_name_;
       using Registration<PointSource, PointTarget>::getClassName;
