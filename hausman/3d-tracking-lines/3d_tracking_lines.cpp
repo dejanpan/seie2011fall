@@ -75,6 +75,9 @@
     }                                           \
   }
 
+unsigned char colormap_ [36] = { 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0, 255, 0, 255, 0, 255, 255, 127, 0, 0, 0, 127, 0, 0, 0, 127,127, 127, 0, 127, 0, 127, 0, 127, 127 };
+
+
 using namespace pcl::tracking;
 
 template<typename PointType>
@@ -101,7 +104,7 @@ public:
 	OpenNISegmentTracking(const std::string& device_id, int thread_nr,
 			double downsampling_grid_size, bool use_convex_hull,
 			bool visualize_non_downsample, bool visualize_particles,
-			bool use_fixed) :
+			bool use_fixed, int trackers_number) :
 			viewer_("PCL OpenNI Tracking Viewer"), device_id_(device_id), new_cloud_(
 					false), ne_(thread_nr), counter_(0), use_convex_hull_(
 					use_convex_hull), visualize_non_downsample_(
@@ -112,7 +115,12 @@ public:
 		ne_.setSearchMethod(tree);
 		ne_.setRadiusSearch(0.03);
 
-		a_file_.open("poses.txt");
+
+
+
+
+
+		a_file_.open("poses5.txt");
 		//here
 		//std::vector<double> default_step_covariance = std::vector<double>(6,
 		//		0.015 * 0.015);
@@ -128,11 +136,15 @@ public:
 		std::vector<double> initial_noise_covariance = std::vector<double>(6,
 				0.00001);
 		std::vector<double> default_initial_mean = std::vector<double>(6, 0.0);
+
+		for (int i=0; i<trackers_number; i++){
+
 		if (use_fixed) {
 			boost::shared_ptr<ParticleFilterOMPTracker<RefPointType, ParticleT> > tracker(
 					new ParticleFilterOMPTracker<RefPointType, ParticleT>(
 							thread_nr));
 			tracker_ = tracker;
+
 		} else {
 			boost::shared_ptr<
 					KLDAdaptiveParticleFilterOMPTracker<RefPointType, ParticleT> > tracker(
@@ -197,12 +209,20 @@ public:
 		coherence->setSearchMethod(search);
 		coherence->setMaximumDistance(0.01);
 		tracker_->setCloudCoherence(coherence);
+
+
+		tracker_vector_.push_back(tracker_);
+		}
+
 	}
 
 	bool drawParticles(pcl::visualization::PCLVisualizer& viz) {
 
+
+
 		bool drawParticles= false;
 		ParticleFilter::PointCloudStatePtr particles = tracker_->getParticles();
+		//ParticleFilter::PointCloudStatePtr particles = tracker_->getParticles();
 		if (particles) {
 			if (visualize_particles_) {
 				pcl::PointCloud<pcl::PointXYZ>::Ptr particle_cloud(
@@ -234,14 +254,18 @@ public:
 	}
 
 	void drawResult(pcl::visualization::PCLVisualizer& viz) {
-		ParticleXYZRPY result = tracker_->getResult();
+
+		for (uint track=0; track < tracker_vector_.size(); track++) {
+
+
+		ParticleXYZRPY result = tracker_vector_[track]->getResult();
 		bool non_tracking=false;
 
 		if (non_tracking)
 		{
 			if (counter_<13){
 
-				Eigen::Affine3f transformation = tracker_->toEigenMatrix(result);
+				Eigen::Affine3f transformation = tracker_vector_[track]->toEigenMatrix(result);
 				// move a little bit for better visualization
 				transformation.translation() += Eigen::Vector3f(0.0, 0.0, -0.005);
 				transformation_=transformation;
@@ -249,7 +273,7 @@ public:
 		}
 		else
 		{
-			Eigen::Affine3f transformation = tracker_->toEigenMatrix(result);
+			Eigen::Affine3f transformation = tracker_vector_[track]->toEigenMatrix(result);
 							// move a little bit for better visualization
 							transformation.translation() += Eigen::Vector3f(0.0, 0.0, -0.005);
 							transformation_=transformation;
@@ -260,18 +284,23 @@ public:
 
 		if (!visualize_non_downsample_)
 			pcl::transformPointCloud<RefPointType>(
-					*(tracker_->getReferenceCloud()), *result_cloud,
+					*(tracker_vector_[track]->getReferenceCloud()), *result_cloud,
 					transformation_);
 		else
-			pcl::transformPointCloud<RefPointType>(*reference_, *result_cloud,
-					transformation_);
+//			pcl::transformPointCloud<RefPointType>(*reference_, *result_cloud,
+//					transformation_);
+		pcl::transformPointCloud<RefPointType>(*(tracker_vector_[track]->getReferenceCloud()), *result_cloud,
+							transformation_);
 
 
 		Eigen::Vector4f center;
 		pcl::compute3DCentroid<RefPointType>(*result_cloud, center);
 
+		std::stringstream ss;
+					ss <<track;
 
-		a_file_<< "x" << " " << "y" << " " << "z" << std::endl;
+		//a_file_<<ss.str();
+		//a_file_<< "x" << " " << "y" << " " << "z" << std::endl;
 		a_file_<< center[0] << " " << center[1] << " " << center[2] << std::endl;
 		std::cerr<<"center: "<<center<<std::endl;
 
@@ -279,16 +308,26 @@ public:
 
 
 		{
+//			pcl::visualization::PointCloudColorHandlerCustom<RefPointType> red_color(
+//					result_cloud, 0, 0, 255);
+
+			//if (track<12)
 			pcl::visualization::PointCloudColorHandlerCustom<RefPointType> red_color(
-					result_cloud, 0, 0, 255);
-			if (!viz.updatePointCloud(result_cloud, red_color, "resultcloud"))
-				viz.addPointCloud(result_cloud, red_color, "resultcloud");
+								result_cloud, colormap_[3*track], colormap_[3*track+1], colormap_[3*track+2]);
+
+			std::cerr<<"track: "<<track<<std::endl;
+
+
+
+
+			if (!viz.updatePointCloud(result_cloud, red_color, ss.str()))
+				viz.addPointCloud(result_cloud, red_color, ss.str());
 
 			//points' size
-			 viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4, "resultcloud");
+			 viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4, ss.str());
 
 		}
-
+}
 	}
 
 	void viz_cb(pcl::visualization::PCLVisualizer& viz) {
@@ -464,11 +503,18 @@ public:
 	void tracking(const RefCloudConstPtr &cloud) {
 		double start = pcl::getTime();
 		FPS_CALC_BEGIN;
-		tracker_->setInputCloud(cloud);
-		tracker_->compute();
+		for (uint track=0; track < tracker_vector_.size(); track++) {
+
+		tracker_vector_[track]->setInputCloud(cloud);
+		tracker_vector_[track]->compute();
+
+//		tracker_->setInputCloud(cloud);
+//		tracker_->compute();
+		}
 		double end = pcl::getTime();
 		FPS_CALC_END("tracking");
 		tracking_time_ = end - start;
+
 	}
 
 	void addNormalToCloud(const CloudConstPtr &cloud,
@@ -694,7 +740,7 @@ public:
 		  std::vector<int> pointIdxRadiusSearch;
 		  std::vector<float> pointRadiusSquaredDistance;
 
-		   float radius = 0.02;
+		   float radius = 0.05;
 
 
 
@@ -922,12 +968,15 @@ public:
 
 					RefCloudPtr nonzero_ref_lines(new RefCloud);
 					RefCloudPtr nonzero_ref_lines2(new RefCloud);
+					RefCloudPtr nonzero_ref_lines3(new RefCloud);
+
 
 					RefCloudPtr nonzero_ref_boundary(new RefCloud);
 					RefCloudPtr nonzero_ref_corners(new RefCloud);
-					RefCloudPtr nonzero_ref_final_cloud(new RefCloud);
 					RefCloudPtr nonzero_ref_no_line(new RefCloud);
 					RefCloudPtr nonzero_ref_no_line2(new RefCloud);
+					RefCloudPtr nonzero_ref_no_line3(new RefCloud);
+
 
 
 					pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity(new pcl::PointCloud<pcl::PointXYZI>);
@@ -942,8 +991,25 @@ public:
 					//extracting second line
 					extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2);
 
+					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3);
+
+
+					std::vector<RefCloudPtr> clouds_vector;
+					clouds_vector.push_back(nonzero_ref_lines);
+					clouds_vector.push_back(nonzero_ref_lines2);
+					clouds_vector.push_back(nonzero_ref_lines3);
+					clouds_vector.push_back(nonzero_ref_corners);
+
+
+					for (uint track=0; track < tracker_vector_.size(); track++) {
+
+						RefCloudPtr nonzero_ref_final_cloud(new RefCloud);
+
 					//making point cloud thicker- in case of change(i.e. corner instead of the line or so) change second param
-					extractNeighbor(nonzero_ref,*nonzero_ref_lines, *nonzero_ref_final_cloud);
+					extractNeighbor(nonzero_ref,*clouds_vector[track], *nonzero_ref_final_cloud);
+					std::stringstream ss;
+						ss <<track;
+					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
 
 
 
@@ -968,13 +1034,16 @@ public:
 					CloudPtr transed_ref_downsampled(new Cloud);
 					gridSample(transed_ref, *transed_ref_downsampled,
 							downsampling_grid_size_);
-					tracker_->setReferenceCloud(transed_ref_downsampled);
-					tracker_->setTrans(trans);
+					tracker_vector_[track]->setReferenceCloud(transed_ref_downsampled);
+					tracker_vector_[track]->setTrans(trans);
 					reference_ = transed_ref;
-					tracker_->setMinIndices(ref_cloud->points.size() / 2);
-				} else {
+					tracker_vector_[track]->setMinIndices(ref_cloud->points.size() / 2);
+				}
+			}
+			else {
 					PCL_WARN("euclidean segmentation failed\n");
 				}
+
 			}
 		} else {
 			//normals_.reset (new pcl::PointCloud<pcl::Normal>);
@@ -1006,6 +1075,7 @@ public:
 
 		}
 		counter_++;
+
 	}
 
 	void run() {
@@ -1049,6 +1119,7 @@ public:
 	bool new_cloud_;
 	pcl::NormalEstimationOMP<PointType, pcl::Normal> ne_; // to store threadpool
 	boost::shared_ptr<ParticleFilter> tracker_;
+	std::vector<boost::shared_ptr<ParticleFilter> > tracker_vector_;
 	int counter_;
 	bool use_convex_hull_;
 	bool visualize_non_downsample_;
@@ -1057,10 +1128,11 @@ public:
 	double computation_time_;
 	double downsampling_time_;
 	double downsampling_grid_size_;
-
 	std::ofstream a_file_ ;
 
 };
+
+
 
 void usage(char** argv) {
 	std::cout << "usage: " << argv[0] << " <device_id> [-C] [-g]\n\n";
@@ -1109,6 +1181,6 @@ int main(int argc, char** argv) {
 	// open kinect
 	OpenNISegmentTracking<pcl::PointXYZRGBA> v(device_id, 8,
 			downsampling_grid_size, use_convex_hull, visualize_non_downsample,
-			visualize_particles, use_fixed);
+			visualize_particles, use_fixed,4);
 	v.run();
 }
