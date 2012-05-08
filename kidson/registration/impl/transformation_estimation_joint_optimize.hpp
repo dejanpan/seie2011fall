@@ -325,7 +325,9 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 	const std::vector<int> & tgt_indices_dfp = *estimator_->tmp_idx_tgt_dfp_;
 	const std::vector<int> & src_indices_handles = *estimator_->tmp_idx_src_handles_;
 	const std::vector<int> & tgt_indices_handles = *estimator_->tmp_idx_tgt_handles_;
-	const float alpha = estimator_->alpha_;
+	const float visualWeight = estimator_->visualFeatureWeight;
+	const float denseWeight = estimator_->denseCloudWeight;
+	const float handleWeight = estimator_->handleFeatureWeight;
 
 	// Initialize the warp function with the given parameters
 	Eigen::VectorXf params = x.cast<float> ();
@@ -336,7 +338,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 
 	// Sum of squared distances of distinctive feature points
 //	double diff_value_dfp = 0;
-	const double dfp_factor = alpha/number_dfp;
+	const double dfp_factor = visualWeight/number_dfp;
 	for (int i = 0; i < number_dfp; ++i)
 	{
 		const PointSource & p_src = src_points.points[src_indices_dfp[i]];
@@ -351,7 +353,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 		fvec[i] = dfp_factor * estimator_->computeDistance (p_src_warped, p_tgt);
 	}
 
-	const double p_factor = (1-alpha)/number_p;
+	const double p_factor = (denseWeight)/number_p;
 	for (int i = 0; i < number_p; ++i)
 	{
 		const PointSource & p_src = src_points.points[src_indices[i]];
@@ -387,8 +389,9 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 	const std::vector<int> & src_indices_dfp = *estimator_->tmp_idx_src_dfp_;
 	const std::vector<int> & tgt_indices_dfp = *estimator_->tmp_idx_tgt_dfp_;
 	const std::vector<float> & weights_dfp = *estimator_->tmp_dfp_weights_;
-	const float alpha = estimator_->alpha_;
-
+	const float visualWeight = estimator_->visualFeatureWeight;
+	const float denseWeight = estimator_->denseCloudWeight;
+	const float handleWeight = estimator_->handleFeatureWeight;
 
 //	  const PointCloud<PointSource> & src_points = *estimator_->tmp_src_;
 //	  const PointCloud<PointTarget> & tgt_points = *estimator_->tmp_tgt_;
@@ -420,7 +423,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 
 	// Sum of squared distances of distinctive feature points
 //	double diff_value_dfp = 0;
-	const double dfp_factor = alpha/number_dfp;
+	const double dfp_factor = visualWeight/number_dfp;
 	for (int i = 0; i < number_dfp; ++i)
 	{
 		const PointSource & p_src = src_points.points[src_indices_dfp[i]];
@@ -439,7 +442,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 
 	// Sum of squared distances of common points
 //	double diff_value_p = 0;
-	const double p_factor = (1-alpha)/number_p;
+	const double p_factor = denseWeight/number_p;
 	for (int i = 0; i < number_p; ++i)
 	{
 		const PointSource & p_src = src_points.points[src_indices[i]];

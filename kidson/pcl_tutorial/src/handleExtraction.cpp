@@ -21,6 +21,7 @@
 #include <pcl/common/angles.h>
 #include "pcl/common/common.h"
 #include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/registration/transformation_estimation_joint_optimize.h>
 
 #include "tf/tf.h"
 
@@ -215,39 +216,37 @@ int main(int argc, char** argv) {
 	extractHandles(cloudSource, cloudSourceNormal, sourceHandleClusters);
 	extractHandles(cloudTarget, cloudTargetNormal, targetHandleClusters);
 
-	 /*boost::shared_ptr< TransformationEstimationWDF<pcl::PointXYZRGBNormal,pcl::PointXYZRGBNormal> >
-	initialTransformWDF(new TransformationEstimationWDF<pcl::PointXYZRGBNormal,pcl::PointXYZRGBNormal>());
+	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
+		transformationEstimation_(new TransformationEstimationJointOptimize<PointNormal, PointNormal>());
 
-	float alpha = 1.0;
-	initialTransformWDF->setAlpha(alpha);
-	initialTransformWDF->setCorrespondecesDFP(indicesSource, indicesTarget);
+	float denseCloudWeight = 0.3;
+	float visualFeatureWeight = 0.0;
+	float handleFeatureWeight = 0.7;
+	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
+	transformationEstimation_->setCorrespondecesDFP(indicesSource, indicesTarget);
 
-	// Instantiate ICP
-	pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_wdf;
+	// custom icp
+	pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
+	icpJointOptimize.setMaximumIterations (40);
+	icpJointOptimize.setTransformationEpsilon (1e-9);
+	icpJointOptimize.setMaxCorrespondenceDistance(0.1);
+	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
+	icpJointOptimize.setEuclideanFitnessEpsilon (0);
+	icpJointOptimize.setTransformationEstimation (transformationEstimation_);
 
-	// Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
-	icp_wdf.setMaxCorrespondenceDistance (0.05);
-	// Set the maximum number of iterations (criterion 1)
-	icp_wdf.setMaximumIterations (75);
-	// Set the transformation epsilon (criterion 2)
-	icp_wdf.setTransformationEpsilon (1e-8);
-	// Set the euclidean distance difference epsilon (criterion 3)
-	icp_wdf.setEuclideanFitnessEpsilon (0); //1
+	//icpJointOptimize.setHandleSourceIndices(sourceHandleClusters);
+	//icpJointOptimize.setHandleTargetIndices(targetHandleClusters);
 
-	// Set TransformationEstimationWDF as ICP transform estimator
-	icp_wdf.setTransformationEstimation (initialTransformWDF);
+	icpJointOptimize.setInputCloud(cloudSourceNormal);
+	icpJointOptimize.setInputTarget(cloudTargetNormal);
 
-	icp_wdf.setInputCloud( concatinatedSourceCloud);
-	icp_wdf.setInputTarget( concatinatedTargetCloud);
 
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_transformed( new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-	// As before, due to my initial bad naming, it is the "target" that is being transformed
-	//									set initial transform
-	icp_wdf.align ( *cloud_transformed, ransacInverse); //init_tr );
-	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icp_wdf.hasConverged() << std::endl <<
-				"	fitness score (SSD): " << icp_wdf.getFitnessScore (1000) << std::endl;
-	icp_wdf.getFinalTransformation ();
-*/
+	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
+	icpJointOptimize.align ( *cloud_transformed); //init_tr );
+	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icpJointOptimize.hasConverged() << std::endl <<
+				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl;
+	icpJointOptimize.getFinalTransformation ();
+
 	pcl::PCDWriter writer;
 	writer.write("handlesSource.pcd", *cloudSource, sourceHandleClusters, true);
 	writer.write("handlesTarget.pcd", *cloudTarget, targetHandleClusters, true);

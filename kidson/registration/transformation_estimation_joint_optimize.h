@@ -114,12 +114,6 @@ public:
 	setCorrespondecesDFP( std::vector<int> &indices_src_dfp_arg, std::vector<int> &indices_tgt_dfp_arg );
 
 	inline void
-	setHandleSourceIndices( std::vector<int> &indices_src_handles_arg);
-
-	inline void
-	setHandleTargetIndices( std::vector<int> &indices_src_handles_arg);
-
-	inline void
 	setWeightsDFP (std::vector<float> weights_dfp_arg);
 
 	/** \brief Estimate a rigid rotation transformation between a source and a target point cloud using WDF.
