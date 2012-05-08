@@ -33,7 +33,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id: icp.hpp 3503 2011-12-12 06:07:28Z rusu $
+ * $Id: icp_joint_optimize.hpp 3503 2011-12-12 06:07:28Z ross $
  *
  */
 
@@ -41,7 +41,7 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget> void
-pcl::IterativeClosestPoint<PointSource, PointTarget>::computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess)
+pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess)
 {
   // Allocate enough space to hold the results
   std::vector<int> nn_indices (1);

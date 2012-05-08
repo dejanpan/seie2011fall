@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id: icp.h 3503 2011-12-12 06:07:28Z rusu $
+ * $Id: icp_joint_optimize.h 3503 2011-12-12 06:07:28Z ross $
  *
  */
 
@@ -100,12 +100,24 @@ namespace pcl
 
     public:
       /** \brief Empty constructor. */
-      IterativeClosestPoint () 
+      IterativeClosestPointJointOptimize ()
       {
         reg_name_ = "IterativeClosestPointJointOptimize";
         //transformation_estimation_.reset (new pcl::registration::TransformationEstimationSVD<PointSource, PointTarget>);
         transformation_estimation_.reset (new pcl::registration::TransformationEstimationJointOptimize<PointSource, PointTarget>);
       };
+
+      void
+      setHandleSourceIndices(std::vector<int>& handleSourceIndicesArg)
+      {
+    	  handleSourceIndices = handleSourceIndicesArg;
+      }
+
+      void
+      setHandleTargetIndices(std::vector<int>& handleTargetIndicesArg)
+      {
+    	  handleTargetIndices = handleTargetIndicesArg;
+      }
 
     protected:
       /** \brief Rigid transformation computation method  with initial guess.
@@ -114,6 +126,9 @@ namespace pcl
         */
       virtual void 
       computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess);
+
+      std::vector<int> handleSourceIndices;
+      std::vector<int> handleTargetIndices;
 
       using Registration<PointSource, PointTarget>::reg_name_;
       using Registration<PointSource, PointTarget>::getClassName;
