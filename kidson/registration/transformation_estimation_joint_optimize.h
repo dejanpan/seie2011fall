@@ -172,6 +172,16 @@ public:
     estimateRigidTransformation (
         const pcl::PointCloud<PointSource> &cloud_src,
         const std::vector<int> &indices_src,
+        const std::vector<int> &handles_indices_src,
+        const pcl::PointCloud<PointTarget> &cloud_tgt,
+        const std::vector<int> &indices_tgt,
+        const std::vector<int> &handles_indices_tgt,
+        Eigen::Matrix4f &transformation_matrix);
+
+    inline void
+    estimateRigidTransformation (
+        const pcl::PointCloud<PointSource> &cloud_src,
+        const std::vector<int> &indices_src,
         const pcl::PointCloud<PointTarget> &cloud_tgt,
         const std::vector<int> &indices_tgt,
         Eigen::Matrix4f &transformation_matrix);
@@ -300,8 +310,8 @@ protected:
 		 * \param estimator_ pointer to the estimator object
 		 * \param distance distance computation function pointer
 		 */
-		OptimizationFunctor (int n, int m, int np, int ndfp, TransformationEstimationJointOptimize<PointSource, PointTarget> *estimator) :
-			Functor<double> (n,m, np, ndfp), estimator_ (estimator) {}
+		OptimizationFunctor (int n, int m, int np, int ndfp, int nhandlep, TransformationEstimationJointOptimize<PointSource, PointTarget> *estimator) :
+			Functor<double> (n,m, np, ndfp, nhandlep), estimator_ (estimator) {}
 
 		/** Fill fvec from x. For the current state vector x fill the f values
 		 * \param x state vector
@@ -326,8 +336,8 @@ protected:
 		 * \param estimator_ pointer to the estimator object
 		 * \param distance distance computation function pointer
 		 */
-		OptimizationFunctorWithWeights (int n, int m, int np, int ndfp, TransformationEstimationJointOptimize<PointSource, PointTarget> *estimator) :
-			Functor<double> (n,m, np, ndfp), estimator_ (estimator) {}
+		OptimizationFunctorWithWeights (int n, int m, int np, int ndfp, int nhandlep, TransformationEstimationJointOptimize<PointSource, PointTarget> *estimator) :
+			Functor<double> (n,m, np, ndfp, nhandlep), estimator_ (estimator) {}
 
 		/** Fill fvec from x. For the current state vector x fill the f values
 		 * \param x state vector

@@ -44,7 +44,7 @@
 #include "pcl/registration/registration.h"
 //#include "pcl/registration/transformation_estimation_svd.h"
 //#include "pcl/registration/transformation_estimation_point_to_plane.h"
-#include "pcl/registration/transformation_estimation_joint_optimize.h"
+//#include "pcl/registration/transformation_estimation_joint_optimize.h"
 
 namespace pcl
 {
@@ -101,12 +101,12 @@ namespace pcl
     public:
       /** \brief Empty constructor. */
       IterativeClosestPointJointOptimize ()
+      :   handleSourceIndicesPtr (new std::vector<int>),
+          handleTargetIndicesPtr (new std::vector<int>)
       {
         reg_name_ = "IterativeClosestPointJointOptimize";
-        //transformation_estimation_.reset (new pcl::registration::TransformationEstimationSVD<PointSource, PointTarget>);
-        transformation_estimation_.reset (new pcl::registration::TransformationEstimationJointOptimize<PointSource, PointTarget>);
-        handleSourceIndicesPtr (new std::vector<int>);
-        handleTargetIndicesPtr (new std::vector<int>);
+        transformation_estimation_.reset (new pcl::registration::TransformationEstimationSVD<PointSource, PointTarget>);
+        //transformation_estimation_.reset (new pcl::registration::TransformationEstimationJointOptimize<PointSource, PointTarget>);
       };
 
       void

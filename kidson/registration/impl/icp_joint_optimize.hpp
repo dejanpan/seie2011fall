@@ -39,11 +39,13 @@
 
 #include <boost/unordered_map.hpp>
 #include <pcl/kdtree/kdtree_flann.h>
+#include "pcl/registration/transformation_estimation_joint_optimize.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget> void
 pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess)
 {
+	std::cerr << "ICP init\n";
   // Allocate enough space to hold the results
   std::vector<int> nn_indices (1);
   std::vector<float> nn_dists (1);
@@ -69,11 +71,12 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
   std::vector<float> previous_correspondence_distances (indices_->size ());
   correspondence_distances_.resize (indices_->size ());
 
-  pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
-  kdtree.setInputCloud(cloud, handleTargetIndicesPtr);
+  pcl::KdTreeFLANN<PointSource> kdtree;
+  kdtree.setInputCloud(target_, handleTargetIndicesPtr);
 
   while (!converged_)           // repeat until convergence
   {
+		std::cerr << "Start loop\n";
     // Save the previously estimated transformation
     previous_transformation_ = transformation_;
     // And the previous set of distances
@@ -82,9 +85,10 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
     int cnt = 0;
     std::vector<int> source_indices (indices_->size ());
     std::vector<int> target_indices (indices_->size ());
-    std::vector<int> handle_source_indices (handleSourceIndicesPtr->size ());
-    std::vector<int> handle_target_indices (handleSourceIndicesPtr->size ());
+    std::vector<int> handle_source_correspondence_indices (handleSourceIndicesPtr->size ());
+    std::vector<int> handle_target_correspondence_indices (handleSourceIndicesPtr->size ());
 
+	std::cerr << "find correspondences\n";
     // Iterating over the entire index vector and  find all correspondences
     for (size_t idx = 0; idx < indices_->size (); ++idx)
     {
@@ -163,30 +167,38 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
       return;
     }
 
+	std::cerr << "find correspondences for handles\n";
     // Find corrrespondences for the handles
-    cnt = 0;
-    for (size_t idx = 0; idx < handleSourceIndices->size (); ++idx)
+    int cntHandles = 0;
+    if(!handleSourceIndicesPtr)
+		std::cerr << "handles source indices null pointer\n";
+    for (size_t idx = 0; idx < handleSourceIndicesPtr->size (); ++idx)
     {
-    	if( kdtree.nearestKSearch (output.points[idx], 1, nn_indices, nn_dists) > 0)
+    	if( kdtree.nearestKSearch (output.points[(*handleSourceIndicesPtr)[idx]], 1, nn_indices, nn_dists) > 0)
     	{
     		// Check if the distance to the nearest neighbor is smaller than the user imposed threshold
     		if (nn_dists[0] < dist_threshold)
     		{
-    			handle_source_indices[cnt] = (*handleSourceIndices)[idx];
-    			handle_target_indices[cnt] = nn_indices[0];
-    			cnt++;
+    			handle_source_correspondence_indices[cntHandles] = (*handleSourceIndicesPtr)[idx];
+    			handle_target_correspondence_indices[cntHandles] = nn_indices[0];
+    			cntHandles++;
     		}
     		// Save the nn_dists[0] to a global vector of distances
     		//correspondence_distances_[(*indices_)[idx]] = std::min (nn_dists[0], (float)dist_threshold);
     	}
     }
-    handle_source_indices.resize (cnt); handle_target_indices.resize (cnt);
+    handle_source_correspondence_indices.resize (cntHandles); handle_target_correspondence_indices.resize (cntHandles);
 
-    PCL_INFO ("[pcl::%s::computeTransformation] Iteration %d Number of correspondences %d [%f%%] out of %lu points [100.0%%], RANSAC rejected: %lu [%f%%].\n", getClassName ().c_str (), nr_iterations_, cnt, (cnt * 100.0) / indices_->size (), (unsigned long)indices_->size (), (unsigned long)source_indices.size () - cnt, (source_indices.size () - cnt) * 100.0 / source_indices.size ());
+    PCL_WARN ("[pcl::%s::computeTransformation] Iteration %d Number of correspondences %d [%f%%] out of %lu points [100.0%%], RANSAC rejected: %lu [%f%%].\n", getClassName ().c_str (), nr_iterations_, cnt, (cnt * 100.0) / indices_->size (), (unsigned long)indices_->size (), (unsigned long)source_indices.size () - cnt, (source_indices.size () - cnt) * 100.0 / source_indices.size ());
   
+	std::cerr << "Cast pointer down\n";
+    boost::shared_ptr<TransformationEstimationJointOptimize<PointSource, PointTarget> > trans_est_jo_ = boost::static_pointer_cast<TransformationEstimationJointOptimize<PointSource, PointTarget> >(transformation_estimation_);
+    if(!trans_est_jo_)
+		std::cerr << "trans est. cast down fail\n";
     // Estimate the transform
     //rigid_transformation_estimation_(output, source_indices_good, *target_, target_indices_good, transformation_);
-    transformation_estimation_->estimateRigidTransformation (output, source_indices_good, *target_, target_indices_good, transformation_);
+	std::cerr << "call est. transform\n";
+    trans_est_jo_->estimateRigidTransformation (output, source_indices_good, handle_source_correspondence_indices, *target_, target_indices_good, handle_target_correspondence_indices, transformation_);
 
     std::cerr << "transformation epsilon:" << fabs ((transformation_ - previous_transformation_).sum ()) << "\n";
 
@@ -216,13 +228,13 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
        )
     {
       converged_ = true;
-      PCL_INFO ("[pcl::%s::computeTransformation] Convergence reached. Number of iterations: %d out of %d. Transformation difference: %f\n",
+      PCL_WARN ("[pcl::%s::computeTransformation] Convergence reached. Number of iterations: %d out of %d. Transformation difference: %f\n",
                  getClassName ().c_str (), nr_iterations_, max_iterations_, fabs ((transformation_ - previous_transformation_).sum ()));
 
-      PCL_INFO ("nr_iterations_ (%d) >= max_iterations_ (%d)\n", nr_iterations_, max_iterations_);
-      PCL_INFO ("fabs ((transformation_ - previous_transformation_).sum ()) (%f) < transformation_epsilon_ (%f)\n",
+      PCL_WARN ("nr_iterations_ (%d) >= max_iterations_ (%d)\n", nr_iterations_, max_iterations_);
+      PCL_WARN ("fabs ((transformation_ - previous_transformation_).sum ()) (%f) < transformation_epsilon_ (%f)\n",
                  fabs ((transformation_ - previous_transformation_).sum ()), transformation_epsilon_);
-      PCL_INFO ("fabs (getFitnessScore (correspondence_distances_, previous_correspondence_distances)) (%f) <= euclidean_fitness_epsilon_ (%f)\n",
+      PCL_WARN ("fabs (getFitnessScore (correspondence_distances_, previous_correspondence_distances)) (%f) <= euclidean_fitness_epsilon_ (%f)\n",
                  fabs (getFitnessScore (correspondence_distances_, previous_correspondence_distances)),
                  euclidean_fitness_epsilon_);
 
