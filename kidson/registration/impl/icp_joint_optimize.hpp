@@ -45,7 +45,6 @@
 template <typename PointSource, typename PointTarget> void
 pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess)
 {
-	std::cerr << "ICP init\n";
   // Allocate enough space to hold the results
   std::vector<int> nn_indices (1);
   std::vector<float> nn_dists (1);
@@ -76,7 +75,6 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
 
   while (!converged_)           // repeat until convergence
   {
-		std::cerr << "Start loop\n";
     // Save the previously estimated transformation
     previous_transformation_ = transformation_;
     // And the previous set of distances
@@ -88,7 +86,6 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
     std::vector<int> handle_source_correspondence_indices (handleSourceIndicesPtr->size ());
     std::vector<int> handle_target_correspondence_indices (handleSourceIndicesPtr->size ());
 
-	std::cerr << "find correspondences\n";
     // Iterating over the entire index vector and  find all correspondences
     for (size_t idx = 0; idx < indices_->size (); ++idx)
     {
@@ -167,7 +164,6 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
       return;
     }
 
-	std::cerr << "find correspondences for handles\n";
     // Find corrrespondences for the handles
     int cntHandles = 0;
     if(!handleSourceIndicesPtr)
@@ -191,16 +187,15 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
 
     PCL_WARN ("[pcl::%s::computeTransformation] Iteration %d Number of correspondences %d [%f%%] out of %lu points [100.0%%], RANSAC rejected: %lu [%f%%].\n", getClassName ().c_str (), nr_iterations_, cnt, (cnt * 100.0) / indices_->size (), (unsigned long)indices_->size (), (unsigned long)source_indices.size () - cnt, (source_indices.size () - cnt) * 100.0 / source_indices.size ());
   
-	std::cerr << "Cast pointer down\n";
     boost::shared_ptr<TransformationEstimationJointOptimize<PointSource, PointTarget> > trans_est_jo_ = boost::static_pointer_cast<TransformationEstimationJointOptimize<PointSource, PointTarget> >(transformation_estimation_);
     if(!trans_est_jo_)
 		std::cerr << "trans est. cast down fail\n";
     // Estimate the transform
     //rigid_transformation_estimation_(output, source_indices_good, *target_, target_indices_good, transformation_);
-	std::cerr << "call est. transform\n";
     trans_est_jo_->estimateRigidTransformation (output, source_indices_good, handle_source_correspondence_indices, *target_, target_indices_good, handle_target_correspondence_indices, transformation_);
 
     std::cerr << "transformation epsilon:" << fabs ((transformation_ - previous_transformation_).sum ()) << "\n";
+    std::cerr << "Score: " << fabs (getFitnessScore (correspondence_distances_, previous_correspondence_distances)) << "\n";
 
     // Tranform the data
     transformPointCloud (output, output, transformation_);

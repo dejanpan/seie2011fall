@@ -146,7 +146,7 @@ void extractHandles(PointCloud::Ptr& cloudInput, PointCloudNormal::Ptr& pointClo
 
 		// Extract the handle clusters using a polygonal prism
 		pcl::PointIndices::Ptr handlesIndicesPtr(new pcl::PointIndices());
-		prism_.setHeightLimits(0.03, 0.1);
+		prism_.setHeightLimits(0.05, 0.1);
 		prism_.setInputCloud(cloudInput);
 		prism_.setInputPlanarHull(cloud_hull);
 		prism_.segment(*handlesIndicesPtr);
@@ -227,11 +227,22 @@ int main(int argc, char** argv) {
 	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
 		transformationEstimation_(new TransformationEstimationJointOptimize<PointNormal, PointNormal>());
 
-	float denseCloudWeight = 1.0;
+	float denseCloudWeight = 0.0;
 	float visualFeatureWeight = 0.0;
-	float handleFeatureWeight = 0.0;
+	float handleFeatureWeight = 1.0;
 	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
 	transformationEstimation_->setCorrespondecesDFP(indicesSource, indicesTarget);
+
+	 Eigen::Matrix4f guess;
+	//  guess << 0.999203,   0.0337772,  -0.0213298,   0.0110106,
+	//		  -0.0349403,     0.99778,  -0.0567293, -0.00746282,
+	//		  0.0193665,   0.0574294,    0.998162,   0.0141431,
+	//			  0,           0,           0,           1;
+	  guess << 1,   0,  0,  0.1,
+			   0,	1,	0,	0.6,
+			   0,	0,	1,	0.3,
+			   0,	0,	0,	1;
+
 
 	// custom icp
 	ROS_INFO("Initialize icp object....");
@@ -249,10 +260,10 @@ int main(int argc, char** argv) {
 
 	ROS_INFO("Running ICP....");
 	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
-	icpJointOptimize.align ( *cloud_transformed); //init_tr );
+	icpJointOptimize.align ( *cloud_transformed);//, guess); //init_tr );
 	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icpJointOptimize.hasConverged() << std::endl <<
-				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl;
-	icpJointOptimize.getFinalTransformation ();
+				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl
+				<<	icpJointOptimize.getFinalTransformation () << "\n";
 
 	ROS_INFO("Writing output....");
 	pcl::PCDWriter writer;
@@ -268,4 +279,18 @@ has converged:1 score: 0.00104609
    0.0185603    0.0219435     0.999587 -0.000478007
            0            0            0            1
  *
-*/
+
+
+0.992429      0.11531   -0.0422939    0.0398834
+-0.117302      0.99193   -0.0481167   -0.0659994
+0.0364043    0.0527136     0.997946 -0.000340177
+       0            0            0            1
+
+as converged:1 score: 0.00134764
+    0.992429      0.11531   -0.0422939    0.0398834
+   -0.117302      0.99193   -0.0481167   -0.0659994
+   0.0364043    0.0527136     0.997946 -0.000340177
+           0            0            0            1
+
+
+       */

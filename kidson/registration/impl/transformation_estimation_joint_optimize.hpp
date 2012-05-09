@@ -246,8 +246,8 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::estimateRigidTr
 	tmp_idx_src_handles_ = &handles_indices_src;
 	tmp_idx_tgt_handles_ = &handles_indices_tgt;
 
-	std::cerr << "indices_src_dfp_ size " << indices_src_dfp_.size() << " \n ";
-	std::cerr << "indices_tgt_dfp_ size " << indices_tgt_dfp_.size() << " \n ";
+	//std::cerr << "indices_src_dfp_ size " << indices_src_dfp_.size() << " \n ";
+	//std::cerr << "indices_tgt_dfp_ size " << indices_tgt_dfp_.size() << " \n ";
 
 	int info;
 	double lm_norm;
@@ -284,16 +284,16 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::estimateRigidTr
 //	for (int i = 1; i < n_unknowns; ++i)
 //		PCL_DEBUG (" %f", x[i]);
 //	PCL_DEBUG ("]\n");
-
+/*
 	std::cout << "[pcl::registration::TransformationEstimationJointOptimize::estimateRigidTransformation]" << std::endl;
 	std::cout << "LM solver finished with exit code " << info <<", having a residual norm of " << lm_norm
 			<< ", in iteration "<< iter << std::endl;
-
+*/
 	// Return the correct transformation
 	Eigen::VectorXf params = x.cast<float> ();
 	warp_point_->setParam (params);
 	transformation_matrix = warp_point_->getTransform ();
-	std::cout << "	Obtained transform = " << std::endl << transformation_matrix << std::endl;
+	//std::cout << "	Obtained transform = " << std::endl << transformation_matrix << std::endl;
 
 	tmp_src_ = NULL;
 	tmp_tgt_ = NULL;
@@ -354,9 +354,9 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 	estimator_->warp_point_->setParam (params);
 
 	Eigen::Matrix4f curr_transformation_matrix = estimator_->warp_point_->getTransform ();
-	std::cout << "[OptimizationFunctor::operator()] current transform = " << std::endl << curr_transformation_matrix << std::endl;
+	//std::cout << "[OptimizationFunctor::operator()] current transform = " << std::endl << curr_transformation_matrix << std::endl;
 
-	std::cerr << "[error function] before visual points: " << fvec.sum() << "\n";
+	//std::cerr << "[error function] before visual points: " << fvec.sum() << "\n";
 	// Sum of squared distances of distinctive feature points
 //	double diff_value_dfp = 0;
 	const double dfp_factor = visualWeight/number_dfp;
@@ -374,7 +374,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 //		diff_value_dfp += estimator_->computeDistance (p_src_warped, p_tgt);
 		fvec[i] = dfp_factor * estimator_->computeDistance (p_src_warped, p_tgt);
 	}
-	std::cerr << "[error function] after visual points: " << fvec.sum() << "\n";
+	//std::cerr << "[error function] after visual points: " << fvec.sum() << "\n";
 
 	const double p_factor = (denseWeight)/number_p;
 	for (int i = 0; i < number_p; ++i)
@@ -389,8 +389,8 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 		// Estimate the distance (cost function)
 //		diff_value_p += estimator_->computeDistance (p_src_warped, p_tgt);
 		fvec[i+number_dfp] = p_factor * estimator_->computeDistancePointToPlane (p_src_warped, p_tgt);
-		if((i%1000) ==0)
-			std::cerr << "fvec point " << (int)i << ":" << fvec[i+number_dfp] << "\n";
+		//if((i%1000) ==0)
+		//	std::cerr << "fvec point " << (int)i << ":" << fvec[i+number_dfp] << "\n";
 	}
 	std::cerr << "[error function] after points and features: " << fvec.sum() << "\n";
 
@@ -407,7 +407,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 		// Estimate the distance (cost function)
 //		diff_value_p += estimator_->computeDistance (p_src_warped, p_tgt);
 		fvec[i+number_dfp+number_p] = handle_factor * estimator_->computeDistance (p_src_warped, p_tgt);
-		std::cerr << "fvec handle point " << (int)i << ":" << fvec[i+number_dfp+number_p] << "\n";
+		//std::cerr << "fvec handle point " << (int)i << ":" << fvec[i+number_dfp+number_p] << "\n";
 	}
 	std::cerr << "[error functino] total error : " << fvec.sum() << "\n";
 	// Divide by number of points
@@ -416,7 +416,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 	// Update function value
 //	fvec[0] = ((alpha * diff_value_dfp) + ((1-alpha) * diff_value_p))*1000;
 
-	std::cout << "[OptimizationFunctor::operator()] fvec.blueNorm = " << fvec.blueNorm() << std::endl;
+	//std::cout << "[OptimizationFunctor::operator()] fvec.blueNorm = " << fvec.blueNorm() << std::endl;
 
 	return (0);
 }

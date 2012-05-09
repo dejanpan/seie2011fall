@@ -21,8 +21,6 @@
 #include <pcl/common/angles.h>
 #include "pcl/common/common.h"
 #include <pcl/filters/statistical_outlier_removal.h>
-#include <pcl/registration/transformation_estimation_joint_optimize.h>
-#include <pcl/registration/icp_joint_optimize.h>
 
 #include "tf/tf.h"
 
