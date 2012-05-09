@@ -50,7 +50,7 @@ main (int argc, char** argv)
 	icp.setMaximumIterations (40);
 	icp.setTransformationEpsilon (0);
 	icp.setMaxCorrespondenceDistance(0.1);
-	icp.setRANSACOutlierRejectionThreshold(0.05);
+	icp.setRANSACOutlierRejectionThreshold(5);
 	icp.setEuclideanFitnessEpsilon (0);
 
 	  Eigen::Matrix4f guess;
@@ -64,7 +64,7 @@ main (int argc, char** argv)
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_transformed( new pcl::PointCloud<pcl::PointXYZRGBNormal>);
 
 	std::cout << "Run ICP with point to plane error metric" << std::endl;
-	icp.align(*cloud_transformed);//, guess);
+	icp.align(*cloud_transformed, guess);
 	std::cout << "has converged:" << icp.hasConverged() << " score: " <<
 	icp.getFitnessScore() << std::endl;
 	std::cout << icp.getFinalTransformation() << std::endl;

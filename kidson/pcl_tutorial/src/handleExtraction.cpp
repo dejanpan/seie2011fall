@@ -198,8 +198,6 @@ int main(int argc, char** argv) {
 	PointCloud::Ptr cloudTarget(new PointCloud);
 	PointCloud::Ptr cloudSourceFiltered(new PointCloud);
 	PointCloud::Ptr cloudTargetFiltered(new PointCloud);
-	PointCloudNormal::Ptr cloudSourceNormalFiltered(new PointCloudNormal);
-	PointCloudNormal::Ptr cloudTargetNormalFiltered(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudSourceNormal(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudTargetNormal(new PointCloudNormal);
 
@@ -219,20 +217,10 @@ int main(int argc, char** argv) {
 	extractHandles(cloudSource, cloudSourceNormal, sourceHandleClusters);
 	extractHandles(cloudTarget, cloudTargetNormal, targetHandleClusters);
 
-	std::vector<int> indices;
-	pcl::removeNaNFromPointCloud(*cloudSource, *cloudSourceFiltered, indices);
-	pcl::removeNaNFromPointCloud(*cloudTarget, *cloudTargetFiltered, indices);
-
-	ROS_INFO("Calculating normals (filtered case)....");
-	normalEstimation(cloudSourceFiltered, cloudSourceNormalFiltered);
-	normalEstimation(cloudTargetFiltered, cloudTargetNormalFiltered);
-
 	ROS_INFO("Writing output....");
 	pcl::PCDWriter writer;
 	writer.write("source_normals_unfilt.pcd", *cloudSourceNormal,  true);
 	writer.write("target_normals_unfilt.pcd", *cloudTargetNormal,  true);
-	writer.write("source_normals_filt.pcd", *cloudSourceNormalFiltered,  true);
-	writer.write("target_normals_filt.pcd", *cloudTargetNormalFiltered,  true);
 	writer.write("handlesSource.pcd", *cloudSource, sourceHandleClusters, true);
 	writer.write("handlesTarget.pcd", *cloudTarget, targetHandleClusters, true);
 }

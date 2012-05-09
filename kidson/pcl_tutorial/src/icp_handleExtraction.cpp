@@ -46,8 +46,12 @@ void normalEstimation(PointCloud::Ptr& pointCloudIn, PointCloudNormal::Ptr& poin
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
-
-void extractHandles(PointCloud::Ptr& cloudInput, PointCloudNormal::Ptr& pointCloudNormals, std::vector<int>& handles) {
+// input: cloudInput
+// input: pointCloudNormals
+// output: cloudOutput
+// output: pointCloudNormalsFiltered
+void extractHandles(PointCloud::Ptr& cloudInput, PointCloud::Ptr& cloudOutput, PointCloudNormal::Ptr& pointCloudNormals,
+		PointCloudNormal::Ptr& pointCloudNormalsFiltered, std::vector<int>& handles) {
 	// PCL objects
 	//pcl::PassThrough<Point> vgrid_;                   // Filtering + downsampling object
 	pcl::VoxelGrid<Point> vgrid_; // Filtering + downsampling object
@@ -94,6 +98,11 @@ void extractHandles(PointCloud::Ptr& cloudInput, PointCloudNormal::Ptr& pointClo
 	seg_line_.setOptimizeCoefficients(true);
 	seg_line_.setMaxIterations(max_iter_);
 	seg_line_.setProbability(seg_prob_);
+
+	//filter cloud
+	std::vector<int> tempIndices;
+	pcl::removeNaNFromPointCloud(*cloudInput, *cloudOutput, tempIndices);
+	pcl::removeNaNFromPointCloud(*pointCloudNormals, *pointCloudNormalsFiltered, tempIndices);
 
 	// Segment planes
 	pcl::OrganizedMultiPlaneSegmentation<Point, PointNormal, pcl::Label> mps;
@@ -177,10 +186,12 @@ void extractHandles(PointCloud::Ptr& cloudInput, PointCloudNormal::Ptr& pointClo
 		sor.setMeanK (50);
 		sor.setStddevMulThresh (1.0);
 		sor.filter (*cloud_filtered);
+
+		// Our handle is in cloud_filtered.  We want indices of a cloud (also filtered for NaNs)
 		pcl::KdTreeFLANN<Point> kdtreeNN;
 		std::vector<int> pointIdxNKNSearch(1);
 		std::vector<float> pointNKNSquaredDistance(1);
-		kdtreeNN.setInputCloud(cloudInput);
+		kdtreeNN.setInputCloud(cloudOutput);
 		for(size_t j = 0; j < cloud_filtered->points.size(); j++)
 		{
 			kdtreeNN.nearestKSearch(cloud_filtered->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance);
@@ -190,16 +201,19 @@ void extractHandles(PointCloud::Ptr& cloudInput, PointCloudNormal::Ptr& pointClo
 }
 
 int main(int argc, char** argv) {
-	if (argc != 5) {
-		std::cerr << "please provide 4 point clouds as arguments: source unfiltered, target unfiltered, source filtered, target filtered)" << std::endl;
+	if (argc != 3) {
+		std::cerr << "please provide 2 point clouds as arguments: <source>.pcd  <target>.pcd)" << std::endl;
 		exit(0);
 	}
 	PointCloud::Ptr cloudSource(new PointCloud);
 	PointCloud::Ptr cloudTarget(new PointCloud);
+	PointCloud::Ptr cloudSourceFiltered(new PointCloud);
+	PointCloud::Ptr cloudTargetFiltered(new PointCloud);
 	PointCloudNormal::Ptr cloudSourceNormal(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudTargetNormal(new PointCloudNormal);
-	PointCloudNormal::Ptr cloudSourceFiltered(new PointCloudNormal);
-	PointCloudNormal::Ptr cloudTargetFiltered(new PointCloudNormal);
+	PointCloudNormal::Ptr cloudSourceNormalFiltered(new PointCloudNormal);
+	PointCloudNormal::Ptr cloudTargetNormalFiltered(new PointCloudNormal);
+	pcl::PCDWriter writer;
 	std::vector<int> indicesSource, indicesTarget;
 
 	//Fill in the cloud data
@@ -207,8 +221,6 @@ int main(int argc, char** argv) {
 	pcl::PCDReader reader;
 	reader.read(argv[1], *cloudSourceNormal);
 	reader.read(argv[2], *cloudTargetNormal);
-	reader.read(argv[3], *cloudSourceFiltered);
-	reader.read(argv[4], *cloudTargetFiltered);
 	pcl::copyPointCloud (*cloudSourceNormal, *cloudSource);
 	pcl::copyPointCloud (*cloudTargetNormal, *cloudTarget);
 
@@ -220,8 +232,8 @@ int main(int argc, char** argv) {
 	std::vector<int> targetHandleClusters;
 
 	ROS_INFO("Extracting handles....");
-	extractHandles(cloudSource, cloudSourceNormal, sourceHandleClusters);
-	extractHandles(cloudTarget, cloudTargetNormal, targetHandleClusters);
+	extractHandles(cloudSource, cloudSourceFiltered, cloudSourceNormal, cloudSourceNormalFiltered, sourceHandleClusters);
+	extractHandles(cloudTarget, cloudTargetFiltered, cloudTargetNormal, cloudTargetNormalFiltered, targetHandleClusters);
 
 	ROS_INFO("Initialize transformation estimation object....");
 	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
@@ -248,26 +260,24 @@ int main(int argc, char** argv) {
 	ROS_INFO("Initialize icp object....");
 	pcl::IterativeClosestPointJointOptimize<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
 	icpJointOptimize.setMaximumIterations (40);
-	icpJointOptimize.setTransformationEpsilon (1e-9);
+	icpJointOptimize.setTransformationEpsilon (0);
 	icpJointOptimize.setMaxCorrespondenceDistance(0.1);
 	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
 	icpJointOptimize.setEuclideanFitnessEpsilon (0);
 	icpJointOptimize.setTransformationEstimation (transformationEstimation_);
 	icpJointOptimize.setHandleSourceIndices(sourceHandleClusters);
 	icpJointOptimize.setHandleTargetIndices(targetHandleClusters);
-	icpJointOptimize.setInputCloud(cloudSourceFiltered);
-	icpJointOptimize.setInputTarget(cloudTargetFiltered);
+	icpJointOptimize.setInputCloud(cloudSourceNormalFiltered);
+	icpJointOptimize.setInputTarget(cloudTargetNormalFiltered);
 
 	ROS_INFO("Running ICP....");
 	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
-	icpJointOptimize.align ( *cloud_transformed);//, guess); //init_tr );
+	icpJointOptimize.align ( *cloud_transformed, guess); //init_tr );
 	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icpJointOptimize.hasConverged() << std::endl <<
 				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl
 				<<	icpJointOptimize.getFinalTransformation () << "\n";
 
 	ROS_INFO("Writing output....");
-	pcl::PCDWriter writer;
-
 	writer.write("converged.pcd", *cloud_transformed, true);
 }
 
