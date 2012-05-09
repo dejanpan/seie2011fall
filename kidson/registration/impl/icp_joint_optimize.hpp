@@ -40,6 +40,7 @@
 #include <boost/unordered_map.hpp>
 #include <pcl/kdtree/kdtree_flann.h>
 #include "pcl/registration/transformation_estimation_joint_optimize.h"
+#include <pcl/io/pcd_io.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget> void
@@ -73,6 +74,10 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
   pcl::KdTreeFLANN<PointSource> kdtree;
   kdtree.setInputCloud(target_, handleTargetIndicesPtr);
 
+  pcl::PCDWriter writer;
+
+  //writer.write("handlesTestSource.pcd", output, *handleSourceIndicesPtr, true);
+  //writer.write("handlesTestTarget.pcd", *target_, *handleTargetIndicesPtr, true);
   while (!converged_)           // repeat until convergence
   {
     // Save the previously estimated transformation

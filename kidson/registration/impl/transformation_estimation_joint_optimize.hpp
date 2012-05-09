@@ -392,7 +392,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 		//if((i%1000) ==0)
 		//	std::cerr << "fvec point " << (int)i << ":" << fvec[i+number_dfp] << "\n";
 	}
-	std::cerr << "[error function] after points and features: " << fvec.sum() << "\n";
+	//std::cerr << "[error function] after points and features: " << fvec.sum() << "\n";
 
 	const double handle_factor = (handleWeight)/number_handle_p;
 	for (int i = 0; i < number_handle_p; ++i)
@@ -409,7 +409,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 		fvec[i+number_dfp+number_p] = handle_factor * estimator_->computeDistance (p_src_warped, p_tgt);
 		//std::cerr << "fvec handle point " << (int)i << ":" << fvec[i+number_dfp+number_p] << "\n";
 	}
-	std::cerr << "[error functino] total error : " << fvec.sum() << "\n";
+	//std::cerr << "[error functino] total error : " << fvec.sum() << "\n";
 	// Divide by number of points
 //	diff_value_p = diff_value_p/number_p;
 
