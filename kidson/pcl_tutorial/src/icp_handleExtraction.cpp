@@ -239,9 +239,9 @@ int main(int argc, char** argv) {
 	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
 		transformationEstimation_(new TransformationEstimationJointOptimize<PointNormal, PointNormal>());
 
-	float denseCloudWeight = 0.0;
+	float denseCloudWeight = 1.0;
 	float visualFeatureWeight = 0.0;
-	float handleFeatureWeight = 1.0;
+	float handleFeatureWeight = 0.1;
 	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
 	transformationEstimation_->setCorrespondecesDFP(indicesSource, indicesTarget);
 
@@ -254,7 +254,6 @@ int main(int argc, char** argv) {
 			   0,	1,	0,	0.6,
 			   0,	0,	1,	0.3,
 			   0,	0,	0,	1;
-
 
 	// custom icp
 	ROS_INFO("Initialize icp object....");

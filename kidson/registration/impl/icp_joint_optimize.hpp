@@ -50,6 +50,8 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
   std::vector<int> nn_indices (1);
   std::vector<float> nn_dists (1);
 
+  std::vector<int> correspondence_distances_handles_;
+
   // Point cloud containing the correspondences of each point in <input, indices>
   PointCloudTarget input_corresp;
   input_corresp.points.resize (indices_->size ());
@@ -190,6 +192,9 @@ pcl::IterativeClosestPointJointOptimize<PointSource, PointTarget>::computeTransf
     }
     handle_source_correspondence_indices.resize (cntHandles); handle_target_correspondence_indices.resize (cntHandles);
 
+    writer.write("handlesCorrsSource.pcd", output, handle_source_correspondence_indices, true);
+    writer.write("handlesCorrsTarget.pcd", *target_, handle_target_correspondence_indices, true);
+    std::cerr << "number of handle correpondences: " << cntHandles << "\n";
     PCL_WARN ("[pcl::%s::computeTransformation] Iteration %d Number of correspondences %d [%f%%] out of %lu points [100.0%%], RANSAC rejected: %lu [%f%%].\n", getClassName ().c_str (), nr_iterations_, cnt, (cnt * 100.0) / indices_->size (), (unsigned long)indices_->size (), (unsigned long)source_indices.size () - cnt, (source_indices.size () - cnt) * 100.0 / source_indices.size ());
   
     boost::shared_ptr<TransformationEstimationJointOptimize<PointSource, PointTarget> > trans_est_jo_ = boost::static_pointer_cast<TransformationEstimationJointOptimize<PointSource, PointTarget> >(transformation_estimation_);
