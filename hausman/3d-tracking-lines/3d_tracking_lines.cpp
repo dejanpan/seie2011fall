@@ -78,6 +78,9 @@
 unsigned char colormap_ [36] = { 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0, 255, 0, 255, 0, 255, 255, 127, 0, 0, 0, 127, 0, 0, 0, 127,127, 127, 0, 127, 0, 127, 0, 127, 127 };
 
 
+bool comparison (pcl::PointXYZI i,pcl::PointXYZI j) {
+	 return (i.intensity > j.intensity); }
+
 using namespace pcl::tracking;
 
 template<typename PointType>
@@ -120,7 +123,7 @@ public:
 
 
 
-		a_file_.open("poses5.txt");
+		a_file_.open("poses_final.txt");
 		//here
 		//std::vector<double> default_step_covariance = std::vector<double>(6,
 		//		0.015 * 0.015);
@@ -260,6 +263,8 @@ public:
 
 		ParticleXYZRPY result = tracker_vector_[track]->getResult();
 		bool non_tracking=false;
+		float row,pitch,yaw,x,y,z;
+
 
 		if (non_tracking)
 		{
@@ -277,6 +282,9 @@ public:
 							// move a little bit for better visualization
 							transformation.translation() += Eigen::Vector3f(0.0, 0.0, -0.005);
 							transformation_=transformation;
+
+//			pcl::getTransformation(x,y,z,row,pitch,yaw,transformation);
+
 		}
 
 
@@ -300,8 +308,8 @@ public:
 					ss <<track;
 
 		//a_file_<<ss.str();
-		//a_file_<< "x" << " " << "y" << " " << "z" << std::endl;
 		a_file_<< center[0] << " " << center[1] << " " << center[2] << std::endl;
+//		a_file_<< x << " " << y << " " << z <<" " << row << " " << pitch <<  " " << yaw <<std::endl;
 		std::cerr<<"center: "<<center<<std::endl;
 
 
@@ -357,6 +365,7 @@ public:
 				drawResult(viz);
 
 				// draw some texts
+				/*
 				viz.removeShape("N");
 				viz.addText(
 						(boost::format("number of Reference PointClouds: %d")
@@ -392,7 +401,9 @@ public:
 						(boost::format("particles:     %d")
 								% tracker_->getParticles()->points.size()).str(),
 						10, 120, 20, 1.0, 1.0, 1.0, "particles");
+						*/
 
+				viz.addText("Particle filtering-based tracking of 3D lines and corners. ",20,60,23,1.0,1.0,1.0,"title");
 			}
 		}
 		new_cloud_ = false;
@@ -600,9 +611,8 @@ public:
 
 	}
 
-	void extractLines(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud) {
+	void extractLines(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud, pcl::ModelCoefficients::Ptr &coefficients) {
 
-		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 
 		pcl::SACSegmentation<PointType> seg;
@@ -701,7 +711,7 @@ public:
 
 		for (size_t i = 0; i < normals_cloud->size(); ++i)
 		{
-			std::cerr<<"CURVATURE: "<<normals_cloud->points[i].curvature<<std::endl;
+			//std::cerr<<"CURVATURE: "<<normals_cloud->points[i].curvature<<std::endl;
 			if (normals_cloud->points[i].curvature > 0.055)
 				result.push_back(cloud->points.at(i));
 		}
@@ -787,7 +797,7 @@ public:
 
 
 
-	void extractCorners(const CloudConstPtr &cloud, Cloud &result, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity) {
+	void extractCorners(const CloudConstPtr &cloud, Cloud &result, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity,int number) {
 
 
 
@@ -812,10 +822,16 @@ public:
 
 		 bool best_corner=true;
 
+
+		 std::sort(cloud_intensity_->points.begin(),cloud_intensity_->points.end(),comparison);
+
 		 if (best_corner)
 		 {
-		 pcl::PointXYZI max=cloud_intensity_->points[1];
-		 	 for (size_t i = 0; i < cloud_intensity_->size(); ++i)
+		 pcl::PointXYZI max=cloud_intensity_->points[number];
+		 pcl::PointXYZI max2=cloud_intensity_->points[number+1];
+
+
+		 	/* for (size_t i = 0; i < cloud_intensity_->size(); ++i)
 		 	 {
 		 		   if (max.intensity < cloud_intensity_->points[i].intensity) {
 		 			   max = cloud_intensity_->points[i];
@@ -823,10 +839,19 @@ public:
 
 
 
-		 	 }
+		 	 }*/
+
+
+
+
+
 
 			 cloud_intensity_.reset(new pcl::PointCloud<pcl::PointXYZI>);
 		 	 cloud_intensity_->push_back(max);
+		 	 cloud_intensity_->push_back(max2);
+
+
+
 
 		 }
 
@@ -834,9 +859,139 @@ public:
 		 pcl::copyPointCloud(*cloud_intensity_, result);
 
 
+		 pcl::KdTreeFLANN<PointType> kdtree;
+
+				  kdtree.setInputCloud (cloud);
+
+				  PointType searchPoint,searchPoint2;
+
+				  std::vector<int> pointIdxRadiusSearch;
+				  std::vector<float> pointRadiusSquaredDistance;
+
+				   float radius = 0.05;
+				   int big1,big2;
+
+				   searchPoint=result.points[0];
+				   searchPoint2=result.points[1];
+
+
+				   if ( kdtree.radiusSearch (searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 ){
+					   big1=(int)pointIdxRadiusSearch.size ();
+				   }
+
+				   pointIdxRadiusSearch.clear();
+				   pointRadiusSquaredDistance.clear();
+
+				   if ( kdtree.radiusSearch (searchPoint2, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 ){
+				   					   big2=(int)pointIdxRadiusSearch.size ();
+				   				   }
+
+
+				   if (big1>big2)
+					   result.erase(result.begin() + 0);
+				   else
+					   result.erase(result.begin() + 1);
+
+
+
 		 		result.width = result.points.size();
 		 		result.height = 1;
 		 		result.is_dense = true;
+
+
+	}
+
+
+	void onlyLineNeighbor(const CloudConstPtr &cloud, Cloud &result,Cloud &line, pcl::ModelCoefficients::Ptr &coefficients){
+
+		  CloudPtr cloud_projected (new Cloud);
+		  PointType linePoint,linePoint2;
+
+		pcl::ProjectInliers<PointType> proj;
+		  proj.setModelType (pcl::SACMODEL_LINE);
+		  proj.setInputCloud (cloud);
+		  proj.setModelCoefficients (coefficients);
+		  proj.filter (*cloud_projected);
+
+		  std::cerr<<"CLOUD SIZE: "<<cloud->size()<<std::endl;
+
+			Eigen::Vector4f c;
+			pcl::compute3DCentroid<RefPointType>(line, c);
+			float dist,dist2;
+			float max_dist=0;
+			float max_dist2=0;
+			float max_dist_general=0;
+
+			PointType borderPoint1=line.points.at(1);
+			PointType borderPoint2=line.points.at(1);
+			PointType cloudPoint;
+
+
+			pcl::copyPointCloud(*cloud, result);
+			  std::cerr<<"CLOUD PROJECTED SIZE: "<<result.size()<<std::endl;
+
+
+
+		  for (size_t i = 0; i < line.size(); ++i){
+		  			   linePoint=line.points.at(i);
+		  			   dist=sqrt((linePoint.x-c[0])*(linePoint.x-c[0])+(linePoint.y-c[1])*(linePoint.y-c[1])+(linePoint.z-c[2])*(linePoint.z-c[2]));
+		  			   if (dist>max_dist){
+		  				   max_dist=dist;
+		  				   borderPoint1=linePoint;
+		  			   }
+
+		  }
+
+		  for (size_t i = 0; i < line.size(); ++i){
+		  		  			   linePoint2=line.points.at(i);
+		  		  			   dist2=sqrt((linePoint2.x-borderPoint1.x)*(linePoint2.x-borderPoint1.x)+(linePoint2.y-borderPoint1.y)*(linePoint2.y-borderPoint1.y)+(linePoint2.z-borderPoint1.z)*(linePoint2.z-borderPoint1.z));
+		  		  			   if (dist2>max_dist2){
+		  		  				   max_dist2=dist2;
+		  		  				   borderPoint2=linePoint2;
+		  		  			   }
+
+		  		  }
+
+
+			  max_dist_general=0.9*sqrt((borderPoint1.x-borderPoint2.x)*(borderPoint1.x-borderPoint2.x)+(borderPoint1.y-borderPoint2.y)*(borderPoint1.y-borderPoint2.y)+(borderPoint1.z-borderPoint2.z)*(borderPoint1.z-borderPoint2.z));
+
+
+		  for (size_t i = 0; i < cloud_projected->size(); i++){
+			  cloudPoint=cloud_projected->points.at(i);
+			  float distance=sqrt((cloudPoint.x-borderPoint1.x)*(cloudPoint.x-borderPoint1.x)+(cloudPoint.y-borderPoint1.y)*(cloudPoint.y-borderPoint1.y)+(cloudPoint.z-borderPoint1.z)*(cloudPoint.z-borderPoint1.z));
+			  float distance2=sqrt((cloudPoint.x-borderPoint2.x)*(cloudPoint.x-borderPoint2.x)+(cloudPoint.y-borderPoint2.y)*(cloudPoint.y-borderPoint2.y)+(cloudPoint.z-borderPoint2.z)*(cloudPoint.z-borderPoint2.z));
+
+			  if((distance>max_dist_general)||(distance2>max_dist_general))
+			  {
+					result.points.at(i).x=0;
+					result.points.at(i).y=0;
+					result.points.at(i).z=0;
+			  }
+
+		  }
+
+		  for (size_t i = 0; i < result.points.size(); ++i) {
+		  		if ((result.points[i].x == 0.0)||(result.points[i].y == 0.0)||(result.points[i].z == 0.0)) {
+		  			result.erase(result.begin() + i);
+		  			result.width--;
+		  			result.points.resize(result.width);
+		  		}
+		  	}
+
+		  /*for (size_t i = 0; i < result.size(); i++){
+		  if (result.points.at(i).x=0)||(result.points.at(i).y=0)||(result.points.at(i).z=0)
+
+		  }*/
+
+			//pcl::copyPointCloud(*cloud_projected, result);
+
+		 // result.push_back(borderPoint1);
+		  //result.push_back(borderPoint2);
+
+		  result.width = result.points.size();
+		  result.height = 1;
+		  result.is_dense = true;
+
 
 
 	}
@@ -973,9 +1128,18 @@ public:
 
 					RefCloudPtr nonzero_ref_boundary(new RefCloud);
 					RefCloudPtr nonzero_ref_corners(new RefCloud);
+					RefCloudPtr nonzero_ref_corners2(new RefCloud);
+
 					RefCloudPtr nonzero_ref_no_line(new RefCloud);
 					RefCloudPtr nonzero_ref_no_line2(new RefCloud);
 					RefCloudPtr nonzero_ref_no_line3(new RefCloud);
+
+					pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+					pcl::ModelCoefficients::Ptr coefficients2(new pcl::ModelCoefficients);
+					pcl::ModelCoefficients::Ptr coefficients3(new pcl::ModelCoefficients);
+					pcl::ModelCoefficients::Ptr coefficients4(new pcl::ModelCoefficients);
+
+
 
 
 
@@ -984,29 +1148,63 @@ public:
 					//finding boundaries
 					findBoundaries(nonzero_ref, *nonzero_ref_boundary);
 					//extract the corners
-					extractCorners(nonzero_ref, *nonzero_ref_corners,cloud_intensity);
+					extractCorners(nonzero_ref, *nonzero_ref_corners,cloud_intensity,0);
+
+					extractCorners(nonzero_ref, *nonzero_ref_corners2,cloud_intensity,1);
+
 					//extracting first line
-					extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line);
+					extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line,coefficients);
 
 					//extracting second line
-					extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2);
+					extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2);
 
-					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3);
+					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
 
 
 					std::vector<RefCloudPtr> clouds_vector;
-					clouds_vector.push_back(nonzero_ref_lines);
-					clouds_vector.push_back(nonzero_ref_lines2);
-					clouds_vector.push_back(nonzero_ref_lines3);
+					std::vector<bool> is_line_vector;
+					std::vector<pcl::ModelCoefficients::Ptr> coeff_vector;
+
+
 					clouds_vector.push_back(nonzero_ref_corners);
+					is_line_vector.push_back(false);
+					coeff_vector.push_back(coefficients4);
+
+					clouds_vector.push_back(nonzero_ref_corners2);
+					is_line_vector.push_back(false);
+					coeff_vector.push_back(coefficients4);
+
+					clouds_vector.push_back(nonzero_ref_lines);
+					is_line_vector.push_back(true);
+					coeff_vector.push_back(coefficients);
+
+					clouds_vector.push_back(nonzero_ref_lines2);
+					is_line_vector.push_back(true);
+					coeff_vector.push_back(coefficients2);
+
+
+//					clouds_vector.push_back(nonzero_ref_lines3);
+//					is_line_vector.push_back(true);
+//					coeff_vector.push_back(coefficients3);
+
+
+
+
+
 
 
 					for (uint track=0; track < tracker_vector_.size(); track++) {
 
 						RefCloudPtr nonzero_ref_final_cloud(new RefCloud);
+						RefCloudPtr nonzero_ref_very_final_cloud(new RefCloud);
+
 
 					//making point cloud thicker- in case of change(i.e. corner instead of the line or so) change second param
 					extractNeighbor(nonzero_ref,*clouds_vector[track], *nonzero_ref_final_cloud);
+
+					if ((is_line_vector[track])&&(coeff_vector[track]!=NULL))
+					onlyLineNeighbor(nonzero_ref_final_cloud,*nonzero_ref_final_cloud,*clouds_vector[track],coeff_vector[track]);
+
 					std::stringstream ss;
 						ss <<track;
 					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
