@@ -6,6 +6,8 @@
  */
 
 #include <training.h>
+#include <pcl/registration/icp.h>
+#include <pcl/registration/icp_nl.h>
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -16,7 +18,6 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/console/parse.h>
 #include <fstream>
-#include <pcl/registration/icp.h>
 
 void voteToGrid(pcl::PointCloud<pcl::PointXYZI> & model_centers,
 		Eigen::MatrixXf & grid, const pcl::PointXYZ & min_bound,
@@ -104,7 +105,7 @@ int main(int argc, char** argv) {
 	float cell_size = 0.01;
 	float window_size = 0.4;
 	std::string full_model_filename = "chair1_full.pcd";
-	int num_rotations_icp = 4;
+	int num_rotations_icp = 12;
 
 	pcl::console::parse_argument(argc, argv, "-database_file_name",
 			database_file_name);
@@ -125,10 +126,10 @@ int main(int argc, char** argv) {
 	pcl::PointCloud<pcl::PointXYZ> centroids;
 	std::vector<std::string> classes;
 	pcl::PointXYZ min_bound, max_bound;
-	pcl::PointCloud<pcl::PointXYZ>::Ptr scene;
+	pcl::PointCloud<pcl::PointXYZ>::Ptr scene(new pcl::PointCloud<pcl::PointXYZ>);
 
 	append_segments_from_file(scene_file_name, features, centroids, classes,
-			min_points_in_segment, &min_bound, &max_bound, scene);
+			min_points_in_segment, *scene, &min_bound, &max_bound);
 
 	featureType min, max;
 	normalizeFeatures(features, min, max, min_train, max_train);
@@ -182,6 +183,7 @@ int main(int argc, char** argv) {
 
 	}
 
+
 	for (std::map<std::string, pcl::PointCloud<pcl::PointXYZI> >::const_iterator
 			it = votes.begin(); it != votes.end(); it++) {
 		std::string class_name = it->first;
@@ -199,32 +201,45 @@ int main(int argc, char** argv) {
 		pcl::io::savePCDFileASCII(class_name + "_local_max.pcd", local_maxima);
 
 		//
-//		pcl::PointCloud<pcl::PointXYZ>::Ptr full_model(new pcl::PointCloud<pcl::PointXYZ>);
-//		pcl::io::loadPCDFile(full_model_filename, *full_model);
-//
-//		pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-//
-//		for (size_t i = 0; i < local_maxima.points.size(); i++) {
-//			for (int j = 0; j < num_rotations_icp; j++) {
-//				float angle = 2*M_PI*j/num_rotations_icp;
-//
-//				Eigen::Affine3f transform;
-//				transform.setIdentity();
-//				transform.translate(local_maxima.points[i].getVector3fMap());
-//
-//				pcl::PointCloud<pcl::PointXYZ>::Ptr full_model_transformed(new pcl::PointCloud<pcl::PointXYZ>);
-//				pcl::transformPointCloud(*full_model, *full_model_transformed, transform);
-//
-//				icp.setInputCloud(full_model_transformed);
-//				icp.setInputTarget(scene);
-//				//pcl::PointCloud<pcl::PointXYZ> Final;
-//				//icp.align(Final);
-//				std::cout << "has converged:" << icp.hasConverged()
-//						<< " score: " << icp.getFitnessScore() << std::endl;
-//				std::cout << icp.getFinalTransformation() << std::endl;
-//			}
-//
-//		}
+		pcl::PointCloud<pcl::PointXYZ>::Ptr full_model(new pcl::PointCloud<pcl::PointXYZ>);
+		pcl::io::loadPCDFile(full_model_filename, *full_model);
+
+
+
+		pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+
+		for (size_t i = 0; i < local_maxima.points.size(); i++) {
+			for (int j = 0; j < num_rotations_icp; j++) {
+				float angle = 2*M_PI*j/num_rotations_icp;
+				Eigen::AngleAxis<float> rot(angle, Eigen::Vector3f(0,0,1));
+
+				Eigen::Affine3f transform;
+				transform.setIdentity();
+				transform.translate(local_maxima.points[i].getVector3fMap());
+				transform.rotate(rot);
+
+				pcl::PointCloud<pcl::PointXYZ>::Ptr full_model_transformed(new pcl::PointCloud<pcl::PointXYZ>);
+				pcl::transformPointCloud(*full_model, *full_model_transformed, transform);
+
+
+				icp.setInputCloud(full_model_transformed);
+				icp.setInputTarget(scene);
+				pcl::PointCloud<pcl::PointXYZ>::Ptr Final(new pcl::PointCloud<pcl::PointXYZ>);
+				icp.align(*Final);
+				std::cerr << "has converged:" << icp.hasConverged()
+						<< " score: " << icp.getFitnessScore() << std::endl;
+				//std::cout << icp.getFinalTransformation() << std::endl;
+
+				pcl::visualization::PCLVisualizer viz;
+				viz.initCameraParameters();
+				viz.updateCamera();
+				viz.addPointCloud<pcl::PointXYZ>(Final);
+				viz.addPointCloud<pcl::PointXYZ>(scene, "cloud2");
+				viz.spin();
+
+			}
+
+		}
 
 	}
 

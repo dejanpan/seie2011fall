@@ -16,6 +16,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/surface/mls.h>
 #include <pcl/segmentation/region_growing.h>
+#include <pcl/filters/passthrough.h>
 #include <pcl/features/sgfall.h>
 #include <opencv2/core/core.hpp>
 #include <yaml-cpp/yaml.h>
@@ -47,8 +48,8 @@ void transform_to_features(const cv::Mat & mat,
 void append_segments_from_file(const std::string & filename, std::vector<
 		featureType> & features, pcl::PointCloud<pcl::PointXYZ> & centroids,
 		std::vector<std::string> & classes, size_t min_points_in_segment,
-		pcl::PointXYZ * min_bound = NULL, pcl::PointXYZ * max_bound = NULL,
-		pcl::PointCloud<pcl::PointXYZ>::Ptr scene = pcl::PointCloud<pcl::PointXYZ>::Ptr());
+		pcl::PointCloud<pcl::PointXYZ> & scene, pcl::PointXYZ * min_bound =
+				NULL, pcl::PointXYZ * max_bound = NULL);
 
 void get_files_to_process(const std::string & input_dir, std::vector<
 		std::string> & files_to_process);

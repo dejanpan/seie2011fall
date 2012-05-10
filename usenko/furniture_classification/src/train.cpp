@@ -11,6 +11,7 @@
 int main(int argc, char** argv)
 {
 
+	// TODO write about dir structure
   if (argc < 5)
   {
     PCL_INFO ("Usage %s -input_dir /dir/with/pointclouds -output_file /where/to/put/database [options]\n", argv[0]);
@@ -41,9 +42,11 @@ int main(int argc, char** argv)
   std::vector<std::string> files_to_process;
   get_files_to_process(input_dir, files_to_process);
 
+  pcl::PointCloud<pcl::PointXYZ> tmp;
+
   for (size_t i = 0; i < files_to_process.size(); i++)
   {
-    append_segments_from_file(files_to_process[i], features, centroids, classes, min_points_in_segment);
+    append_segments_from_file(files_to_process[i], features, centroids, classes, min_points_in_segment, tmp);
   }
 
 
