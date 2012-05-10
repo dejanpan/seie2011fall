@@ -9,6 +9,15 @@
 #include <pcl/common/transforms.h>
 #include <training.h>
 
+#include <pcl/ModelCoefficients.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+
+#include <pcl/filters/voxel_grid.h>
+
 int main(int argc, char** argv) {
 
 	if (argc < 5) {
@@ -27,25 +36,61 @@ int main(int argc, char** argv) {
 	pcl::console::parse_argument(argc, argv, "-output_file", output_file);
 	pcl::console::parse_argument(argc, argv, "-tilt", tilt);
 
-
-
-	pcl::PointCloud<pcl::PointXYZRGB> cloud, cloud_transformed;
+	pcl::PointCloud<pcl::PointXYZRGB> cloud, cloud_transformed, cloud_aligned,
+			cloud_filtered;
 
 	pcl::io::loadPCDFile(input_file, cloud);
 
 	Eigen::Affine3f view_transform;
-	view_transform.matrix() <<  0,  0,  1, 0,
-							   -1,  0,  0, 0,
-							    0, -1,  0, 0,
-							    0,  0,  0, 1;
+	view_transform.matrix() << 0, 0, 1, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 1;
 
-	Eigen::AngleAxis<float> rot(tilt*M_PI/180, Eigen::Vector3f(0,1,0));
+	Eigen::AngleAxis<float> rot(tilt * M_PI / 180, Eigen::Vector3f(0, 1, 0));
 
 	view_transform.prerotate(rot);
 
 	pcl::transformPointCloud(cloud, cloud_transformed, view_transform);
 
-	pcl::io::savePCDFile(output_file, cloud_transformed);
+	pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+	// Create the segmentation object
+	pcl::SACSegmentation<pcl::PointXYZRGB> seg;
+	// Optional
+	seg.setOptimizeCoefficients(true);
+	// Mandatory
+	seg.setModelType(pcl::SACMODEL_PLANE);
+	seg.setMethodType(pcl::SAC_RANSAC);
+	seg.setDistanceThreshold(0.01);
+
+	seg.setInputCloud(cloud_transformed.makeShared());
+	seg.segment(*inliers, *coefficients);
+
+	std::cout << "Z vector: " << coefficients->values[0] << " "
+			<< coefficients->values[1] << " " << coefficients->values[2] << " "
+			<< coefficients->values[3] << std::endl;
+
+	Eigen::Vector3f z_current(coefficients->values[0], coefficients->values[1],
+			coefficients->values[2]);
+	Eigen::Vector3f y(0, 1, 0);
+
+	Eigen::Affine3f rotation;
+	rotation = pcl::getTransFromUnitVectorsZY(z_current, y);
+	rotation.translate(Eigen::Vector3f(0, 0, coefficients->values[3]));
+
+	pcl::transformPointCloud(cloud_transformed, cloud_aligned, rotation);
+
+	seg.setInputCloud(cloud_aligned.makeShared());
+	seg.segment(*inliers, *coefficients);
+
+	std::cout << "Z vector: " << coefficients->values[0] << " "
+			<< coefficients->values[1] << " " << coefficients->values[2] << " "
+			<< coefficients->values[3] << std::endl;
+
+	pcl::VoxelGrid<pcl::PointXYZRGB> sor;
+	sor.setInputCloud(cloud_aligned.makeShared());
+	sor.setLeafSize(0.02f, 0.02f, 0.02f);
+	sor.filter(cloud_filtered);
+
+	pcl::io::savePCDFile(output_file, cloud_filtered);
 
 	return 0;
 }

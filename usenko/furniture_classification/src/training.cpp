@@ -7,8 +7,9 @@
 
 #include <training.h>
 
-template <int N>
-void show_hist(const pcl::PointCloud<pcl::PointXYZ> & model, const pcl::PointCloud<pcl::Histogram<N> > & hist){
+template<int N>
+void show_hist(const pcl::PointCloud<pcl::PointXYZ> & model,
+		const pcl::PointCloud<pcl::Histogram<N> > & hist) {
 
 }
 
@@ -49,13 +50,26 @@ void transform_to_features(const cv::Mat & mat,
 
 void append_segments_from_file(const std::string & filename, std::vector<
 		featureType> & features, pcl::PointCloud<pcl::PointXYZ> & centroids,
-		std::vector<std::string> & classes, size_t min_points_in_segment) {
+		std::vector<std::string> & classes, size_t min_points_in_segment,
+		pcl::PointXYZ * min_bound, pcl::PointXYZ * max_bound,
+		pcl::PointCloud<pcl::PointXYZ>::Ptr scene) {
 	std::vector<std::string> st;
 	boost::split(st, filename, boost::is_any_of("/"), boost::token_compress_on);
 	std::string class_name = st.at(st.size() - 3);
 
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
+			new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::io::loadPCDFile(filename, *cloud);
+
+	// Compute bounds if needed
+	if ((min_bound != NULL) && (max_bound != NULL)) {
+		pcl::getMinMax3D<pcl::PointXYZ>(*cloud, *min_bound, *max_bound);
+	}
+
+	// Return cloud scene if needed
+	if(scene != NULL){
+		scene = cloud->makeShared();
+	}
 
 	// Create a KD-Tree
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<
@@ -79,14 +93,16 @@ void append_segments_from_file(const std::string & filename, std::vector<
 	// Reconstruct
 	mls.process(mls_points);
 
-	pcl::PointCloud<pcl::PointXYZ>::Ptr mls_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-	pcl::PointCloud<pcl::Normal>::Ptr mls_normal(new pcl::PointCloud<pcl::Normal>());
+	pcl::PointCloud<pcl::PointXYZ>::Ptr mls_cloud(new pcl::PointCloud<
+			pcl::PointXYZ>());
+	pcl::PointCloud<pcl::Normal>::Ptr mls_normal(new pcl::PointCloud<
+			pcl::Normal>());
 	pcl::copyPointCloud(mls_points, *mls_cloud);
 	pcl::copyPointCloud(mls_points, *mls_normal);
 
 	std::vector<std::vector<int> > segment_indices;
 
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr colored_cloud;
+	//pcl::PointCloud<pcl::PointXYZRGB>::Ptr colored_cloud;
 	pcl::RegionGrowing<pcl::PointXYZ> region_growing;
 	region_growing.setCloud(mls_cloud);
 	region_growing.setNormals(mls_normal);
@@ -98,7 +114,7 @@ void append_segments_from_file(const std::string & filename, std::vector<
 	region_growing.setSmoothnessThreshold(40 * M_PI / 180);
 	region_growing.segmentPoints();
 	segment_indices = region_growing.getSegments();
-	colored_cloud = region_growing.getColoredCloud();
+	//colored_cloud = region_growing.getColoredCloud();
 
 	pcl::PointCloud<featureType> feature;
 	featureEstimation feature_estimator;

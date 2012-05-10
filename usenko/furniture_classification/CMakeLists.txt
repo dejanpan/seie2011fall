@@ -39,7 +39,7 @@ target_link_libraries(classify vtkCommon vtkIO vtkFiltering vtkGraphics)
 
 rosbuild_add_executable(scan src/scan.cpp)
 rosbuild_link_boost(scan system filesystem)
-target_link_libraries(scan vtkCommon vtkIO vtkFiltering vtkGraphics)
+target_link_libraries(scan vtkCommon vtkIO vtkFiltering vtkGraphics vtkRendering)
 
 rosbuild_add_executable(convert src/convert.cpp)
 rosbuild_link_boost(convert system filesystem)

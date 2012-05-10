@@ -46,7 +46,9 @@ void transform_to_features(const cv::Mat & mat,
 
 void append_segments_from_file(const std::string & filename, std::vector<
 		featureType> & features, pcl::PointCloud<pcl::PointXYZ> & centroids,
-		std::vector<std::string> & classes, size_t min_points_in_segment);
+		std::vector<std::string> & classes, size_t min_points_in_segment,
+		pcl::PointXYZ * min_bound = NULL, pcl::PointXYZ * max_bound = NULL,
+		pcl::PointCloud<pcl::PointXYZ>::Ptr scene = pcl::PointCloud<pcl::PointXYZ>::Ptr());
 
 void get_files_to_process(const std::string & input_dir, std::vector<
 		std::string> & files_to_process);
@@ -70,7 +72,8 @@ void load_codebook(const std::string & filename, databaseType & database,
 
 YAML::Emitter& operator <<(YAML::Emitter& out, const databaseType & database);
 void operator >>(const YAML::Node& node, databaseType & database);
-void operator >>(const YAML::Node& node, pcl::PointCloud<featureType> & feature_cloud);
+void operator >>(const YAML::Node& node,
+		pcl::PointCloud<featureType> & feature_cloud);
 
 template<int N>
 YAML::Emitter& operator <<(YAML::Emitter& out, const pcl::Histogram<N> & h) {
