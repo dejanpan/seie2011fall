@@ -221,6 +221,6 @@ int main(int argc, char** argv) {
 	pcl::PCDWriter writer;
 	writer.write("source_normals_unfilt.pcd", *cloudSourceNormal,  true);
 	writer.write("target_normals_unfilt.pcd", *cloudTargetNormal,  true);
-	writer.write("handlesSource.pcd", *cloudSource, sourceHandleClusters, true);
-	writer.write("handlesTarget.pcd", *cloudTarget, targetHandleClusters, true);
+	//writer.write("handlesSource.pcd", *cloudSource, sourceHandleClusters, true);
+	//writer.write("handlesTarget.pcd", *cloudTarget, targetHandleClusters, true);
 }

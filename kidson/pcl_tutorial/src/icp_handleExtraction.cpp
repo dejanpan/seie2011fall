@@ -42,7 +42,7 @@ void normalEstimation(PointCloud::Ptr& pointCloudIn, PointCloudNormal::Ptr& poin
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.03);
+  ne.setRadiusSearch (0.05);
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -100,9 +100,16 @@ void extractHandles(PointCloud::Ptr& cloudInput, PointCloud::Ptr& cloudOutput, P
 	seg_line_.setProbability(seg_prob_);
 
 	//filter cloud
-	std::vector<int> tempIndices;
-	pcl::removeNaNFromPointCloud(*cloudInput, *cloudOutput, tempIndices);
-	pcl::removeNaNFromPointCloud(*pointCloudNormals, *pointCloudNormalsFiltered, tempIndices);
+	double leafSize = 0.001;
+	pcl::VoxelGrid<Point> sor;
+	sor.setInputCloud (cloudInput);
+	sor.setLeafSize (leafSize, leafSize, leafSize);
+	sor.filter (*cloudOutput);
+	//sor.setInputCloud (pointCloudNormals);
+	//sor.filter (*pointCloudNormalsFiltered);
+	//std::vector<int> tempIndices;
+	//pcl::removeNaNFromPointCloud(*cloudInput, *cloudOutput, tempIndices);
+	//pcl::removeNaNFromPointCloud(*pointCloudNormals, *pointCloudNormalsFiltered, tempIndices);
 
 	// Segment planes
 	pcl::OrganizedMultiPlaneSegmentation<Point, PointNormal, pcl::Label> mps;
@@ -235,13 +242,42 @@ int main(int argc, char** argv) {
 	extractHandles(cloudSource, cloudSourceFiltered, cloudSourceNormal, cloudSourceNormalFiltered, sourceHandleClusters);
 	extractHandles(cloudTarget, cloudTargetFiltered, cloudTargetNormal, cloudTargetNormalFiltered, targetHandleClusters);
 
+	normalEstimation(cloudSourceFiltered, cloudSourceNormalFiltered);
+	normalEstimation(cloudTargetFiltered, cloudTargetNormalFiltered);
+
+	for(size_t i=0; i < cloudTargetNormalFiltered->points.size(); i++)
+	{
+		if((cloudTargetNormalFiltered->points[i].normal_x != cloudTargetNormalFiltered->points[i].normal_x) ||
+				(cloudTargetNormalFiltered->points[i].normal_y != cloudTargetNormalFiltered->points[i].normal_y) ||
+				(cloudTargetNormalFiltered->points[i].normal_z != cloudTargetNormalFiltered->points[i].normal_z))
+		{
+			std::cerr << "NAN IN NORMAL " << i << "\n";
+			cloudTargetNormalFiltered->points.erase(cloudTargetNormalFiltered->points.begin() + (int)i);
+			i--;
+		}
+	}
+
+	for(size_t i=0; i < cloudTargetNormalFiltered->points.size(); i++)
+	{
+		if((cloudTargetNormalFiltered->points[i].normal_x != cloudTargetNormalFiltered->points[i].normal_x) ||
+				(cloudTargetNormalFiltered->points[i].normal_y != cloudTargetNormalFiltered->points[i].normal_y) ||
+				(cloudTargetNormalFiltered->points[i].normal_z != cloudTargetNormalFiltered->points[i].normal_z))
+		{
+			std::cerr << "2nd check NAN IN NORMAL!!!! " << i << "\n";
+			int * a; std::cout << *a;
+		}
+	}
+
+	writer.write("handlesSource.pcd", *cloudSourceNormalFiltered, sourceHandleClusters, true);
+	writer.write("handlesTarget.pcd", *cloudTargetNormalFiltered, targetHandleClusters, true);
+
 	ROS_INFO("Initialize transformation estimation object....");
 	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
 		transformationEstimation_(new TransformationEstimationJointOptimize<PointNormal, PointNormal>());
 
-	float denseCloudWeight = 1.0;
+	float denseCloudWeight = 0.0;
 	float visualFeatureWeight = 0.0;
-	float handleFeatureWeight = 0.1;
+	float handleFeatureWeight = 1.0;
 	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
 	transformationEstimation_->setCorrespondecesDFP(indicesSource, indicesTarget);
 
