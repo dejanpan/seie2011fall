@@ -1,0 +1,1 @@
+cp *joint* ~/ros_workspace/ias/registration/ ; cp impl/*joint* ~/ros_workspace/ias/registration/impl/
