@@ -7,7 +7,6 @@
 
 //#include "transformation_estimation_joint_optimize.h"
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget> inline void
 TransformationEstimationJointOptimize<PointSource, PointTarget>::setWeights(float denseWeight, float visualWeight, float handleWeight) {
@@ -299,6 +298,7 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::estimateRigidTr
 	tmp_tgt_ = NULL;
 	tmp_idx_src_ = tmp_idx_tgt_ = NULL;
 	tmp_idx_src_dfp_ = tmp_idx_tgt_dfp_ = NULL;
+	tmp_idx_src_handles_ = tmp_idx_tgt_handles_ = NULL;
 	tmp_weights_ = NULL;
 };
 
@@ -389,12 +389,21 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 		// Estimate the distance (cost function)
 //		diff_value_p += estimator_->computeDistance (p_src_warped, p_tgt);
 		fvec[i+number_dfp] = p_factor * estimator_->computeDistancePointToPlane (p_src_warped, p_tgt);
-		//if((i%1000) ==0)
+
+		if(fvec[i+number_dfp] != fvec[i+number_dfp])
+		{
+			std::cerr << "i: " << i << " is nan! fvec[i]= " << fvec[i+number_dfp] << "\n";
+			std::cerr << "source point       : " << p_src << "\n";
+			std::cerr << "source point warped: " << p_src_warped << "\n";
+			std::cerr << "target point       : " << p_tgt << "\n";
+		}
+
 		//	std::cerr << "fvec point " << (int)i << ":" << fvec[i+number_dfp] << "\n";
 	}
 	//std::cerr << "[error function] after points and features: " << fvec.sum() << "\n";
 
 	const double handle_factor = (handleWeight)/number_handle_p;
+	double totalError = 0.0;
 	for (int i = 0; i < number_handle_p; ++i)
 	{
 		const PointSource & p_src = src_points.points[src_indices_handles[i]];
@@ -407,9 +416,27 @@ TransformationEstimationJointOptimize<PointSource, PointTarget>::OptimizationFun
 		// Estimate the distance (cost function)
 //		diff_value_p += estimator_->computeDistance (p_src_warped, p_tgt);
 		fvec[i+number_dfp+number_p] = handle_factor * estimator_->computeDistance (p_src_warped, p_tgt);
+		totalError += fvec[i+number_dfp+number_p];
+		//std::cerr << "i: " << i << " src indice: " << src_indices_handles[i] << " src point: " << p_src_warped
+		//                        << " tgt indice: " << tgt_indices_handles[i] << " tgt point: " << p_tgt
+		//std::cerr << "i: " << i << " Distance error: " << fvec[i+number_dfp+number_p] << "\n";
+
 		//std::cerr << "fvec handle point " << (int)i << ":" << fvec[i+number_dfp+number_p] << "\n";
 	}
-	//std::cerr << "[error functino] total error : " << fvec.sum() << "\n";
+	//std::cerr << "[error function] after points and features and handles: " << fvec.sum() << "\n";
+	//fvec[0] = totalError;
+	//for (int i = 1; i < (number_handle_p + number_p + number_dfp); ++i)
+	//{
+
+	//	std::cerr << "i: " << i << "error: " << fvec[i] << "\n";
+	//	fvec[i] = 0.0;
+	//}
+	//std::cerr << "[error functino] fvec total error : " << fvec.sum() << "\n";
+	//std::cerr << "[error functino] my   total error : " << totalError << "\n";
+	//std::cerr << "##############Other debug info: ##########\n"
+	//		<< "Visual weight: " <<  visualWeight << " visual points: " << number_dfp      << " visual factor: " << dfp_factor << "\n"
+	//		<< "dense weight:  " <<  denseWeight  << " dense  points: " << number_p        << " dense  factor: " << p_factor << "\n"
+	//		<< "handle weight: " <<  handleWeight << " handle points: " << number_handle_p << " handle factor: " << handle_factor << "\n";
 	// Divide by number of points
 //	diff_value_p = diff_value_p/number_p;
 

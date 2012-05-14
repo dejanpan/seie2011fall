@@ -35,14 +35,15 @@ typedef KdTree::Ptr KdTreePtr;
 //typedef pcl::KdTree<Point>::Ptr KdTreePtr;
 //typedef typename pcl::search::Search<Point>::Ptr KdTreePtr;
 
-void normalEstimation(PointCloud::Ptr& pointCloudIn, PointCloudNormal::Ptr& pointCloudOut)
+void normalEstimation(PointCloud::Ptr& pointCloudIn, PointCloudNormal::Ptr& pointCloudOut, float radiusSeachSize)
 {
   // Create the normal estimation class, and pass the input dataset to it
+  ROS_INFO("Calculating normals....");
   pcl::NormalEstimation<pcl::PointXYZRGB, pcl::PointXYZRGBNormal> ne;
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.05);
+  ne.setRadiusSearch (radiusSeachSize);
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -50,8 +51,7 @@ void normalEstimation(PointCloud::Ptr& pointCloudIn, PointCloudNormal::Ptr& poin
 // input: pointCloudNormals
 // output: cloudOutput
 // output: pointCloudNormalsFiltered
-void extractHandles(PointCloud::Ptr& cloudInput, PointCloud::Ptr& cloudOutput, PointCloudNormal::Ptr& pointCloudNormals,
-		PointCloudNormal::Ptr& pointCloudNormalsFiltered, std::vector<int>& handles) {
+void extractHandles(PointCloud::Ptr& cloudInput, PointCloud::Ptr& cloudOutput, PointCloudNormal::Ptr& pointCloudNormals, std::vector<int>& handles) {
 	// PCL objects
 	//pcl::PassThrough<Point> vgrid_;                   // Filtering + downsampling object
 	pcl::VoxelGrid<Point> vgrid_; // Filtering + downsampling object
@@ -226,36 +226,23 @@ int main(int argc, char** argv) {
 	//Fill in the cloud data
 	ROS_INFO("Reading files....");
 	pcl::PCDReader reader;
-	reader.read(argv[1], *cloudSourceNormal);
-	reader.read(argv[2], *cloudTargetNormal);
-	pcl::copyPointCloud (*cloudSourceNormal, *cloudSource);
-	pcl::copyPointCloud (*cloudTargetNormal, *cloudTarget);
+	reader.read(argv[1], *cloudSource);
+	reader.read(argv[2], *cloudTarget);
+	//pcl::copyPointCloud (*cloudSourceNormal, *cloudSource);
+	//pcl::copyPointCloud (*cloudTargetNormal, *cloudTarget);
 
-	//ROS_INFO("Calculating normals....");
-	//normalEstimation(cloudSource, cloudSourceNormal);
-	//normalEstimation(cloudTarget, cloudTargetNormal);
+	normalEstimation(cloudSource, cloudSourceNormal, 0.03);
+	normalEstimation(cloudTarget, cloudTargetNormal, 0.03);
 
 	std::vector<int> sourceHandleClusters;
 	std::vector<int> targetHandleClusters;
 
 	ROS_INFO("Extracting handles....");
-	extractHandles(cloudSource, cloudSourceFiltered, cloudSourceNormal, cloudSourceNormalFiltered, sourceHandleClusters);
-	extractHandles(cloudTarget, cloudTargetFiltered, cloudTargetNormal, cloudTargetNormalFiltered, targetHandleClusters);
+	extractHandles(cloudSource, cloudSourceFiltered, cloudSourceNormal, sourceHandleClusters);
+	extractHandles(cloudTarget, cloudTargetFiltered, cloudTargetNormal, targetHandleClusters);
 
-	normalEstimation(cloudSourceFiltered, cloudSourceNormalFiltered);
-	normalEstimation(cloudTargetFiltered, cloudTargetNormalFiltered);
-
-	for(size_t i=0; i < cloudTargetNormalFiltered->points.size(); i++)
-	{
-		if((cloudTargetNormalFiltered->points[i].normal_x != cloudTargetNormalFiltered->points[i].normal_x) ||
-				(cloudTargetNormalFiltered->points[i].normal_y != cloudTargetNormalFiltered->points[i].normal_y) ||
-				(cloudTargetNormalFiltered->points[i].normal_z != cloudTargetNormalFiltered->points[i].normal_z))
-		{
-			std::cerr << "NAN IN NORMAL " << i << "\n";
-			cloudTargetNormalFiltered->points.erase(cloudTargetNormalFiltered->points.begin() + (int)i);
-			i--;
-		}
-	}
+	normalEstimation(cloudSourceFiltered, cloudSourceNormalFiltered, 0.05);
+	normalEstimation(cloudTargetFiltered, cloudTargetNormalFiltered, 0.05);
 
 	for(size_t i=0; i < cloudTargetNormalFiltered->points.size(); i++)
 	{
@@ -263,8 +250,10 @@ int main(int argc, char** argv) {
 				(cloudTargetNormalFiltered->points[i].normal_y != cloudTargetNormalFiltered->points[i].normal_y) ||
 				(cloudTargetNormalFiltered->points[i].normal_z != cloudTargetNormalFiltered->points[i].normal_z))
 		{
-			std::cerr << "2nd check NAN IN NORMAL!!!! " << i << "\n";
-			int * a; std::cout << *a;
+			std::cerr << "NAN IN NORMAL. Specify larger K or search radius to calculate normals " << i << "\n";
+			exit(0);
+			//cloudTargetNormalFiltered->points.erase(cloudTargetNormalFiltered->points.begin() + (int)i);
+			//i--;
 		}
 	}
 
