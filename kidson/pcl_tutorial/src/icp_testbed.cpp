@@ -73,7 +73,7 @@ void getTestDataFromBag(std::string bagfilename, PointCloudPtr cloud_source, Poi
 
   	pcl::PCDWriter writer;
   	std::stringstream filename;
-  	filename << "/media/PATRIOT/rosspcl/" << bagfilename << ".bag";
+  	filename << "/media/burg/data/bagfiles/" << bagfilename << ".bag";
 
 	rosbag::Bag bag;
 	bag.open(filename.str(), rosbag::bagmode::Read);
@@ -460,8 +460,10 @@ int main (int argc, char** argv)
 	runTests(results, "desk-far1-features", 47, "mid"); //med
 	runTests(results, "desk-far1-features", 48, "far"); //far
 */
+	runTests(results, "bench1-ManySweeps4-lowfeatureThresNode2", 41, "close"); //close
+
 	// ############FINAL TEST SET HERE################
-	runTests(results, "bench1-2sweeps5", 1, "close"); //close
+/*	runTests(results, "bench1-2sweeps5", 1, "close"); //close
 	runTests(results, "bench1-2sweeps5", 17, "mid"); //medr
 	runTests(results, "bench1-2sweeps5", 32, "far"); //far
 
@@ -489,7 +491,7 @@ int main (int argc, char** argv)
 	runTests(results, "desk-far1-features2", 7, "mid"); //med
 	runTests(results, "desk-far1-features2", 23, "far"); //far
 
-/*
+
 	runTests(results, "featureNonStructured3-features", 75, "mid"); //med
 	runTests(results, "featureNonStructured3-features", 74, "mid"); //med
 	runTests(results, "featureNonStructured3-features", 72, "mid"); //med
