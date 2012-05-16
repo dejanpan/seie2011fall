@@ -81,6 +81,9 @@ unsigned char colormap_ [36] = { 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0, 2
 bool comparison (pcl::PointXYZI i,pcl::PointXYZI j) {
 	 return (i.intensity > j.intensity); }
 
+bool comparison_curv (pcl::Normal i,pcl::Normal j) {
+	 return (i.curvature > j.curvature); }
+
 using namespace pcl::tracking;
 
 template<typename PointType>
@@ -222,9 +225,9 @@ public:
 	bool drawParticles(pcl::visualization::PCLVisualizer& viz) {
 
 
-
-		bool drawParticles= false;
-		ParticleFilter::PointCloudStatePtr particles = tracker_->getParticles();
+		for (uint track=0; track < tracker_vector_.size(); track++) {
+		bool drawParticles= true;
+		ParticleFilter::PointCloudStatePtr particles = tracker_vector_[track]->getParticles();
 		//ParticleFilter::PointCloudStatePtr particles = tracker_->getParticles();
 		if (particles) {
 			if (visualize_particles_) {
@@ -241,19 +244,23 @@ public:
 
 				{
 					if (drawParticles){
-					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> blue_color(particle_cloud, 250, 99,71);
+
+						pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> blue_color(
+														particle_cloud, colormap_[3*track], colormap_[3*track+1], colormap_[3*track+2]);
+//					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> blue_color(particle_cloud, 250, 99,71);
 					 if (!viz.updatePointCloud(particle_cloud, blue_color,
-					 "particle cloud"))
+					 "particle cloud" +track))
 					 viz.addPointCloud(particle_cloud, blue_color,
-					 "particle cloud");
+					 "particle cloud" +track);
 					}
 				}
 			}
-			return true;
+
+//			return true;
 		} else {
 			PCL_WARN("no particles\n");
 			return false;
-		}
+		}} return true;
 	}
 
 	void drawResult(pcl::visualization::PCLVisualizer& viz) {
@@ -403,7 +410,7 @@ public:
 						10, 120, 20, 1.0, 1.0, 1.0, "particles");
 						*/
 
-				viz.addText("Particle filtering-based tracking of 3D lines and corners. ",20,60,23,1.0,1.0,1.0,"title");
+				viz.addText("Particle filtering-based tracking of 3D lines and corners. ",20,60,23,1.0,1.0,1.0,"title"+counter_);
 			}
 		}
 		new_cloud_ = false;
@@ -611,9 +618,12 @@ public:
 
 	}
 
-	void extractLines(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud, pcl::ModelCoefficients::Ptr &coefficients) {
+	bool extractLines(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud, pcl::ModelCoefficients::Ptr &coefficients) {
 
 		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+
+		if (cloud->size()==0)
+			return false;
 
 		pcl::SACSegmentation<PointType> seg;
 		// Optional
@@ -628,6 +638,7 @@ public:
 		if (inliers->indices.size() == 0) {
 			PCL_ERROR(
 					"Could not estimate a line model for the given dataset.");
+			return false;
 		}
 //DEBUG
 		/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
@@ -694,6 +705,7 @@ public:
 		newCloud.width = newCloud.points.size();
 		newCloud.height = 1;
 		newCloud.is_dense = true;
+		return true;
 
 	}
 
@@ -709,12 +721,21 @@ public:
 		norm_est.setRadiusSearch(0.03);
 		norm_est.compute(*normals_cloud);
 
+		std::cerr<<"cloud before: "<<cloud->size()<<std::endl;
+
+
+//		 std::sort(normals_cloud->points.begin(),normals_cloud->points.end(),comparison_curv);
+
+
 		for (size_t i = 0; i < normals_cloud->size(); ++i)
 		{
 			//std::cerr<<"CURVATURE: "<<normals_cloud->points[i].curvature<<std::endl;
 			if (normals_cloud->points[i].curvature > 0.055)
 				result.push_back(cloud->points.at(i));
 		}
+
+		std::cerr<<"cloud after: "<<result.size()<<std::endl;
+
 
 		/*
 
@@ -797,13 +818,13 @@ public:
 
 
 
-	void extractCorners(const CloudConstPtr &cloud, Cloud &result, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity,int number) {
+	bool extractCorners(const CloudConstPtr &cloud, Cloud &result,Cloud &newCloud, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity,int number) {
 
 
 
 		 pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>* harris3D = new pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI> (pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>::HARRIS);
 		 harris3D->setNonMaxSupression(true);
-		 harris3D->setThreshold(0.0009);
+//		 harris3D->setThreshold(0.0009);
 //		 harris3D->setThreshold(0.00011);
 
 
@@ -814,6 +835,8 @@ public:
 		 harris3D->setMethod(pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>::HARRIS);
 		 harris3D->compute(*cloud_intensity);
 
+		 pcl::copyPointCloud<PointType>(*cloud,newCloud);
+
 
 		 cloud_intensity_.reset(new pcl::PointCloud<pcl::PointXYZI>);
 		 pcl::copyPointCloud(*cloud_intensity, *cloud_intensity_);
@@ -822,7 +845,7 @@ public:
 
 		 bool best_corner=true;
 
-
+		 if(cloud_intensity_->size()>0){
 		 std::sort(cloud_intensity_->points.begin(),cloud_intensity_->points.end(),comparison);
 
 		 if (best_corner)
@@ -893,10 +916,50 @@ public:
 					   result.erase(result.begin() + 1);
 
 
+				   RefCloudPtr thickResult(new RefCloud);
+
+				   		//DEBUG
+				   //		std::cerr<<"result size: "<<result.points.size()<<std::endl;
+				   //
+				   //		std::cerr<<"boundary size: "<<cloud->points.size()<<std::endl;
+
+
+				   		extractNeighbor(cloud,result,*thickResult);
+
+				   		//DEBUG
+				   //		std::cerr<<"thick result size: "<<thickResult->points.size()<<std::endl;
+
+				   		for (size_t i = 0; i < thickResult->points.size(); i++) {
+				   					PointType point = thickResult->points[i];
+
+
+				   for(size_t j = 0; j < newCloud.points.size(); j++){
+
+				   						PointType pointNew = newCloud.points[j];
+
+//				   						PointType point =result.points[0];
+
+				   						float dist= sqrt((point.x-pointNew.x)*(point.x-pointNew.x)+(point.y-pointNew.y)*(point.y-pointNew.y)+(point.z-pointNew.z)*(point.z-pointNew.z));
+				   						if(dist<0.00001)
+				   							newCloud.erase(newCloud.begin()+j);
+
+
+
+				   					}
+				   		}
+
+		 }
+		 else{
+			 return false;
+		 }
+
+
 
 		 		result.width = result.points.size();
 		 		result.height = 1;
 		 		result.is_dense = true;
+
+		 		return true;
 
 
 	}
@@ -1130,6 +1193,11 @@ public:
 					RefCloudPtr nonzero_ref_corners(new RefCloud);
 					RefCloudPtr nonzero_ref_corners2(new RefCloud);
 
+					RefCloudPtr nonzero_ref_no_corner(new RefCloud);
+					RefCloudPtr nonzero_ref_no_corner2(new RefCloud);
+
+
+
 					RefCloudPtr nonzero_ref_no_line(new RefCloud);
 					RefCloudPtr nonzero_ref_no_line2(new RefCloud);
 					RefCloudPtr nonzero_ref_no_line3(new RefCloud);
@@ -1140,47 +1208,62 @@ public:
 					pcl::ModelCoefficients::Ptr coefficients4(new pcl::ModelCoefficients);
 
 
-
-
-
-					pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity(new pcl::PointCloud<pcl::PointXYZI>);
-
-					//finding boundaries
-					findBoundaries(nonzero_ref, *nonzero_ref_boundary);
-					//extract the corners
-					extractCorners(nonzero_ref, *nonzero_ref_corners,cloud_intensity,0);
-
-					extractCorners(nonzero_ref, *nonzero_ref_corners2,cloud_intensity,1);
-
-					//extracting first line
-					extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line,coefficients);
-
-					//extracting second line
-					extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2);
-
-					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
-
-
 					std::vector<RefCloudPtr> clouds_vector;
 					std::vector<bool> is_line_vector;
 					std::vector<pcl::ModelCoefficients::Ptr> coeff_vector;
 
 
-					clouds_vector.push_back(nonzero_ref_corners);
-					is_line_vector.push_back(false);
-					coeff_vector.push_back(coefficients4);
+					pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity(new pcl::PointCloud<pcl::PointXYZI>);
 
-					clouds_vector.push_back(nonzero_ref_corners2);
-					is_line_vector.push_back(false);
-					coeff_vector.push_back(coefficients4);
 
-					clouds_vector.push_back(nonzero_ref_lines);
-					is_line_vector.push_back(true);
-					coeff_vector.push_back(coefficients);
 
-					clouds_vector.push_back(nonzero_ref_lines2);
-					is_line_vector.push_back(true);
-					coeff_vector.push_back(coefficients2);
+					//finding boundaries
+					findBoundaries(nonzero_ref, *nonzero_ref_boundary);
+					//extract the corners
+
+					if(extractCorners(nonzero_ref, *nonzero_ref_corners,*nonzero_ref_no_corner,cloud_intensity,0)){
+
+						clouds_vector.push_back(nonzero_ref_corners);
+						is_line_vector.push_back(false);
+						coeff_vector.push_back(coefficients4);
+					}
+
+					if(extractCorners(nonzero_ref_no_corner, *nonzero_ref_corners2,*nonzero_ref_no_corner2,cloud_intensity,0)){
+
+
+						clouds_vector.push_back(nonzero_ref_corners2);
+						is_line_vector.push_back(false);
+						coeff_vector.push_back(coefficients4);
+					}
+
+					//extracting first line
+					if(extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line,coefficients)){
+
+						clouds_vector.push_back(nonzero_ref_lines);
+						is_line_vector.push_back(true);
+						coeff_vector.push_back(coefficients);
+					}
+
+					//extracting second line
+
+//					std::cerr<< "true or false: "<< extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)<<std::endl;
+
+					if(extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)){
+											clouds_vector.push_back(nonzero_ref_lines2);
+											is_line_vector.push_back(true);
+											coeff_vector.push_back(coefficients2);
+					}
+//
+//					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
+
+
+
+					tracker_vector_.resize(clouds_vector.size());
+
+
+
+
+
 
 
 //					clouds_vector.push_back(nonzero_ref_lines3);
