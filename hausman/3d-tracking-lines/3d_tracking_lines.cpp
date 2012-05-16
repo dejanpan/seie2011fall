@@ -964,6 +964,54 @@ public:
 
 	}
 
+	bool extractPlane(const CloudConstPtr &cloud, Cloud &result){
+		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+
+		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+
+				if (cloud->size()==0)
+					return false;
+
+				pcl::SACSegmentation<PointType> seg;
+				// Optional
+				seg.setOptimizeCoefficients(true);
+
+				seg.setModelType(pcl::SACMODEL_PLANE);
+				seg.setMethodType(pcl::SAC_RANSAC);
+				seg.setDistanceThreshold(0.2);
+
+				seg.setInputCloud(cloud);
+				seg.segment(*inliers, *coefficients);
+				if (inliers->indices.size() == 0) {
+					PCL_ERROR(
+							"Could not estimate a line model for the given dataset.");
+					return false;
+				}
+		//DEBUG
+				/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
+				 for (size_t i = 0; i < inliers->indices.size(); ++i)
+				 std::cerr << inliers->indices[i] << "    "
+				 << cloud->points[inliers->indices[i]].x << " "
+				 << cloud->points[inliers->indices[i]].y << " "
+				 << cloud->points[inliers->indices[i]].z << std::endl;*/
+
+
+
+				for (size_t i = 0; i < inliers->indices.size(); i++) {
+					PointType point = cloud->points[inliers->indices[i]];
+					result.points.push_back(point);
+
+				}
+
+
+
+				result.width = result.points.size();
+				result.height = 1;
+				result.is_dense = true;
+
+				return true;
+
+	}
 
 	void onlyLineNeighbor(const CloudConstPtr &cloud, Cloud &result,Cloud &line, pcl::ModelCoefficients::Ptr &coefficients){
 
@@ -1193,6 +1241,9 @@ public:
 					RefCloudPtr nonzero_ref_corners(new RefCloud);
 					RefCloudPtr nonzero_ref_corners2(new RefCloud);
 
+					RefCloudPtr nonzero_ref_plane(new RefCloud);
+
+
 					RefCloudPtr nonzero_ref_no_corner(new RefCloud);
 					RefCloudPtr nonzero_ref_no_corner2(new RefCloud);
 
@@ -1256,6 +1307,12 @@ public:
 //
 //					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
 
+
+//					if(extractPlane(nonzero_ref,*nonzero_ref_plane)){
+//										clouds_vector.push_back(nonzero_ref_plane);
+//										is_line_vector.push_back(true);
+//										coeff_vector.push_back(coefficients2);
+//					}
 
 
 					tracker_vector_.resize(clouds_vector.size());
