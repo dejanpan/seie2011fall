@@ -135,6 +135,7 @@ public:
 		default_step_covariance[3] *= 40.0;
 		default_step_covariance[4] *= 40.0;
 		default_step_covariance[5] *= 40.0;
+//		default_step_covariance[0] *=50.0;
 
 		std::cerr << "step covariance: " << default_step_covariance.size()
 				<< std::endl;
@@ -1013,6 +1014,42 @@ public:
 
 	}
 
+
+	void covariancePCA(const CloudConstPtr &cloud, Eigen::Vector3f &direction){
+
+			Eigen::Vector4f centroid;
+			//DEBUG
+			//std::cerr << "centroid: " << centroid << std::endl;
+
+				EIGEN_ALIGN16 Eigen::Vector3f eigen_values;
+				EIGEN_ALIGN16 Eigen::Matrix3f eigen_vectors;
+				Eigen::Matrix3f cov;
+				Eigen::Vector3f eigen_vector1;
+				Eigen::Vector3f eigen_vector2;
+				Eigen::Vector3f vector3rd;
+
+
+				pcl::compute3DCentroid(*cloud, centroid);
+
+
+				//orientation of the gripper based on PCA
+
+				pcl::computeCovarianceMatrixNormalized(*cloud, centroid, cov);
+				pcl::eigen33(cov, eigen_vectors, eigen_values);
+
+
+				eigen_vector1(0) = eigen_vectors(0, 2);
+				eigen_vector1(1) = eigen_vectors(1, 2);
+				eigen_vector1(2) = eigen_vectors(2, 2);
+				eigen_vector2(0) = eigen_vectors(0, 1);
+				eigen_vector2(1) = eigen_vectors(1, 1);
+				eigen_vector2(2) = eigen_vectors(2, 1);
+
+				direction=eigen_vector1;
+
+
+	}
+
 	void onlyLineNeighbor(const CloudConstPtr &cloud, Cloud &result,Cloud &line, pcl::ModelCoefficients::Ptr &coefficients){
 
 		  CloudPtr cloud_projected (new Cloud);
@@ -1258,10 +1295,18 @@ public:
 					pcl::ModelCoefficients::Ptr coefficients3(new pcl::ModelCoefficients);
 					pcl::ModelCoefficients::Ptr coefficients4(new pcl::ModelCoefficients);
 
+					Eigen::Vector3f direction1;
+					Eigen::Vector3f direction2;
+					Eigen::Vector3f direction3;
+					Eigen::Vector3f direction4;
+
+
 
 					std::vector<RefCloudPtr> clouds_vector;
 					std::vector<bool> is_line_vector;
 					std::vector<pcl::ModelCoefficients::Ptr> coeff_vector;
+					std::vector<Eigen::Vector3f> directions_vector;
+
 
 
 					pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity(new pcl::PointCloud<pcl::PointXYZI>);
@@ -1277,6 +1322,7 @@ public:
 						clouds_vector.push_back(nonzero_ref_corners);
 						is_line_vector.push_back(false);
 						coeff_vector.push_back(coefficients4);
+						directions_vector.push_back(direction1);
 					}
 
 					if(extractCorners(nonzero_ref_no_corner, *nonzero_ref_corners2,*nonzero_ref_no_corner2,cloud_intensity,0)){
@@ -1285,6 +1331,8 @@ public:
 						clouds_vector.push_back(nonzero_ref_corners2);
 						is_line_vector.push_back(false);
 						coeff_vector.push_back(coefficients4);
+						directions_vector.push_back(direction2);
+
 					}
 
 					//extracting first line
@@ -1293,6 +1341,10 @@ public:
 						clouds_vector.push_back(nonzero_ref_lines);
 						is_line_vector.push_back(true);
 						coeff_vector.push_back(coefficients);
+						covariancePCA(nonzero_ref_lines,direction3);
+						directions_vector.push_back(direction3);
+
+
 					}
 
 					//extracting second line
@@ -1303,6 +1355,8 @@ public:
 											clouds_vector.push_back(nonzero_ref_lines2);
 											is_line_vector.push_back(true);
 											coeff_vector.push_back(coefficients2);
+											directions_vector.push_back(direction4);
+
 					}
 //
 //					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
@@ -1342,9 +1396,15 @@ public:
 					//making point cloud thicker- in case of change(i.e. corner instead of the line or so) change second param
 					extractNeighbor(nonzero_ref,*clouds_vector[track], *nonzero_ref_final_cloud);
 
-					if ((is_line_vector[track])&&(coeff_vector[track]!=NULL))
+					if ((is_line_vector[track])&&(coeff_vector[track]!=NULL)){
 					onlyLineNeighbor(nonzero_ref_final_cloud,*nonzero_ref_final_cloud,*clouds_vector[track],coeff_vector[track]);
 
+//					tracker_->setStepNoiseCovariance(default_step_covariance);
+//					std::vector<double> covariance=tracker_vector_[track]->step_noise_covariance_;
+
+//					tracker_vector_[track]->setStepNoiseCovariance()=directions_vector[track]
+
+					}
 					std::stringstream ss;
 						ss <<track;
 					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
