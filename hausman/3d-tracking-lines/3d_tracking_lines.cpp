@@ -1342,6 +1342,7 @@ public:
 						is_line_vector.push_back(true);
 						coeff_vector.push_back(coefficients);
 						covariancePCA(nonzero_ref_lines,direction3);
+						std::cerr<<"DIRECTION"<<direction3<<std::endl;
 						directions_vector.push_back(direction3);
 
 
@@ -1351,13 +1352,13 @@ public:
 
 //					std::cerr<< "true or false: "<< extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)<<std::endl;
 
-					if(extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)){
-											clouds_vector.push_back(nonzero_ref_lines2);
-											is_line_vector.push_back(true);
-											coeff_vector.push_back(coefficients2);
-											directions_vector.push_back(direction4);
-
-					}
+//					if(extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)){
+//											clouds_vector.push_back(nonzero_ref_lines2);
+//											is_line_vector.push_back(true);
+//											coeff_vector.push_back(coefficients2);
+//											directions_vector.push_back(direction4);
+//
+//					}
 //
 //					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
 
@@ -1399,10 +1400,19 @@ public:
 					if ((is_line_vector[track])&&(coeff_vector[track]!=NULL)){
 					onlyLineNeighbor(nonzero_ref_final_cloud,*nonzero_ref_final_cloud,*clouds_vector[track],coeff_vector[track]);
 
-//					tracker_->setStepNoiseCovariance(default_step_covariance);
-//					std::vector<double> covariance=tracker_vector_[track]->step_noise_covariance_;
 
-//					tracker_vector_[track]->setStepNoiseCovariance()=directions_vector[track]
+					std::vector<double> step_covariance = std::vector<double>(6,
+									0.005 * 0.015);//0.000075
+							step_covariance[3] *= 40.0;
+							step_covariance[4] *= 40.0;
+							step_covariance[5] *= 40.0;
+
+//					step_covariance[0]+=directions_vector[track][0]*0.000125;
+//					step_covariance[1]+=directions_vector[track][1]*0.000125;
+//					step_covariance[2]+=directions_vector[track][2]*0.000125;
+
+
+					tracker_vector_[track]->setStepNoiseCovariance(step_covariance);
 
 					}
 					std::stringstream ss;
