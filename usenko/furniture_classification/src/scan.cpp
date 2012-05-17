@@ -153,7 +153,8 @@ void createFullModelPointcloud(vtkSmartPointer<vtkPolyData> polydata,
 	polydata = triangleMapper->GetInput();
 	polydata->Update();
 
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
+			new pcl::PointCloud<pcl::PointXYZ>);
 	uniform_sampling(polydata, n_samples, *cloud);
 
 	pcl::VoxelGrid<pcl::PointXYZ> grid_;
@@ -346,6 +347,14 @@ int main(int argc, char** argv) {
 						moveToNewCenterAndAlign(cloud, cloud_transformed,
 								new_center, tilt[tilt_index]);
 
+						// Downsample
+						pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_transformed_downsampled(
+														new pcl::PointCloud<pcl::PointXYZ>());
+						pcl::VoxelGrid<pcl::PointXYZ> grid;
+						grid.setInputCloud(cloud_transformed);
+						grid.setLeafSize(0.02f, 0.02f, 0.02f);
+						grid.filter(*cloud_transformed_downsampled);
+
 						// Compute file name for this pointcloud and save it
 						std::stringstream ss;
 						ss << dirname << "/rotation" << angle << "_distance"
@@ -353,7 +362,7 @@ int main(int argc, char** argv) {
 								<< tilt[tilt_index] << "_shift"
 								<< shift[shift_index] << ".pcd";
 						PCL_INFO("Writing %d points to file %s\n", cloud->points.size(), ss.str().c_str());
-						pcl::io::savePCDFile(ss.str(), *cloud_transformed);
+						pcl::io::savePCDFile(ss.str(), *cloud_transformed_downsampled);
 
 						// increment angle by step
 						angle += angle_step;

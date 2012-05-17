@@ -39,8 +39,10 @@ int main(int argc, char** argv)
   std::vector<featureType> cluster_centers;
   std::vector<int> cluster_labels;
 
+  std::map<std::string, std::vector<std::string> > class_to_full_pointcloud;
+
   std::vector<std::string> files_to_process;
-  get_files_to_process(input_dir, files_to_process);
+  get_files_to_process(input_dir, files_to_process, class_to_full_pointcloud);
 
   pcl::PointCloud<pcl::PointXYZ> tmp;
 
@@ -62,7 +64,7 @@ int main(int argc, char** argv)
 
   create_codebook(features, centroids, classes, cluster_centers, cluster_labels, database);
 
-  save_codebook(output_file, database, min, max);
+  save_codebook(output_file, database, min, max, class_to_full_pointcloud);
 
   return 0;
 }
