@@ -51,8 +51,8 @@ void removeIntersecting(const std::vector<pcl::PointCloud<pcl::PointXYZ> > & res
     {
       if (intersectXY(result[i], result[j]))
       {
-      if (score[i] > score[j])
-        best = false;
+        if (score[i] > score[j])
+          best = false;
       }
 
     }
@@ -233,6 +233,39 @@ int main(int argc, char** argv)
   pcl::console::parse_argument(argc, argv, "-icp_threshold", icp_threshold);
   pcl::console::parse_argument(argc, argv, "-num_rotations_icp", num_rotations_icp);
 
+
+  // create directory structure
+  std::vector<std::string> st;
+  boost::split(st, scene_file_name, boost::is_any_of("/"), boost::token_compress_on);
+  std::string scene_name = st.at(st.size() - 1);
+  scene_name = scene_name.substr(0, scene_name.size() - 4);
+
+  // Check if output directory exists
+  boost::filesystem::path output_path(scene_name);
+  if (!boost::filesystem::exists(output_path) || !boost::filesystem::is_directory(output_path))
+  {
+    if (!boost::filesystem::create_directories(output_path))
+    {
+      PCL_ERROR ("Error creating directory %s.\n", output_path.c_str ());
+      return -1;
+    }
+
+    boost::filesystem::path debug_path(scene_name + "/debug");
+    boost::filesystem::path result_path(scene_name + "/result");
+
+    if (!boost::filesystem::create_directories(debug_path))
+    {
+      PCL_ERROR ("Error creating directory %s.\n", output_path.c_str ());
+      return -1;
+    }
+    if (!boost::filesystem::create_directories(result_path))
+    {
+      PCL_ERROR ("Error creating directory %s.\n", output_path.c_str ());
+      return -1;
+    }
+
+  }
+
   databaseType database;
   pcl::PointCloud<featureType>::Ptr feature_cloud(new pcl::PointCloud<featureType>());
   featureType min_train, max_train;
@@ -300,16 +333,16 @@ int main(int argc, char** argv)
     std::string class_name = it->first;
     pcl::PointCloud<pcl::PointXYZI> model_centers = it->second;
 
-    pcl::io::savePCDFileASCII(class_name + ".pcd", model_centers);
+    pcl::io::savePCDFileASCII(scene_name + "/debug/" + class_name + ".pcd", model_centers);
 
     Eigen::MatrixXf grid;
     voteToGrid(model_centers, grid, min_bound, max_bound, cell_size);
-    saveGridToPGMFile(class_name + ".pgm", grid);
+    saveGridToPGMFile(scene_name + "/debug/" + class_name + ".pgm", grid);
 
     pcl::PointCloud<pcl::PointXYZ> local_maxima;
     findLocalMaxima(grid, window_size, min_bound, cell_size, local_maxima_threshold, local_maxima);
 
-    pcl::io::savePCDFileASCII(class_name + "_local_max.pcd", local_maxima);
+    pcl::io::savePCDFileASCII(scene_name + "/debug/" + class_name + "_local_max.pcd", local_maxima);
 
     if (use_icp)
     {
@@ -326,13 +359,15 @@ int main(int argc, char** argv)
       for (size_t i = 0; i < no_intersection_result.size(); i++)
       {
         std::stringstream ss;
-        ss << "Result_" << class_name << "_" << i << ".pcd";
+        ss << scene_name << "/result/" << class_name << "_" << i << ".pcd";
         pcl::io::savePCDFileASCII(ss.str(), no_intersection_result[i]);
       }
 
     }
 
   }
+
+  pcl::io::savePCDFileASCII(scene_name + "/result/scene.pcd", *scene);
 
   return 0;
 }
