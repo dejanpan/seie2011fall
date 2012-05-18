@@ -19,6 +19,105 @@
 #include <pcl/console/parse.h>
 #include <fstream>
 
+bool intersectXY(const pcl::PointCloud<pcl::PointXYZ> & cloud1, const pcl::PointCloud<pcl::PointXYZ> & cloud2)
+{
+
+  pcl::PointXYZ min1, max1, min2, max2;
+  pcl::getMinMax3D<pcl::PointXYZ>(cloud1, min1, max1);
+  pcl::getMinMax3D<pcl::PointXYZ>(cloud2, min2, max2);
+
+  bool intersectX, intersectY;
+  if (min1.x < min2.x)
+    intersectX = max1.x > min2.x;
+  else
+    intersectX = max2.x > min1.x;
+
+  if (min1.y < min2.y)
+    intersectY = max1.y > min2.y;
+  else
+    intersectY = max2.y > min1.y;
+
+  return intersectX && intersectY;
+
+}
+
+void removeIntersecting(const std::vector<pcl::PointCloud<pcl::PointXYZ> > & result, const std::vector<float> & score,
+                        std::vector<pcl::PointCloud<pcl::PointXYZ> > & no_intersect_result)
+{
+  for (size_t i = 0; i < result.size(); i++)
+  {
+    bool best = true;
+    for (size_t j = 0; j < result.size(); j++)
+    {
+      if (intersectXY(result[i], result[j]))
+      {
+      if (score[i] > score[j])
+        best = false;
+      }
+
+    }
+    if (best)
+    {
+      no_intersect_result.push_back(result[i]);
+    }
+  }
+
+}
+
+void refineWithICP(const std::vector<std::string> & models, const pcl::PointCloud<pcl::PointXYZ> & local_maxima,
+                   pcl::PointCloud<pcl::PointXYZ>::Ptr scene, int num_rotations_icp, float icp_threshold, std::vector<
+                       pcl::PointCloud<pcl::PointXYZ> > & result, std::vector<float> & score)
+{
+  pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+
+  for (size_t model_idx = 0; model_idx < models.size(); model_idx++)
+  {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr full_model(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::io::loadPCDFile(models[model_idx], *full_model);
+
+    std::cerr << "Checking model:" << models[model_idx] << std::endl;
+
+    for (size_t i = 0; i < local_maxima.points.size(); i++)
+    {
+      for (int j = 0; j < num_rotations_icp; j++)
+      {
+        float angle = 2 * M_PI * j / num_rotations_icp;
+        Eigen::AngleAxis<float> rot(angle, Eigen::Vector3f(0, 0, 1));
+
+        Eigen::Affine3f transform;
+        transform.setIdentity();
+        transform.translate(local_maxima.points[i].getVector3fMap());
+        transform.rotate(rot);
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr full_model_transformed(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::transformPointCloud(*full_model, *full_model_transformed, transform);
+
+        icp.setInputCloud(full_model_transformed);
+        icp.setInputTarget(scene);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr Final(new pcl::PointCloud<pcl::PointXYZ>);
+        icp.align(*Final);
+        std::cerr << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
+
+        if (icp.getFitnessScore() < icp_threshold)
+        {
+          result.push_back(*Final);
+          score.push_back(icp.getFitnessScore());
+
+          //              pcl::visualization::PCLVisualizer viz;
+          //              viz.initCameraParameters();
+          //              viz.updateCamera();
+          //              pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(Final, 0, 255, 0);
+          //              viz.addPointCloud<pcl::PointXYZ> (Final, single_color);
+          //              viz.addPointCloud<pcl::PointXYZ> (scene, "cloud2");
+          //              viz.spin();
+        }
+
+      }
+
+    }
+  }
+}
+
 void voteToGrid(pcl::PointCloud<pcl::PointXYZI> & model_centers, Eigen::MatrixXf & grid,
                 const pcl::PointXYZ & min_bound, const pcl::PointXYZ & max_bound, float cell_size)
 {
@@ -51,12 +150,11 @@ void findLocalMaxima(const Eigen::MatrixXf & grid, const float window_size, cons
                      pcl::PointCloud<pcl::PointXYZ> & local_maxima)
 {
 
-
   float max, min;
   max = grid.maxCoeff();
   min = grid.minCoeff();
 
-  float threshold = min + (max-min)*local_maxima_threshold;
+  float threshold = min + (max - min) * local_maxima_threshold;
 
   int window_size_pixels = window_size / cell_size;
 
@@ -119,7 +217,7 @@ int main(int argc, char** argv)
   float local_maxima_threshold = 0.4;
   int num_rotations_icp = 12;
   bool use_icp = false;
-  float icp_threshold = 0.05;
+  float icp_threshold = 0.01;
 
   pcl::console::parse_argument(argc, argv, "-database_file_name", database_file_name);
   pcl::console::parse_argument(argc, argv, "-scene_file_name", scene_file_name);
@@ -211,50 +309,22 @@ int main(int argc, char** argv)
     if (use_icp)
     {
 
-      pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+      std::vector<pcl::PointCloud<pcl::PointXYZ> > result, no_intersection_result;
+      std::vector<float> score;
 
-      for (size_t model_idx = 0; model_idx < class_to_full_pointcloud[class_name].size(); model_idx++)
+      refineWithICP(class_to_full_pointcloud[class_name], local_maxima, scene, num_rotations_icp, icp_threshold,
+                    result, score);
+
+      if (result.size() > 0)
+        removeIntersecting(result, score, no_intersection_result);
+
+      for (size_t i = 0; i < no_intersection_result.size(); i++)
       {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr full_model(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::io::loadPCDFile(class_to_full_pointcloud[class_name][model_idx], *full_model);
-
-        for (size_t i = 0; i < local_maxima.points.size(); i++)
-        {
-          for (int j = 0; j < num_rotations_icp; j++)
-          {
-            float angle = 2 * M_PI * j / num_rotations_icp;
-            Eigen::AngleAxis<float> rot(angle, Eigen::Vector3f(0, 0, 1));
-
-            Eigen::Affine3f transform;
-            transform.setIdentity();
-            transform.translate(local_maxima.points[i].getVector3fMap());
-            transform.rotate(rot);
-
-            pcl::PointCloud<pcl::PointXYZ>::Ptr full_model_transformed(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::transformPointCloud(*full_model, *full_model_transformed, transform);
-
-            icp.setInputCloud(full_model_transformed);
-            icp.setInputTarget(scene);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr Final(new pcl::PointCloud<pcl::PointXYZ>);
-            icp.align(*Final);
-            std::cerr << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
-            //std::cout << icp.getFinalTransformation() << std::endl;
-
-            if (icp.getFitnessScore() < 0.003)
-            {
-
-              pcl::visualization::PCLVisualizer viz;
-              viz.initCameraParameters();
-              viz.updateCamera();
-              viz.addPointCloud<pcl::PointXYZ> (Final);
-              viz.addPointCloud<pcl::PointXYZ> (scene, "cloud2");
-              viz.spin();
-            }
-
-          }
-
-        }
+        std::stringstream ss;
+        ss << "Result_" << class_name << "_" << i << ".pcd";
+        pcl::io::savePCDFileASCII(ss.str(), no_intersection_result[i]);
       }
+
     }
 
   }
