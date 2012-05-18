@@ -204,6 +204,10 @@ int main(int argc, char** argv)
         "         -num_neighbours <X>  : number of neighbours. Default : 1\n"
         "         -cell_size <X>  : cell size for grid. Default : 0.01\n"
         "         -window_size <X>  : window size for local maxima search. Default : 0.4\n"
+        "         -local_maxima_threshold <X>  : threshold for local maxima search. Default : 0.4\n"
+        "         -use_icp <X>  : use ICP refinement. Default : false\n"
+        "         -icp_threshold <X>  : if ICP error < icp_threshold we assume model fits.  Default : 0.4\n"
+        "         -num_rotations_icp <X>  : number of starting rotations for ICP. Default : 0.4\n"
         "");
     return -1;
   }
@@ -227,6 +231,7 @@ int main(int argc, char** argv)
   pcl::console::parse_argument(argc, argv, "-local_maxima_threshold", local_maxima_threshold);
   pcl::console::parse_argument(argc, argv, "-use_icp", use_icp);
   pcl::console::parse_argument(argc, argv, "-icp_threshold", icp_threshold);
+  pcl::console::parse_argument(argc, argv, "-num_rotations_icp", num_rotations_icp);
 
   databaseType database;
   pcl::PointCloud<featureType>::Ptr feature_cloud(new pcl::PointCloud<featureType>());
