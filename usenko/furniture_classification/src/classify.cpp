@@ -47,8 +47,16 @@ void saveGridToPGMFile(const std::string & filename, const Eigen::MatrixXf & gri
 }
 
 void findLocalMaxima(const Eigen::MatrixXf & grid, const float window_size, const pcl::PointXYZ & min_bound,
-                     const float cell_size, pcl::PointCloud<pcl::PointXYZ> & local_maxima)
+                     const float cell_size, const float local_maxima_threshold,
+                     pcl::PointCloud<pcl::PointXYZ> & local_maxima)
 {
+
+
+  float max, min;
+  max = grid.maxCoeff();
+  min = grid.minCoeff();
+
+  float threshold = min + (max-min)*local_maxima_threshold;
 
   int window_size_pixels = window_size / cell_size;
 
@@ -71,7 +79,7 @@ void findLocalMaxima(const Eigen::MatrixXf & grid, const float window_size, cons
       assert(window.rows() == window_size_pixels);
 
       // if max of the window is in its center then this point is local maxima
-      if ((max == grid(i, j)) && (max > 0))
+      if ((max == grid(i, j)) && (max > 0) && (max > threshold))
       {
         pcl::PointXYZ point;
         point.x = i * cell_size + min_bound.x;
@@ -108,15 +116,19 @@ int main(int argc, char** argv)
   int num_neighbours = 1;
   float cell_size = 0.01;
   float window_size = 0.4;
+  float local_maxima_threshold = 0.4;
   int num_rotations_icp = 12;
   bool use_icp = false;
+  float icp_threshold = 0.05;
 
   pcl::console::parse_argument(argc, argv, "-database_file_name", database_file_name);
   pcl::console::parse_argument(argc, argv, "-scene_file_name", scene_file_name);
   pcl::console::parse_argument(argc, argv, "-num_neighbours", num_neighbours);
   pcl::console::parse_argument(argc, argv, "-cell_size", cell_size);
   pcl::console::parse_argument(argc, argv, "-window_size", window_size);
+  pcl::console::parse_argument(argc, argv, "-local_maxima_threshold", local_maxima_threshold);
   pcl::console::parse_argument(argc, argv, "-use_icp", use_icp);
+  pcl::console::parse_argument(argc, argv, "-icp_threshold", icp_threshold);
 
   databaseType database;
   pcl::PointCloud<featureType>::Ptr feature_cloud(new pcl::PointCloud<featureType>());
@@ -192,7 +204,7 @@ int main(int argc, char** argv)
     saveGridToPGMFile(class_name + ".pgm", grid);
 
     pcl::PointCloud<pcl::PointXYZ> local_maxima;
-    findLocalMaxima(grid, window_size, min_bound, cell_size, local_maxima);
+    findLocalMaxima(grid, window_size, min_bound, cell_size, local_maxima_threshold, local_maxima);
 
     pcl::io::savePCDFileASCII(class_name + "_local_max.pcd", local_maxima);
 
