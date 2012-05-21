@@ -14,7 +14,7 @@ void normalEstimation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudIn, pcl::
   ne.setInputCloud (pointCloudIn);
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
   ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.03);
+  ne.setRadiusSearch (0.05);
   ne.compute (*pointCloudOut);
   pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -67,11 +67,8 @@ main (int argc, char** argv)
 	// 0.0858986,   0.102803,   0.990987,   0.349081,
 	//         0,        0,       0,        1;
 
-
-
 	icp.setInputCloud(cloudSourceNormals);
 	icp.setInputTarget(cloudTargetNormals);
-	icp.setRANSACOutlierRejectionThreshold(100.0);
 
 	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_transformed( new pcl::PointCloud<pcl::PointXYZRGBNormal>);
 	std::cout << "Run ICP with point to plane error metric" << std::endl;

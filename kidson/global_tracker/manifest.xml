@@ -1,0 +1,23 @@
+<package>
+  <description brief="tree_demo">
+
+     tree_demo
+
+  </description>
+  <author>Nikolas Engelhard</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/tree_demo</url>
+  <depend package="kidnapped_robot"/>
+  <depend package="stereo_msgs"/>
+	<depend package="eigen"/>
+	<depend package="pcl_ros"/>
+	<depend package="nav_msgs"/>
+	<depend package="rosbag"/>
+	<depend package="roscpp"/>
+	<depend package="pcl"/>
+	<depend package="visualization_msgs"/>
+	
+</package>
+
+

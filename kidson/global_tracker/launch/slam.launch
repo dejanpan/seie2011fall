@@ -1,0 +1,67 @@
+<launch>
+<param name="BAG_FILE_NAME" value="/home/engelhar/Desktop/groundtruth/freiburg1/desk/rgbd_dataset_freiburg1_desk.bag" />
+
+
+<param name="MAX_NODE_NR" value="-1"/>
+<!-- load ground truth (mocap) from this file: timestamp and 16float affine 3d-trafo -->
+
+<!--  <param name="GROUND_TRUTH_FILE_NAME" value="/home/engelhar/Desktop/run_output_desk/path_estimate_cl0.txt"/> -->
+
+<param name="GROUND_TRUTH_FILE_NAME" value="/home/engelhar/Desktop/rgbd_dataset_freiburg1_room.bagafter1_optimization_estimate.txt" />
+
+
+<param name="MIN_INTEREST_POINT_STRENGTH" value="30" />
+<param name="MAX_INTEREST_POINT_CNT" value="500" />
+
+<param name="EVAL_WITH_GROUND_TRUTH" value="false"/>
+<param name="CREATE_POINTCLOUD" value="false" />
+
+
+<param name="MAX_DISP_DEVIATION" value="0.5" />
+<param name="MAX_PX_DEVIATION" value="2" />
+
+
+<!-- posest param -->
+<param name="RANSAC_ITERATIONS" value="5000" />
+
+<!-- minimal number of RANSAC-inliers to accept as match -->
+<param name="MIN_INLIER_CNT" value="20" />
+
+<!-- min strength for point detection 
+    stronger points are easier to rerecognize!!
+    tree doesn't work well with weak points 
+    the strongest points are used, until tere are MAX_INTEREST_POINT_CNT points
+-->
+
+
+<!-- minimal distance to keyframe to trigger new keyframe -->
+<param name="MIN_KEYFRAME_DIST_CM" value="15" />
+<param name="MIN_KEYFRAME_ROT_DEG" value="10" />
+
+<!-- frame is not immediately inserted in vocab-tree but with delay of N 
+     reason: comparison with last images by default (or tracker), tree should concentrate on earlier nodes 
+      should currently be larger than LAST_NODE_CNT
+  -->
+<param name="NODE_QUEUE_SIZE" value="10" />
+
+
+<!-- match with last n added nodes-->
+<param name="LAST_NODE_CNT" value="10" />
+
+
+<!-- match with n-Ring of tree-based hits (can be zreo) -->
+<param name="NEIGHBOUR_SEARCH_DEPTH" value="1" />
+
+<!-- match with the best n recommendations from tree -->
+<param name="TREE_NEIGHBOUR_CNT" value="10" />
+
+<!-- match with the last n matched nodes -->
+<param name="LAST_MATCH_RING_SIZE" value="10" />
+
+
+<!-- true for live-processing, false for bag file -->
+<param name="DO_LIVE_DATA" value="false" />
+<node name="global_slam" pkg="global_tracker" type="global_slam" output="screen" />
+
+
+</launch>

@@ -125,20 +125,20 @@ void getTestDataFromBag(std::string bagfilename, PointCloudPtr cloud_source, Poi
 		    {
 		    	ROS_INFO_STREAM("feature cloud: " << cloudId << ": " << featureCloudSource->points[cloudId].x << "; " << featureCloudSource->points[cloudId].y << "; " << featureCloudSource->points[cloudId].z);
 		    }*/
-/*
-		    ROS_INFO("Writing point clouds");
-		  	filename << "cloud" << i << "DenseSource.pcd";
-		  	writer.write (filename.str(), *cloud_source, false);
-		  	filename.str("");
-		  	filename << "cloud" << i << "DenseTarget.pcd";
-		  	writer.write (filename.str(), *cloud_target, false);
-		  	filename.str("");
-		  	filename << "cloud" << i << "SparseSource.pcd";
-		  	writer.write (filename.str(), *featureCloudSource, false);
-		  	filename.str("");
-		  	filename << "cloud" << i << "SparseTarget.pcd";
-		    writer.write (filename.str(), *featureCloudTarget, false);
-		    filename.str("");*/
+
+//		    ROS_INFO("Writing point clouds");
+//		  	filename << "cloud" << i << "DenseSource.pcd";
+//		  	writer.write (filename.str(), *cloud_source, false);
+//		  	filename.str("");
+//		  	filename << "cloud" << i << "DenseTarget.pcd";
+//		  	writer.write (filename.str(), *cloud_target, false);
+//		  	filename.str("");
+//		  	filename << "cloud" << i << "SparseSource.pcd";
+//		  	writer.write (filename.str(), *featureCloudSource, false);
+//		  	filename.str("");
+//		  	filename << "cloud" << i << "SparseTarget.pcd";
+//		    writer.write (filename.str(), *featureCloudTarget, false);
+//		    filename.str("");
 		  	i++;
 
 		  //  for(std::vector<int>::iterator iterator_ = indicesSource.begin(); iterator_ != indicesSource.end(); ++iterator_) {
@@ -349,60 +349,67 @@ float runICPSVDTest (std::string bagfilename, int messageIdx, std::string cloudD
 	getTestDataFromBag(bagfilename, cloud_source, cloud_target, featureCloudSourceTemp, indicesSource, featureCloudTargetTemp, indicesTarget, initialTransform, messageIdx);
 	Eigen::Matrix4f ransacInverse = initialTransform.inverse();
 
-	 //Normal (non modified) icp for reference
-	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
-	icp.setMaximumIterations (20);
-	std::cerr << "icp.getMaximumIterations " << icp.getMaximumIterations() << std::endl;
-	icp.setRANSACOutlierRejectionThreshold(0.05);
-	std::cerr << "icp.getRANSACOutlierRejectionThreshold() " << icp.getRANSACOutlierRejectionThreshold() << std::endl;
-	icp.setMaxCorrespondenceDistance(0.05);
-	std::cerr << "icp.getMaxCorrespondenceDistance() " << icp.getMaxCorrespondenceDistance() << std::endl;
-	icp.setTransformationEpsilon (0);
-	std::cerr << "icp.getTransformationEpsilon () " << icp.getTransformationEpsilon () << std::endl;
-	//only used for convergence test
-	std::cerr << "icp.getEuclideanFitnessEpsilon () " << icp.getEuclideanFitnessEpsilon () << std::endl;
-
-	icp.setInputCloud(cloud_source);
-	icp.setInputTarget(cloud_target);
-	pcl::PointCloud<pcl::PointXYZRGB> Final_reference;
-
-	std::cout << "ICP has starts with a score of" << icp.getFitnessScore() << std::endl;
-
-	ROS_INFO("Performing standard icp.....");
-	ROS_INFO_STREAM("---------------------------------------------------------      indices size: " << indicesSource.size() );
-	if(indicesSource.size() < MINIMUM_FEATURES)
-		icp.align(Final_reference);  // don't use ransac for small number of correspondences
-	else
-		icp.align(Final_reference, ransacInverse);
-	std::cout << "ICP has finished with converge flag of:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
-	std::cout << icp.getFinalTransformation() << std::endl;
-
-
+//	 //Normal (non modified) icp for reference
+//	pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+//	icp.setMaximumIterations (20);
+//	std::cerr << "icp.getMaximumIterations " << icp.getMaximumIterations() << std::endl;
+//	icp.setRANSACOutlierRejectionThreshold(0.05);
+//	std::cerr << "icp.getRANSACOutlierRejectionThreshold() " << icp.getRANSACOutlierRejectionThreshold() << std::endl;
+//	icp.setMaxCorrespondenceDistance(0.05);
+//	std::cerr << "icp.getMaxCorrespondenceDistance() " << icp.getMaxCorrespondenceDistance() << std::endl;
+//	icp.setTransformationEpsilon (0);
+//	std::cerr << "icp.getTransformationEpsilon () " << icp.getTransformationEpsilon () << std::endl;
+//	//only used for convergence test
+//	std::cerr << "icp.getEuclideanFitnessEpsilon () " << icp.getEuclideanFitnessEpsilon () << std::endl;
+//
+//	icp.setInputCloud(cloud_source);
+//	icp.setInputTarget(cloud_target);
+//	pcl::PointCloud<pcl::PointXYZRGB> Final_reference;
+//
+//	std::cout << "ICP has starts with a score of" << icp.getFitnessScore() << std::endl;
+//
+//	ROS_INFO("Performing standard icp.....");
+//	ROS_INFO_STREAM("---------------------------------------------------------      indices size: " << indicesSource.size() );
+//	if(indicesSource.size() < MINIMUM_FEATURES)
+//		icp.align(Final_reference);  // don't use ransac for small number of correspondences
+//	else
+//		icp.align(Final_reference, ransacInverse);
+//	std::cout << "ICP has finished with converge flag of:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
+//	std::cout << icp.getFinalTransformation() << std::endl;
+//
+//
 	ROS_INFO("Writing output clouds...");
 	pcl::PCDWriter writer;
 	std::stringstream filename;
-
-	filename << bagfilename << "-" << cloudDist << "-" << "SVD" << "-targetDense.pcd";
+//
+//	filename << bagfilename << "-" << cloudDist << "-" << "SVD" << "-targetDense.pcd";
+//	writer.write (filename.str(), *cloud_target, false);
+//	filename.str("");
+//	filename << bagfilename << "-" << cloudDist << "-" << "SVD" << "-convergedDense.pcd";
+//	writer.write (filename.str(), Final_reference, false);
+//	filename.str("");
+	filename << bagfilename << "-" << cloudDist << "-" << "-targetDense.pcd";
 	writer.write (filename.str(), *cloud_target, false);
 	filename.str("");
-	filename << bagfilename << "-" << cloudDist << "-" << "SVD" << "-convergedDense.pcd";
-	writer.write (filename.str(), Final_reference, false);
+	filename << bagfilename << "-" << cloudDist << "-" <<  "-sourceDense.pcd";
+	writer.write (filename.str(), *cloud_source, false);
 	filename.str("");
-
-	return icp.getFitnessScore (0.01);
+//
+//	return icp.getFitnessScore (0.01);
+	return 0.01;
 }
 
 void runTests(std::vector<double>& results, std::string filename, int id, std::string cloudDist)
 {
-	std::cout << "############################################################################################# \n";
-	std::cout << "starting test for: " << filename << ", using alpha: 0.0 and cloud separation of: " << cloudDist << "\n";
-	results.push_back(runICPTest(filename, id, 0.0, cloudDist));
-	std::cout << "############################################################################################# \n";
-	std::cout << "starting test for: " << filename << " id: " << id << ", using alpha: 0.5 and cloud separation of: " << cloudDist << "\n";
-	results.push_back(runICPTest(filename, id, 0.5, cloudDist));
-	std::cout << "############################################################################################# \n";
-	std::cout << "starting test for: " << filename << ", using alpha: 1.0 and cloud separation of: " << cloudDist << "\n";
-	results.push_back(runICPTest(filename, id, 1.0, cloudDist));
+//	std::cout << "############################################################################################# \n";
+//	std::cout << "starting test for: " << filename << ", using alpha: 0.0 and cloud separation of: " << cloudDist << "\n";
+//	results.push_back(runICPTest(filename, id, 0.0, cloudDist));
+//	std::cout << "############################################################################################# \n";
+//	std::cout << "starting test for: " << filename << " id: " << id << ", using alpha: 0.5 and cloud separation of: " << cloudDist << "\n";
+//	results.push_back(runICPTest(filename, id, 0.5, cloudDist));
+//	std::cout << "############################################################################################# \n";
+//	std::cout << "starting test for: " << filename << ", using alpha: 1.0 and cloud separation of: " << cloudDist << "\n";
+//	results.push_back(runICPTest(filename, id, 1.0, cloudDist));
 	std::cout << "############################################################################################# \n";
 	std::cout << "starting test for: " << filename << ", using SVD and cloud separation of: " << cloudDist << "\n";
 	results.push_back(runICPSVDTest(filename, id, cloudDist));
