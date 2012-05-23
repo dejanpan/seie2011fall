@@ -675,6 +675,24 @@ void GraphManager::visualizeFeatureFlow3D(unsigned int marker_id,
     clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
 }
 
+void GraphManager::runRGBDICPOptimization()
+{
+    for (unsigned int i = 0; i < graph_.size(); ++i) {
+        g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(i));
+        if(!v){
+            ROS_ERROR("Nullpointer in graph at position %i!", i);
+            continue;
+        }
+        if(graph_[i]->pc_col->size() == 0){
+            ROS_INFO("Skipping Node %i, point cloud data is empty!", i);
+            continue;
+        }
+        QList<int> vertices_to_comp = getPotentialEdgeTargets(new_node, ParameterServer::instance()->get<int>("connectivity")); //vernetzungsgrad
+
+
+    }
+}
+
 
 void GraphManager::visualizeGraphEdges() const {
     struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);

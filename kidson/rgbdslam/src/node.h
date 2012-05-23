@@ -97,7 +97,8 @@ public:
 			std::vector<cv::DMatch>* initial_matches,
 			Eigen::Matrix4f& resulting_transformation, 
 			float& rmse,
-			std::vector<cv::DMatch>& matches) const;
+			std::vector<cv::DMatch>& matches,
+			int min_matches) const;
 
 #ifdef USE_ICP_BIN
 	// initial_transformation: optional transformation applied to this->pc before

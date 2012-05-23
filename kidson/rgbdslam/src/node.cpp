@@ -811,7 +811,8 @@ bool Node::getRelativeTransformationTo(const Node* earlier_node,
                                        std::vector<cv::DMatch>* initial_matches,
                                        Eigen::Matrix4f& resulting_transformation,
                                        float& rmse, 
-                                       std::vector<cv::DMatch>& matches) const
+                                       std::vector<cv::DMatch>& matches,
+                                       int min_matches) const
 {
   struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);
 
@@ -997,7 +998,7 @@ MatchingResult Node::matchNodePair(const Node* older_node){
     ROS_INFO("Too few inliers: Adding no Edge between %i and %i. Only %i correspondences to begin with.",
         older_node->id_,this->id_,(int)mr.all_matches.size());
   } 
-  else if (!getRelativeTransformationTo(older_node,&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches) ){ // mr.all_matches.size()/3
+  else if (!getRelativeTransformationTo(older_node,&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches, min_matches) ){ // mr.all_matches.size()/3
       ROS_INFO("Found no valid trafo, but had initially %d feature matches",(int) mr.all_matches.size());
   } else  {
       ++initial_node_matches_; //trafo is accepted

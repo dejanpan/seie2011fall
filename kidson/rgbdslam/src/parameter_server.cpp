@@ -59,7 +59,8 @@ void ParameterServer::defaultConfig() {
     config["publisher_queue_size"]          = static_cast<int> (1);
     config["max_keypoints"]                 = static_cast<int> (1000);  //1000         //will also be used as max for SiftGPU
     config["min_keypoints"]                 = static_cast<int> (500);  //500
-    config["min_matches"]                   = static_cast<int> (120);      //25     //if using SiftGPU and GLSL you should use max. 60 matches
+    config["min_matches"]                   = static_cast<int> (25);      //25     //if using SiftGPU and GLSL you should use max. 60 matches
+    config["max_matches_rgbdicp"]           = static_cast<int> (90);
     config["fast_max_iterations"]           = static_cast<int> (10);
     config["surf_max_iterations"]           = static_cast<int> (5);
     config["min_translation_meter"]         = static_cast<double> (0.05);	//0.05
