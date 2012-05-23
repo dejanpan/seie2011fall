@@ -55,6 +55,8 @@
 #include <fstream>
 #include <iostream>
 
+#include <math.h>
+
 #define FPS_CALC_BEGIN                          \
     static double duration = 0;                 \
     double start_time = pcl::getTime ();        \
@@ -373,45 +375,51 @@ public:
 				drawResult(viz);
 
 				// draw some texts
-				/*
-				viz.removeShape("N");
-				viz.addText(
-						(boost::format("number of Reference PointClouds: %d")
-								% tracker_->getReferenceCloud()->points.size()).str(),
-						10, 20, 20, 1.0, 1.0, 1.0, "N");
+//
+//				viz.removeShape("N");
+//				viz.addText(
+//						(boost::format("number of Reference PointClouds: %d")
+//								% tracker_->getReferenceCloud()->points.size()).str(),
+//						10, 20, 20, 1.0, 1.0, 1.0, "N");
+//
+//				viz.removeShape("M");
+//				viz.addText(
+//						(boost::format("number of Measured PointClouds:  %d")
+//								% cloud_pass_downsampled_->points.size()).str(),
+//						10, 40, 20, 1.0, 1.0, 1.0, "M");
+//
+//				viz.removeShape("tracking");
+//				viz.addText(
+//						(boost::format("tracking:        %f fps")
+//								% (1.0 / tracking_time_)).str(), 10, 60, 20,
+//						1.0, 1.0, 1.0, "tracking");
+//
+//				viz.removeShape("downsampling");
+//				viz.addText(
+//						(boost::format("downsampling:    %f fps")
+//								% (1.0 / downsampling_time_)).str(), 10, 80, 20,
+//						1.0, 1.0, 1.0, "downsampling");
+//
+//				viz.removeShape("computation");
+//				viz.addText(
+//						(boost::format("computation:     %f fps")
+//								% (1.0 / computation_time_)).str(), 10, 100, 20,
+//						1.0, 1.0, 1.0, "computation");
 
-				viz.removeShape("M");
-				viz.addText(
-						(boost::format("number of Measured PointClouds:  %d")
-								% cloud_pass_downsampled_->points.size()).str(),
-						10, 40, 20, 1.0, 1.0, 1.0, "M");
+				for (uint track=0; track < tracker_vector_.size(); track++) {
+//						tracker_vector_[track]->getParticles();
+					std::stringstream ss;
+					ss <<track;
 
-				viz.removeShape("tracking");
-				viz.addText(
-						(boost::format("tracking:        %f fps")
-								% (1.0 / tracking_time_)).str(), 10, 60, 20,
-						1.0, 1.0, 1.0, "tracking");
-
-				viz.removeShape("downsampling");
-				viz.addText(
-						(boost::format("downsampling:    %f fps")
-								% (1.0 / downsampling_time_)).str(), 10, 80, 20,
-						1.0, 1.0, 1.0, "downsampling");
-
-				viz.removeShape("computation");
-				viz.addText(
-						(boost::format("computation:     %f fps")
-								% (1.0 / computation_time_)).str(), 10, 100, 20,
-						1.0, 1.0, 1.0, "computation");
-
-				viz.removeShape("particles");
+				viz.removeShape("particles"+ss.str());
 				viz.addText(
 						(boost::format("particles:     %d")
-								% tracker_->getParticles()->points.size()).str(),
-						10, 120, 20, 1.0, 1.0, 1.0, "particles");
-						*/
+								% (tracker_vector_[track]->getParticles()->points.size())).str(),
+						10, 120*track, 20, 1.0, 1.0, 1.0, "particles"+ss.str());
+				}
 
-				viz.addText("Particle filtering-based tracking of 3D lines and corners. ",20,60,23,1.0,1.0,1.0,"title"+counter_);
+
+//				viz.addText("Particle filtering-based tracking of 3D lines and corners. ",20,60,23,1.0,1.0,1.0,"title"+counter_);
 			}
 		}
 		new_cloud_ = false;
@@ -1074,9 +1082,10 @@ public:
 			PointType borderPoint2=line.points.at(1);
 			PointType cloudPoint;
 
+			Cloud resultBefore;
 
-			pcl::copyPointCloud(*cloud, result);
-			  std::cerr<<"CLOUD PROJECTED SIZE: "<<result.size()<<std::endl;
+			pcl::copyPointCloud(*cloud, resultBefore);
+			  std::cerr<<"CLOUD PROJECTED SIZE: "<<resultBefore.size()<<std::endl;
 
 
 
@@ -1101,7 +1110,7 @@ public:
 		  		  }
 
 
-			  max_dist_general=0.9*sqrt((borderPoint1.x-borderPoint2.x)*(borderPoint1.x-borderPoint2.x)+(borderPoint1.y-borderPoint2.y)*(borderPoint1.y-borderPoint2.y)+(borderPoint1.z-borderPoint2.z)*(borderPoint1.z-borderPoint2.z));
+			  max_dist_general=/*0.9**/sqrt((borderPoint1.x-borderPoint2.x)*(borderPoint1.x-borderPoint2.x)+(borderPoint1.y-borderPoint2.y)*(borderPoint1.y-borderPoint2.y)+(borderPoint1.z-borderPoint2.z)*(borderPoint1.z-borderPoint2.z));
 
 
 		  for (size_t i = 0; i < cloud_projected->size(); i++){
@@ -1111,20 +1120,55 @@ public:
 
 			  if((distance>max_dist_general)||(distance2>max_dist_general))
 			  {
-					result.points.at(i).x=0;
-					result.points.at(i).y=0;
-					result.points.at(i).z=0;
+				  resultBefore.points.at(i).x=0;
+				  resultBefore.points.at(i).y=0;
+				  resultBefore.points.at(i).z=0;
 			  }
 
 		  }
 
-		  for (size_t i = 0; i < result.points.size(); ++i) {
-		  		if ((result.points[i].x == 0.0)||(result.points[i].y == 0.0)||(result.points[i].z == 0.0)) {
-		  			result.erase(result.begin() + i);
-		  			result.width--;
-		  			result.points.resize(result.width);
+		  for (size_t i = 1; i < resultBefore.points.size()+1; i++) {
+		  		if ((resultBefore.points[i-1].x == 0)||(resultBefore.points[i-1].y == 0)||(resultBefore.points[i-1].z == 0)) {
+		  			resultBefore.erase(resultBefore.begin() + i-1);
+		  			resultBefore.width--;
+		  			resultBefore.points.resize(resultBefore.width);
+		  			i--;
 		  		}
 		  	}
+
+
+//		  pcl::copyPointCloud(resultBefore, result);
+
+
+		  CloudPtr cloudForEuclidianDistance(new Cloud);
+		  pcl::copyPointCloud(resultBefore, *cloudForEuclidianDistance);
+
+
+		  KdTreePtr tree(new KdTree());
+		  tree->setInputCloud (cloudForEuclidianDistance);
+
+
+		  std::vector<pcl::PointIndices> cluster_indices;
+		  pcl::EuclideanClusterExtraction<PointType> ec;
+		  ec.setClusterTolerance (0.005); // 2cm
+		  ec.setMinClusterSize (30);
+		  ec.setMaxClusterSize (25000);
+		  ec.setSearchMethod (tree);
+		  ec.setInputCloud (cloudForEuclidianDistance);
+		  ec.extract (cluster_indices);
+		  std::cerr<<"Size of result after line euclidian clustering: "<<cloudForEuclidianDistance->points.size()<<std::endl;
+
+		  result.clear();
+		  for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
+		  					PointType point = cloudForEuclidianDistance->points[cluster_indices[0].indices[i]];
+		  					result.points.push_back(point);
+		  				}
+
+
+		  std::cerr<<"Size of result after line euclidian clustering: "<<result.points.size()<<std::endl;
+
+
+
 
 		  /*for (size_t i = 0; i < result.size(); i++){
 		  if (result.points.at(i).x=0)||(result.points.at(i).y=0)||(result.points.at(i).z=0)
@@ -1324,16 +1368,16 @@ public:
 						coeff_vector.push_back(coefficients4);
 						directions_vector.push_back(direction1);
 					}
-
-					if(extractCorners(nonzero_ref_no_corner, *nonzero_ref_corners2,*nonzero_ref_no_corner2,cloud_intensity,0)){
-
-
-						clouds_vector.push_back(nonzero_ref_corners2);
-						is_line_vector.push_back(false);
-						coeff_vector.push_back(coefficients4);
-						directions_vector.push_back(direction2);
-
-					}
+//
+//					if(extractCorners(nonzero_ref_no_corner, *nonzero_ref_corners2,*nonzero_ref_no_corner2,cloud_intensity,0)){
+//
+//
+//						clouds_vector.push_back(nonzero_ref_corners2);
+//						is_line_vector.push_back(false);
+//						coeff_vector.push_back(coefficients4);
+//						directions_vector.push_back(direction2);
+//
+//					}
 
 					//extracting first line
 					if(extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line,coefficients)){
@@ -1352,13 +1396,14 @@ public:
 
 //					std::cerr<< "true or false: "<< extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)<<std::endl;
 
-//					if(extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)){
-//											clouds_vector.push_back(nonzero_ref_lines2);
-//											is_line_vector.push_back(true);
-//											coeff_vector.push_back(coefficients2);
-//											directions_vector.push_back(direction4);
-//
-//					}
+					if(extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)){
+											clouds_vector.push_back(nonzero_ref_lines2);
+											is_line_vector.push_back(true);
+											coeff_vector.push_back(coefficients2);
+											covariancePCA(nonzero_ref_lines2,direction4);
+											directions_vector.push_back(direction4);
+
+					}
 //
 //					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
 
@@ -1407,12 +1452,18 @@ public:
 							step_covariance[4] *= 40.0;
 							step_covariance[5] *= 40.0;
 
-//					step_covariance[0]+=directions_vector[track][0]*0.000125;
-//					step_covariance[1]+=directions_vector[track][1]*0.000125;
-//					step_covariance[2]+=directions_vector[track][2]*0.000125;
+					directions_vector[track].normalize();
+					std::cerr<<"direction vector x: "<<fabs (directions_vector[track][0])<<std::endl;
+					std::cerr<<"direction vector y: "<<fabs (directions_vector[track][1])<<std::endl;
+					std::cerr<<"direction vector z: "<<fabs (directions_vector[track][2])<<std::endl;
 
 
-					tracker_vector_[track]->setStepNoiseCovariance(step_covariance);
+					step_covariance[0]*=fabs (directions_vector[track][0]);
+					step_covariance[1]*=fabs (directions_vector[track][1]);
+					step_covariance[2]*=fabs (directions_vector[track][2]);
+
+
+//					tracker_vector_[track]->setStepNoiseCovariance(step_covariance);
 
 					}
 					std::stringstream ss;

@@ -29,3 +29,13 @@ Textureless objects tracking- Antonis Agyros from FORTH - practical students?
 Reconstruction of the full object model - not sparse anymore
 Prior knowledge from Luci from 3d static segmentation- Dejan pushes
 
+3d-tracking:
+check the stability of tracking in matlab/octave
+improve corners and lines-> check number of planes in the neighborhood
+estimate convex corners in the Chris' way
+
+To try out maybe:
+idea with the planes tracking until they are not separated
+match the rectangles to the point cloud as different features
+check the world's state on static segmentation
+
