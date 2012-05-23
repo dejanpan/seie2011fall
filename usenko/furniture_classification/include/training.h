@@ -14,6 +14,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/surface/mls.h>
 #include <pcl/segmentation/region_growing.h>
 #include <pcl/filters/passthrough.h>
@@ -21,6 +22,18 @@
 #include <opencv2/core/core.hpp>
 #include <yaml-cpp/yaml.h>
 #include <boost/filesystem.hpp>
+
+
+#include <pcl/registration/icp.h>
+#include <pcl/registration/icp_nl.h>
+#include <pcl/impl/instantiate.hpp>
+
+#include <pcl/search/flann_search.h>
+#include <pcl/search/impl/flann_search.hpp>
+#include <pcl/common/transforms.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
+#include <fstream>
 
 namespace pcl
 {
@@ -190,5 +203,25 @@ template<int N>
     }
 
   }
+
+
+bool intersectXY(const pcl::PointCloud<pcl::PointXYZ> & cloud1, const pcl::PointCloud<pcl::PointXYZ> & cloud2);
+
+void removeIntersecting(const std::vector<pcl::PointCloud<pcl::PointXYZ> > & result, const std::vector<float> & score,
+                        std::vector<pcl::PointCloud<pcl::PointXYZ> > & no_intersect_result);
+
+void refineWithICP(const std::vector<std::string> & models, const pcl::PointCloud<pcl::PointXYZ> & local_maxima,
+                   pcl::PointCloud<pcl::PointXYZ>::Ptr scene, int num_rotations_icp, float icp_threshold, std::vector<
+                       pcl::PointCloud<pcl::PointXYZ> > & result, std::vector<float> & score);
+
+void voteToGrid(pcl::PointCloud<pcl::PointXYZI> & model_centers, Eigen::MatrixXf & grid,
+                const pcl::PointXYZ & min_bound, const pcl::PointXYZ & max_bound, float cell_size);
+
+void saveGridToPGMFile(const std::string & filename, const Eigen::MatrixXf & grid);
+
+void findLocalMaxima(const Eigen::MatrixXf & grid, const float window_size, const pcl::PointXYZ & min_bound,
+                     const float cell_size, const float local_maxima_threshold,
+                     pcl::PointCloud<pcl::PointXYZ> & local_maxima);
+
 
 #endif /* TRAINING_H_ */
