@@ -2,26 +2,26 @@
 ToDo
 ----------
 
-0. Try nikos code with nodes for each feature point
-
-1. Add registration based on handles to joint optimization
+1. Try nikos code with nodes for each feature point
 
 2. integrate joint optimization into rgbdslam
 	-test comparing with original
 
-3. Demo for spmk conference
-	-Point clouds that show an improvement incorporating features
+3. Plane registration
+	-talk with Darko and zoltan
+	-pathak's code (should be released soon)
 
-4. Plane registration
-	-talk with Darko
-	-add to joint optimization
+4. Mesh reconstruction
+	-bug dejan to run his code
+
+5. Sementic map generation in knowrob
+	-knowledge representation system
+	-live demo
 
 -Collect data
 	-go into homes
 	-kinect at home
 
--Mesh reconstruction/ikea model demo
-	-bug dejan to run his code
 
 ---------------
 Personal todo
