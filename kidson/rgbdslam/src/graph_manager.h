@@ -142,7 +142,10 @@ protected:
     void visualizeGraphIds() const;
         
     
+    void runRGBDICPOptimization();
     
+    QList<int> getUnconnectedNodes(const Node* new_node, int max_targets);
+
     ///Send markers to visualize the last matched features in rviz (if somebody subscribed)
     void visualizeFeatureFlow3D(unsigned int marker_id = 0,
                                 bool draw_outlier = true) const;

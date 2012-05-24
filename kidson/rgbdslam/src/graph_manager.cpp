@@ -301,6 +301,21 @@ QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_t
 //    return ids_to_link_to;
 //}
 
+// This function retrieves node ids that are not connected to the given node (for 2nd stage optimization)
+
+QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targets){
+    QList<int> ids_to_link_to;
+    for(size_t i=0; i < graph_.size(); i++)
+    {
+    	//add check here if new_node->id_ is connected to graph_[i]
+    	ids_to_link_to.push_back(i);
+    	if(ids_to_link_to.size() >= max_targets)	//if limit is reached
+    		return ids_to_link_to;
+    }
+
+    return ids_to_link_to;
+}
+
 void GraphManager::resetGraph(){
     marker_id =0;
     delete optimizer_; 
@@ -349,7 +364,7 @@ bool GraphManager::addNode(Node* new_node) {
         new_node->buildFlannIndex(); // create index so that next nodes can use it
         graph_[new_node->id_] = new_node;
         new_node->cachePointCloudToFile();
-        new_node->clearPointCloud();
+        //new_node->clearPointCloud();
         g2o::VertexSE3* reference_pose = new g2o::VertexSE3;
         reference_pose->setId(0);
         reference_pose->setEstimate(g2o::SE3Quat());
@@ -461,7 +476,7 @@ bool GraphManager::addNode(Node* new_node) {
             MatchingResult mr = new_node->matchNodePair(abcd);
 
             if (mr.edge.id1 >= 0) {
-            	if((new_node->id_== 1) || (abcd->id_ == 1))
+            	if((new_node->id_== 2) || (abcd->id_ == 2))
             		publish_transform(mr, new_node, abcd, feature_match_pub);
                 //mr.edge.informationMatrix *= geodesicDiscount(hypdij, mr);
                 ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
@@ -541,7 +556,7 @@ bool GraphManager::addNode(Node* new_node) {
         graph_[new_node->id_] = new_node;
         ROS_INFO("Added Node, new Graphsize: %i", (int) graph_.size());
         new_node->cachePointCloudToFile();
-        new_node->clearPointCloud();
+        //new_node->clearPointCloud();
         if((optimizer_->vertices().size() % ParameterServer::instance()->get<int>("optimizer_skip_step")) == 0){ 
           optimizeGraph();
         } else {
@@ -687,7 +702,7 @@ void GraphManager::runRGBDICPOptimization()
             ROS_INFO("Skipping Node %i, point cloud data is empty!", i);
             continue;
         }
-        QList<int> vertices_to_comp = getPotentialEdgeTargets(new_node, ParameterServer::instance()->get<int>("connectivity")); //vernetzungsgrad
+        QList<int> vertices_to_comp = getUnconnectedNodes(graph_[i], 100);
 
 
     }
