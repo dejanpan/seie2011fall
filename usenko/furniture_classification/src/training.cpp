@@ -57,7 +57,8 @@ void transform_to_features(const cv::Mat & mat, std::vector<featureType> & featu
 
 void append_segments_from_file(const std::string & filename, std::vector<featureType> & features, pcl::PointCloud<
     pcl::PointXYZ> & centroids, std::vector<std::string> & classes, size_t min_points_in_segment, pcl::PointCloud<
-    pcl::PointXYZ> & scene, pcl::PointXYZ * min_bound, pcl::PointXYZ * max_bound)
+    pcl::PointXYZ> & scene, std::vector<std::vector<int> > & new_segment_indices, pcl::PointXYZ * min_bound,
+                               pcl::PointXYZ * max_bound)
 {
   std::vector<std::string> st;
   boost::split(st, filename, boost::is_any_of("/"), boost::token_compress_on);
@@ -71,9 +72,6 @@ void append_segments_from_file(const std::string & filename, std::vector<feature
   {
     pcl::getMinMax3D<pcl::PointXYZ>(*cloud, *min_bound, *max_bound);
   }
-
-  // Return cloud scene
-  scene = *cloud;
 
   // Create a KD-Tree
   pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
@@ -121,13 +119,16 @@ void append_segments_from_file(const std::string & filename, std::vector<feature
   region_growing.segmentPoints();
   segment_indices = region_growing.getSegments();
 
+  // Return cloud scene
+  scene = *mls_cloud;
+
   pcl::PointCloud<featureType> feature;
   featureEstimation feature_estimator;
   feature_estimator.setInputCloud(mls_cloud);
   feature_estimator.setSearchMethod(tree);
   feature_estimator.setKSearch(10);
 
-  std::vector<std::vector<int> > new_segment_indices;
+  //std::vector<std::vector<int> > new_segment_indices;
   filter_segments(segment_indices, new_segment_indices, min_points_in_segment);
 
   for (size_t i = 0; i < new_segment_indices.size(); i++)

@@ -48,7 +48,8 @@ int main(int argc, char** argv)
 
   for (size_t i = 0; i < files_to_process.size(); i++)
   {
-    append_segments_from_file(files_to_process[i], features, centroids, classes, min_points_in_segment, tmp);
+    std::vector<std::vector<int> > tmp_segment_indices;
+    append_segments_from_file(files_to_process[i], features, centroids, classes, min_points_in_segment, tmp, tmp_segment_indices);
   }
 
 
