@@ -9,6 +9,8 @@
 #include <iostream>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
+
 
 using namespace cv;
 using namespace std;
@@ -27,8 +29,8 @@ using namespace std;
 }*/
 
 
-int thresh = 50, N = 11;
-const char* wndname = "Square Detection Demo";
+
+
 
 // helper function:
 // finds a cosine of angle between vectors
@@ -46,6 +48,8 @@ double angle( Point pt1, Point pt2, Point pt0 )
 // the sequence is stored in the specified memory storage
 void findSquares( const Mat& image, vector<vector<Point> >& squares )
 {
+    int thresh = 50, N = 11;
+    const char* wndname = "Square Detection Demo";
     squares.clear();
     
     Mat pyr, timg, gray0(image.size(), CV_8U), gray;
@@ -56,7 +60,8 @@ void findSquares( const Mat& image, vector<vector<Point> >& squares )
     vector<vector<Point> > contours;
     
     // find squares in every color plane of the image
-    for( int c = 0; c < 3; c++ )
+    //for( int c = 0; c < 3; c++ )
+    int c = 0;
     {
         int ch[] = {c, 0};
         mixChannels(&timg, 1, &gray0, 1, ch, 1);
@@ -64,6 +69,7 @@ void findSquares( const Mat& image, vector<vector<Point> >& squares )
         // try several threshold levels
         for( int l = 0; l < N; l++ )
         {
+
             // hack: use Canny instead of zero threshold level.
             // Canny helps to catch squares with gradient shading
             if( l == 0 )
@@ -81,6 +87,7 @@ void findSquares( const Mat& image, vector<vector<Point> >& squares )
                 //     tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0
                 gray = gray0 >= (l+1)*255/N;
             }
+
 
             // find contours and store them all as a list
             findContours(gray, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
@@ -133,37 +140,22 @@ void drawSquares( Mat& image, const vector<vector<Point> >& squares )
         const Point* p = &squares[i][0];
         int n = (int)squares[i].size();
         polylines(image, &p, &n, 1, true, Scalar(0,255,0), 3, CV_AA);
+        stringstream ss;
+        ss << i;
+        string p1 = "blob" + ss.str();
+        p1.append(".jpg");
+        //imwrite(p1,image);
     }
-
-    imshow(wndname, image);
-
 }
 
-
-/*int main(int argc, char** argv)
+void drawSquare(Mat& image, const vector<Point>& square)
 {
-    static const char* names[] = { "pic1.png", "pic2.png", "pic3.png",
-        "pic4.png", "pic5.png", "pic6.png", 0 };
-    help();
-    namedWindow( wndname, 1 );
-    vector<vector<Point> > squares;
-    
-    for( int i = 0; names[i] != 0; i++ )
-    {
-        Mat image = imread(names[i], 1);
-        if( image.empty() )
-        {
-            cout << "Couldn't load " << names[i] << endl;
-            continue;
-        }
-        
-        findSquares(image, squares);
-        drawSquares(image, squares);
+    const Point* p = &square[0];
+    int n = (int) square.size();
+    Mat img;
+    cv::cvtColor(image,img,CV_GRAY2BGR,3);
 
-        int c = waitKey();
-        if( (char)c == 27 )
-            break;
-    }
+    polylines(img, &p, &n, 1, true, Scalar(0,255,0), 3, CV_AA);
 
-    return 0;
-}*/
+    imwrite("selected.png",img);
+}

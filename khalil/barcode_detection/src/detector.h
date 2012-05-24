@@ -32,6 +32,7 @@ public:
   void delationErrosion(IplImage* , IplImage** );
   void selectBlob(IplImage* );
   int* createLine(int , int );
+
 };
 
 } /* namespace std */
