@@ -1,5 +1,8 @@
-1- Create package comp_barcoo
-2- Create barcoo.owl file which contains all categories of the barcoo knowledge base. It should import the knowrob.owl file
-3- Create java program to parse a barcoo xml file and create an owl class that will be added to the barcoo.owl file
-4- Create a static barcoo-test.owl file that will contain instances of classes from barcoo.owl that will be used for querying Knowrob
-5- Create a java program that will do automatic creation of instances and save them into an owl file that will be queryed
+1- Create a static barcoo-test.owl file that will contain instances of classes from barcoo.owl that will be used for querying Knowrob
+2- Create a package that will do automatic creation of instances and save them either into an owl file that will be queryed or through knowrob
+3- Modify the zbar_qt_ros package so that it gets rid of local paths and store the update into the new repository
+4- Modify the barcode detection so that it can give us meaningful information about where the barcode is located in the image exactly
+5- Think about what we can do next with the knowledge. Some interesting applications
+6- Annotate the final presentation video and upload it into the Cotesys youtube channel
+7- Create a tutorial for the whole pipeline
+
