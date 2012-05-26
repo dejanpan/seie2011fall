@@ -973,8 +973,7 @@ public:
 
 	}
 
-	bool extractPlane(const CloudConstPtr &cloud, Cloud &result){
-		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+	bool extractPlane(const CloudConstPtr &cloud, Cloud &result,pcl::PointIndices::Ptr &inliers){
 
 		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 
@@ -987,11 +986,11 @@ public:
 
 				seg.setModelType(pcl::SACMODEL_PLANE);
 				seg.setMethodType(pcl::SAC_RANSAC);
-				seg.setDistanceThreshold(0.2);
+				seg.setDistanceThreshold(0.005);
 
 				seg.setInputCloud(cloud);
 				seg.segment(*inliers, *coefficients);
-				if (inliers->indices.size() == 0) {
+				if (inliers->indices.size() < 60) {
 					PCL_ERROR(
 							"Could not estimate a line model for the given dataset.");
 					return false;
@@ -1188,6 +1187,109 @@ public:
 
 	}
 
+	int countPlanes(const CloudConstPtr &cloud,Cloud &result){
+		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+
+		int number=0;
+
+
+		CloudPtr cloud_plane(new Cloud);
+		CloudPtr nonplane_cloud(new Cloud);
+
+		if(extractPlane(cloud,*cloud_plane,inliers)){
+
+	    pcl::ExtractIndices<PointType> extract;
+	    extract.setInputCloud (cloud);
+	    extract.setIndices (inliers);
+	    extract.setNegative (true);
+
+	    // Write the planar inliers to disk
+	    extract.filter (*nonplane_cloud);
+	    number++;
+		}
+
+		cloud_plane.reset(new Cloud);
+		inliers.reset(new pcl::PointIndices);
+		CloudPtr nonplane_cloud2(new Cloud);
+
+		if(extractPlane(nonplane_cloud,*cloud_plane,inliers)){
+
+			    pcl::ExtractIndices<PointType> extract;
+			    extract.setInputCloud (nonplane_cloud);
+			    extract.setIndices (inliers);
+			    extract.setNegative (true);
+
+			    // Write the planar inliers to disk
+			    extract.filter (*nonplane_cloud2);
+			    number++;
+				}
+
+
+
+		cloud_plane.reset(new Cloud);
+		inliers.reset(new pcl::PointIndices);
+		CloudPtr nonplane_cloud3(new Cloud);
+
+		if(extractPlane(nonplane_cloud2,*cloud_plane,inliers)){
+
+			    pcl::ExtractIndices<PointType> extract;
+			    extract.setInputCloud (nonplane_cloud2);
+			    extract.setIndices (inliers);
+			    extract.setNegative (true);
+
+			    // Write the planar inliers to disk
+			    extract.filter (*nonplane_cloud3);
+			    number++;
+				}
+
+//		pcl::copyPointCloud(*nonplane_cloud,result);
+
+
+
+		cloud_plane.reset(new Cloud);
+		inliers.reset(new pcl::PointIndices);
+		CloudPtr nonplane_cloud4(new Cloud);
+
+		if(extractPlane(nonplane_cloud3,*cloud_plane,inliers)){
+
+			    pcl::ExtractIndices<PointType> extract;
+			    extract.setInputCloud (nonplane_cloud3);
+			    extract.setIndices (inliers);
+			    extract.setNegative (true);
+
+			    // Write the planar inliers to disk
+			    extract.filter (*nonplane_cloud4);
+			    number++;
+				}
+
+
+		cloud_plane.reset(new Cloud);
+		inliers.reset(new pcl::PointIndices);
+		CloudPtr nonplane_cloud5(new Cloud);
+
+		if(extractPlane(nonplane_cloud4,*cloud_plane,inliers)){
+
+			    pcl::ExtractIndices<PointType> extract;
+			    extract.setInputCloud (nonplane_cloud4);
+			    extract.setIndices (inliers);
+			    extract.setNegative (true);
+
+			    // Write the planar inliers to disk
+			    extract.filter (*nonplane_cloud5);
+			    number++;
+				}
+
+
+
+
+		std::cerr<<"number of planes: "<<number<<std::endl;
+
+
+
+		return number;
+
+	}
+
 	void cloud_cb(const CloudConstPtr &cloud) {
 		boost::mutex::scoped_lock lock(mtx_);
 		double start = pcl::getTime();
@@ -1368,16 +1470,16 @@ public:
 						coeff_vector.push_back(coefficients4);
 						directions_vector.push_back(direction1);
 					}
-//
-//					if(extractCorners(nonzero_ref_no_corner, *nonzero_ref_corners2,*nonzero_ref_no_corner2,cloud_intensity,0)){
-//
-//
-//						clouds_vector.push_back(nonzero_ref_corners2);
-//						is_line_vector.push_back(false);
-//						coeff_vector.push_back(coefficients4);
-//						directions_vector.push_back(direction2);
-//
-//					}
+////
+					if(extractCorners(nonzero_ref_no_corner, *nonzero_ref_corners2,*nonzero_ref_no_corner2,cloud_intensity,0)){
+
+
+						clouds_vector.push_back(nonzero_ref_corners2);
+						is_line_vector.push_back(false);
+						coeff_vector.push_back(coefficients4);
+						directions_vector.push_back(direction2);
+
+					}
 
 					//extracting first line
 					if(extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line,coefficients)){
@@ -1404,6 +1506,8 @@ public:
 											directions_vector.push_back(direction4);
 
 					}
+
+
 //
 //					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
 
@@ -1442,7 +1546,15 @@ public:
 					//making point cloud thicker- in case of change(i.e. corner instead of the line or so) change second param
 					extractNeighbor(nonzero_ref,*clouds_vector[track], *nonzero_ref_final_cloud);
 
+
+
+					int planes_number=countPlanes(nonzero_ref_final_cloud,*nonzero_ref_final_cloud);
+
 					if ((is_line_vector[track])&&(coeff_vector[track]!=NULL)){
+						if(( planes_number< 2)||(planes_number > 3)){
+							std::cerr<<"delete this line"<<std::endl;
+							}
+
 					onlyLineNeighbor(nonzero_ref_final_cloud,*nonzero_ref_final_cloud,*clouds_vector[track],coeff_vector[track]);
 
 
@@ -1463,12 +1575,19 @@ public:
 					step_covariance[2]*=fabs (directions_vector[track][2]);
 
 
-//					tracker_vector_[track]->setStepNoiseCovariance(step_covariance);
 
+
+					tracker_vector_[track]->setStepNoiseCovariance(step_covariance);
+
+					}
+					else{
+					if (planes_number<3){
+						std::cerr<<"delete this corner"<<std::endl;
+					}
 					}
 					std::stringstream ss;
 						ss <<track;
-					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
+//					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
 
 
 
