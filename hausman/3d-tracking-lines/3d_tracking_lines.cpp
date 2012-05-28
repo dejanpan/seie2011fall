@@ -139,6 +139,8 @@ public:
 		default_step_covariance[5] *= 40.0;
 //		default_step_covariance[0] *=50.0;
 
+		step_covariance_=default_step_covariance;
+
 		std::cerr << "step covariance: " << default_step_covariance.size()
 				<< std::endl;
 
@@ -1537,7 +1539,7 @@ public:
 
 
 
-					for (uint track=0; track < tracker_vector_.size(); track++) {
+					for (int track=0; track < tracker_vector_.size(); track++) {
 
 						RefCloudPtr nonzero_ref_final_cloud(new RefCloud);
 						RefCloudPtr nonzero_ref_very_final_cloud(new RefCloud);
@@ -1553,16 +1555,23 @@ public:
 					if ((is_line_vector[track])&&(coeff_vector[track]!=NULL)){
 						if(( planes_number< 2)||(planes_number > 3)){
 							std::cerr<<"delete this line"<<std::endl;
+							tracker_vector_.erase(tracker_vector_.begin()+track);
+							is_line_vector.erase(is_line_vector.begin()+track);
+							clouds_vector.erase(clouds_vector.begin()+track);
+							coeff_vector.erase(coeff_vector.begin()+track);
+							directions_vector.erase(directions_vector.begin()+track);
+							track--;
+							continue;
 							}
 
 					onlyLineNeighbor(nonzero_ref_final_cloud,*nonzero_ref_final_cloud,*clouds_vector[track],coeff_vector[track]);
 
 
-					std::vector<double> step_covariance = std::vector<double>(6,
-									0.005 * 0.015);//0.000075
-							step_covariance[3] *= 40.0;
-							step_covariance[4] *= 40.0;
-							step_covariance[5] *= 40.0;
+//					std::vector<double> step_covariance = std::vector<double>(6,
+//									0.005 * 0.015);//0.000075
+//							step_covariance_[3] *= 40.0;
+//							step_covariance_[4] *= 40.0;
+//							step_covariance_[5] *= 40.0;
 
 					directions_vector[track].normalize();
 					std::cerr<<"direction vector x: "<<fabs (directions_vector[track][0])<<std::endl;
@@ -1570,21 +1579,27 @@ public:
 					std::cerr<<"direction vector z: "<<fabs (directions_vector[track][2])<<std::endl;
 
 
-					step_covariance[0]*=fabs (directions_vector[track][0]);
-					step_covariance[1]*=fabs (directions_vector[track][1]);
-					step_covariance[2]*=fabs (directions_vector[track][2]);
+					step_covariance_[0]*=fabs (directions_vector[track][0]);
+					step_covariance_[1]*=fabs (directions_vector[track][1]);
+					step_covariance_[2]*=fabs (directions_vector[track][2]);
 
 
 
 
-					tracker_vector_[track]->setStepNoiseCovariance(step_covariance);
+					tracker_vector_[track]->setStepNoiseCovariance(step_covariance_);
 
 					}
-					else{
-					if (planes_number<3){
+					else if ((planes_number<3)&&(!is_line_vector[track])){
 						std::cerr<<"delete this corner"<<std::endl;
+						tracker_vector_.erase(tracker_vector_.begin()+track);
+						is_line_vector.erase(is_line_vector.begin()+track);
+						clouds_vector.erase(clouds_vector.begin()+track);
+						coeff_vector.erase(coeff_vector.begin()+track);
+						directions_vector.erase(directions_vector.begin()+track);
+						track--;
+						continue;
 					}
-					}
+
 					std::stringstream ss;
 						ss <<track;
 //					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
@@ -1698,6 +1713,7 @@ public:
 	pcl::NormalEstimationOMP<PointType, pcl::Normal> ne_; // to store threadpool
 	boost::shared_ptr<ParticleFilter> tracker_;
 	std::vector<boost::shared_ptr<ParticleFilter> > tracker_vector_;
+	std::vector<double> step_covariance_;
 	int counter_;
 	bool use_convex_hull_;
 	bool visualize_non_downsample_;
