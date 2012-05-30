@@ -12,10 +12,12 @@
 #include <training.h>
 #include <set>
 
-void findVotedSegments(const pcl::PointCloud<pcl::PointXYZ> & local_maxima_cloud, float cell_size, pcl::PointCloud<
-    pcl::PointXYZ>::ConstPtr scene, const std::vector<std::vector<int> > & segment_indices, const pcl::PointCloud<
+
+template<class ScenePoint>
+void findVotedSegments(const pcl::PointCloud<pcl::PointXYZ> & local_maxima_cloud, float cell_size, boost::shared_ptr<pcl::PointCloud<
+    ScenePoint> > scene, const std::vector<std::vector<int> > & segment_indices, const pcl::PointCloud<
     pcl::PointXYZI> & votes, const std::vector<int> & vote_segment_idx,
-                       std::vector<pcl::PointCloud<pcl::PointXYZ> > & voted_segments)
+                       std::vector<pcl::PointCloud<ScenePoint> > & voted_segments)
 {
 
   std::vector<std::set<int> > segment_combinations;
@@ -63,11 +65,11 @@ void findVotedSegments(const pcl::PointCloud<pcl::PointXYZ> & local_maxima_cloud
 
   for (size_t i = 0; i < segment_combinations.size(); i++)
   {
-    pcl::PointCloud<pcl::PointXYZ> cloud;
+    pcl::PointCloud<ScenePoint> cloud;
 
     for (std::set<int>::iterator it = segment_combinations[i].begin(); it != segment_combinations[i].end(); it++)
     {
-      pcl::PointCloud<pcl::PointXYZ> segment(*scene, segment_indices[*it]);
+      pcl::PointCloud<ScenePoint> segment(*scene, segment_indices[*it]);
       cloud += segment;
     }
 
@@ -77,10 +79,12 @@ void findVotedSegments(const pcl::PointCloud<pcl::PointXYZ> & local_maxima_cloud
 
 }
 
+
+
+template<class ScenePoint>
 void refineWithSegmentsICP(const std::vector<std::string> & models,
-                           const std::vector<pcl::PointCloud<pcl::PointXYZ> > & segments_vector, pcl::PointCloud<
-                               pcl::PointXYZ>::Ptr scene, int num_rotations_icp, float icp_threshold, std::vector<
-                               pcl::PointCloud<pcl::PointXYZ> > & result, std::vector<float> & score)
+                           const std::vector<pcl::PointCloud<ScenePoint> > & segments_vector, std::vector<
+                               pcl::PointCloud<ScenePoint> > & result, std::vector<float> & score)
 {
 
   for (size_t model_idx = 0; model_idx < models.size(); model_idx++)
@@ -288,10 +292,9 @@ int main(int argc, char** argv)
 
       std::cerr << class_name << std::endl;
       std::vector<pcl::PointCloud<pcl::PointXYZ> > segments_vector;
-      findVotedSegments(local_maxima, cell_size, scene, segment_indices, votes[class_name],
+      findVotedSegments<pcl::PointXYZ>(local_maxima, cell_size, scene, segment_indices, votes[class_name],
                         vote_segment_idx[class_name], segments_vector);
-      refineWithSegmentsICP(class_to_full_pointcloud[class_name], segments_vector, scene, num_rotations_icp,
-                            icp_threshold, result, score);
+      refineWithSegmentsICP<pcl::PointXYZ>(class_to_full_pointcloud[class_name], segments_vector, result, score);
 
       if (result.size() > 0)
         removeIntersecting(result, score, no_intersection_result);

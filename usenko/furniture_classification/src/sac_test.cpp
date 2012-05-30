@@ -62,7 +62,8 @@ int main(int argc, char **argv)
 
 
   pcl::RandomSampleConsensus<pcl::PointNormal> ransac(model_3dof);
-  ransac.setDistanceThreshold(.01);
+  ransac.setDistanceThreshold(.001);
+  ransac.setProbability(0.99);
   ransac.computeModel();
 
   Eigen::VectorXf coeff(3);

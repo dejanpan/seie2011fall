@@ -39,13 +39,14 @@ template<typename PointT>
     void setTarget(PointCloudConstPtr target)
     {
       this->target = target;
+      this->target_tree.setInputCloud(this->target);
     }
 
     virtual bool computeModelCoefficients(const std::vector<int> & samples, Eigen::VectorXf & model_coefficients)
     {
 
       PointT input_point = input_->points[samples[0]];
-      std::cerr << "IP " << input_point << std::endl;
+ //     std::cerr << "IP " << input_point << std::endl;
 
       // Select points with the same height
       std::vector<int> idx;
@@ -74,16 +75,16 @@ template<typename PointT>
       model_coefficients[2] = atan2(target_point.normal_y, target_point.normal_x) - atan2(input_point.normal_y,
                                                                                           input_point.normal_x);
 
-//      std::cerr << "MC " << model_coefficients << std::endl;
-
-      PointCloudPtr transformed_input(new PointCloud);
+      std::cerr << "MC " << model_coefficients << std::endl;
 //
-      Eigen::Affine3f transform;
-      transform.translate(Eigen::Vector3f(model_coefficients[0], model_coefficients[1], 0));
-      transform.rotate(Eigen::AngleAxisf(model_coefficients[2], Eigen::Vector3f(0, 0, 1)));
+//      PointCloudPtr transformed_input(new PointCloud);
 //
-      pcl::transformPointCloudWithNormals(*input_, *transformed_input, transform);
-      PointT input_point_transformed = transformed_input->points[samples[0]];
+//      Eigen::Affine3f transform;
+//      transform.translate(Eigen::Vector3f(model_coefficients[0], model_coefficients[1], 0));
+//      transform.rotate(Eigen::AngleAxisf(model_coefficients[2], Eigen::Vector3f(0, 0, 1)));
+//
+//      pcl::transformPointCloudWithNormals(*input_, *transformed_input, transform);
+//      PointT input_point_transformed = transformed_input->points[samples[0]];
 //
 //      std::cerr << "IPT " << input_point_transformed << std::endl;
 
@@ -100,11 +101,7 @@ template<typename PointT>
       transform.translate(Eigen::Vector3f(model_coefficients[0], model_coefficients[1], 0));
       transform.rotate(Eigen::AngleAxisf(model_coefficients[2], Eigen::Vector3f(0, 0, 1)));
 
-      pcl::transformPointCloud(*input_, *transformed_input, transform);
-
-      pcl::search::KdTree<pcl::PointNormal> target_tree;
-      target_tree.setInputCloud(target);
-
+      pcl::transformPointCloudWithNormals(*input_, *transformed_input, transform);
       inliers.clear();
 
       std::vector<int> idx;
@@ -118,9 +115,6 @@ template<typename PointT>
         if (dist[0] < threshold)
           inliers.push_back(i);
       }
-
-      //std::cerr << "Number of inliers selected " << inliers.size() << std::endl;
-
     }
 
     virtual int countWithinDistance(const Eigen::VectorXf & model_coefficients, const double threshold)
@@ -176,6 +170,7 @@ template<typename PointT>
 
   protected:
     PointCloudConstPtr target;
+    pcl::search::KdTree<PointT> target_tree;
 
     float eps;
 
