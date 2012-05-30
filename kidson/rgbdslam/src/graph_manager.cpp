@@ -724,6 +724,17 @@ void GraphManager::runRGBDICPOptimization()
         	graph_[i]->getRelativeTransformationTo(graph_[nodesToCompareIndices[id_of_id]],
         			&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches, 30); //ROSS-TODO: make 30 a parameter
 
+        	std::vector<int> sourceIndices, targetIndices;
+        	graph_[i]->getFeatureIndices(graph_[nodesToCompareIndices[id_of_id]], mr, sourceIndices, targetIndices);
+//			 pcl::PCDWriter writer;
+//			 std::stringstream filename;
+//			 filename << "node_" << id_of_id << "source.pcd";
+//			 writer.write (filename.str(), *(graph_[i]->pc_col), sourceIndices, true);
+//			 filename.str("");
+//			 filename << "node_" << id_of_id << "target.pcd";
+//			 writer.write (filename.str(), *(graph_[nodesToCompareIndices[id_of_id]]->pc_col), targetIndices, true);
+
+
         }
 
 

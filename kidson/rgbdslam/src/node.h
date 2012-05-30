@@ -144,6 +144,8 @@ public:
   void clearPointCloud();
   void cachePointCloudToFile();
   void calculateNormals();
+  void getFeatureIndices(const Node* previousNode, MatchingResult& mr,
+			std::vector<int>& sourceIndices, std::vector<int>& targetIndices);
 	//PointCloud pc;
 	///pointcloud_type centrally defines what the pc is templated on
 	unsigned int id_; ///must correspond to the g2o vertex id

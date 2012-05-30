@@ -1130,3 +1130,29 @@ void Node::calculateNormals()
 	ne.compute (*pc_col);
 	//pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
+
+// calcuate the normals of the node's pointcloud
+void Node::getFeatureIndices(const Node* previousNode, MatchingResult& mr,
+		std::vector<int>& sourceIndices, std::vector<int>& targetIndices)
+{
+	pcl::KdTreeFLANN<point_type> kdtreeNN;
+	std::vector<int> pointIdxNKNSearch(1);
+	std::vector<float> pointNKNSquardDistance(1);
+	kdtreeNN.setInputCloud(pc_col);
+	for(size_t i = 0; i < mr.inlier_matches.size(); i++)
+	{
+		point_type searchPoint;
+		searchPoint.x = feature_locations_3d_[mr.inlier_matches[i].queryIdx].x();
+		searchPoint.y = feature_locations_3d_[mr.inlier_matches[i].queryIdx].y();
+		searchPoint.z = feature_locations_3d_[mr.inlier_matches[i].queryIdx].z();
+		kdtreeNN.nearestKSearch(searchPoint, 1, pointIdxNKNSearch, pointNKNSquardDistance);
+		sourceIndices.push_back(pointIdxNKNSearch.front());
+
+		searchPoint.x = previousNode->feature_locations_3d_[mr.inlier_matches[i].trainIdx].x();
+		searchPoint.y = previousNode->feature_locations_3d_[mr.inlier_matches[i].trainIdx].y();
+		searchPoint.z = previousNode->feature_locations_3d_[mr.inlier_matches[i].trainIdx].z();
+		kdtreeNN.nearestKSearch(searchPoint, 1, pointIdxNKNSearch, pointNKNSquardDistance);
+		targetIndices.push_back(pointIdxNKNSearch.front());
+	}
+
+}
