@@ -32,6 +32,9 @@ Prior knowledge from Luci from 3d static segmentation- Dejan pushes
 3d-tracking:
 check the stability of tracking in matlab/octave
 improve corners and lines-> check number of planes in the neighborhood
+
+make a patch for checkout from pcl
+improve the code
 estimate convex corners in the Chris' way
 
 To try out maybe:
