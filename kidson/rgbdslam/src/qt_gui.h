@@ -71,6 +71,7 @@ Q_SIGNALS:
     void saveIndividualClouds(QString file_basename);
     void setMaxDepth(float max_depth);
     void evaluation();
+    void runRGBDICP();
     void optimizeGraph();
     void printEdgeErrors(QString);
     void pruneEdgesWithErrorAbove(float);
@@ -103,6 +104,7 @@ private Q_SLOTS:
 //    void set3DDisplay(bool is_on);
     void set2DStream(bool is_on);
     void saveTrajectoryDialog();
+    void jointOptimizeTrig();
     void optimizeGraphTrig();
     void showEdgeErrors();
     void pruneEdgesWithHighError();

@@ -307,6 +307,8 @@ QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targe
     QList<int> ids_to_link_to;
     for(size_t i=0; i < graph_.size(); i++)
     {
+    	if(new_node->id_ == (int)i)
+			continue;
     	//add check here if new_node->id_ is connected to graph_[i]
     	ids_to_link_to.push_back(i);
     	if(ids_to_link_to.size() >= max_targets)	//if limit is reached
@@ -475,22 +477,22 @@ bool GraphManager::addNode(Node* new_node) {
             ROS_INFO("Comparing new node (%i) with node %i / %i", new_node->id_, vertices_to_comp[id_of_id], abcd->id_);
             MatchingResult mr = new_node->matchNodePair(abcd);
 
-            if (mr.edge.id1 >= 0) {
-            	if((new_node->id_== 2) || (abcd->id_ == 2))
-            		publish_transform(mr, new_node, abcd, feature_match_pub);
-                //mr.edge.informationMatrix *= geodesicDiscount(hypdij, mr);
-                ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
+            if (mr.edge.id1 >= 0){
+				//if((new_node->id_== 2) || (abcd->id_ == 2))
+				//	publish_transform(mr, new_node, abcd, feature_match_pub);
+				//mr.edge.informationMatrix *= geodesicDiscount(hypdij, mr);
+				ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
 
-                if (addEdgeToG2O(mr.edge, isBigTrafo(mr.edge.mean),
-                        mr.inlier_matches.size() > last_inlier_matches_.size())) { //TODO: result isBigTrafo is not considered
-                    ROS_INFO("Added Edge between %i and %i. Inliers: %i",mr.edge.id1,mr.edge.id2,(int) mr.inlier_matches.size());
-                    if (mr.inlier_matches.size() > last_inlier_matches_.size()) {
-                        last_matching_node_ = mr.edge.id1;
-                        last_inlier_matches_ = mr.inlier_matches;
-                        last_matches_ = mr.all_matches;
-                        //last_edge_ = mr.edge.mean;
-                    }
-                }
+				if (addEdgeToG2O(mr.edge, isBigTrafo(mr.edge.mean),
+						mr.inlier_matches.size() > last_inlier_matches_.size())) { //TODO: result isBigTrafo is not considered
+					ROS_INFO("Added Edge between %i and %i. Inliers: %i",mr.edge.id1,mr.edge.id2,(int) mr.inlier_matches.size());
+					if (mr.inlier_matches.size() > last_inlier_matches_.size()) {
+						last_matching_node_ = mr.edge.id1;
+						last_inlier_matches_ = mr.inlier_matches;
+						last_matches_ = mr.all_matches;
+						//last_edge_ = mr.edge.mean;
+					}
+				}
             }
         }
     }
@@ -692,6 +694,7 @@ void GraphManager::visualizeFeatureFlow3D(unsigned int marker_id,
 
 void GraphManager::runRGBDICPOptimization()
 {
+	ROS_INFO_STREAM(" GraphManager::runRGBDICPOptimization");
     for (unsigned int i = 0; i < graph_.size(); ++i) {
         g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(i));
         if(!v){
@@ -702,7 +705,20 @@ void GraphManager::runRGBDICPOptimization()
             ROS_INFO("Skipping Node %i, point cloud data is empty!", i);
             continue;
         }
-        QList<int> vertices_to_comp = getUnconnectedNodes(graph_[i], 100);
+        QList<int> nodesToCompareIndices = getUnconnectedNodes(graph_[i], 1000);
+
+        // iterate through list.  (multithreading could also be implemented here)
+        for (int id_of_id = (int) nodesToCompareIndices.size() - 1; id_of_id >= 0; id_of_id--) {
+
+        	MatchingResult mr;
+        	graph_[i]->findPairsFlann(graph_[nodesToCompareIndices[id_of_id]], &mr.all_matches);
+        	ROS_INFO_STREAM("node[" << i << "] and node[" << nodesToCompareIndices[id_of_id] << "] mr.all_matches " << mr.all_matches.size());
+
+        	graph_[i]->getRelativeTransformationTo(graph_[nodesToCompareIndices[id_of_id]],
+        			&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches, 30); //ROSS-TODO: make 30 a parameter
+
+
+        }
 
 
     }

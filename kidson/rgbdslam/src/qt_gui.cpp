@@ -175,6 +175,12 @@ void Graphical_UI::saveAll() {
     statusBar()->showMessage(message);
     //infoLabel->setText(message);
 }
+void Graphical_UI::jointOptimizeTrig() {
+    Q_EMIT runRGBDICP();
+    QString message = tr("Running Joint Optimization");
+    statusBar()->showMessage(message);
+    //infoLabel->setText(message);
+}
 void Graphical_UI::showEdgeErrors() {
     QString myfilename = QFileDialog::getSaveFileName(this, "Save Current Trajectory Estimate", "trajectory", tr("All Files (*.*)"));
     Q_EMIT printEdgeErrors(myfilename);
@@ -412,6 +418,13 @@ void Graphical_UI::createMenus() {
     connect(optimizeAct, SIGNAL(triggered()), this, SLOT(optimizeGraphTrig()));
     actionMenu->addAction(optimizeAct);
     this->addAction(optimizeAct);
+
+    QAction *jointOptimizeAct = new QAction(tr("Run Joint Optimization"), this);
+    //optimizeAct->setShortcut(QString("Ctrl+Shift+O"));
+    optimizeAct->setStatusTip(tr("Run the &Joint Optimization algorithm to Optimize the Graph"));
+    connect(jointOptimizeAct, SIGNAL(triggered()), this, SLOT(jointOptimizeTrig()));
+    actionMenu->addAction(jointOptimizeAct);
+    this->addAction(jointOptimizeAct);
 
     QAction *showErrorAct = new QAction(tr("Show Edge Errors"), this);
     showErrorAct->setShortcut(QString("Ctrl+Shift+E"));

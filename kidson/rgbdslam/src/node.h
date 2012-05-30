@@ -143,6 +143,7 @@ public:
   //!erase the points from the cloud to save memory
   void clearPointCloud();
   void cachePointCloudToFile();
+  void calculateNormals();
 	//PointCloud pc;
 	///pointcloud_type centrally defines what the pc is templated on
 	unsigned int id_; ///must correspond to the g2o vertex id
@@ -157,9 +158,10 @@ public:
 	std::vector<float> siftgpu_descriptors;
 
   ///Where in the image are the descriptors
-	std::vector<cv::KeyPoint> feature_locations_2d_; 
+	std::vector<cv::KeyPoint> feature_locations_2d_;
 
-
+	// keep matching results for 2nd round optimization (rgbdicp)
+	std::vector<MatchingResult> matchingResultsList;
 
 
 protected:

@@ -88,6 +88,7 @@ class GraphManager : public QObject {
     void printEdgeErrors(QString);
     void pruneEdgesWithErrorAbove(float);
     void sanityCheck(float);
+    void runRGBDICPOptimization();
 
     public:
     GraphManager(ros::NodeHandle);
@@ -140,9 +141,6 @@ protected:
     void visualizeGraphNodes() const;
     ///Send markers to visualize the graph ids in rviz (if somebody subscribed)
     void visualizeGraphIds() const;
-        
-    
-    void runRGBDICPOptimization();
     
     QList<int> getUnconnectedNodes(const Node* new_node, int max_targets);
 

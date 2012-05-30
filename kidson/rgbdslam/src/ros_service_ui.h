@@ -61,6 +61,7 @@ Q_SIGNALS:
     ///User wants logfiles of the trajectory estimate (and ground truth if available)
     void saveTrajectory(QString);
     void optimizeGraph();
+    void runRGBDICP();
      
 public Q_SLOTS:
     void sendFinished();
@@ -76,6 +77,7 @@ private:
     void bagRecording(bool);
     void getOneFrameCmd();
     void deleteLastFrameCmd();
+    void runRGBDICPCmd();
 private:
     void createActions(const char* service_namespace);
     bool pause_on;

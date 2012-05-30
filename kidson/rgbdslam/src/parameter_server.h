@@ -24,7 +24,7 @@
 //the visualization too
 #include "pcl/point_cloud.h"
 #include "pcl/point_types.h"
-typedef pcl::PointXYZRGB point_type;
+typedef pcl::PointXYZRGBNormal point_type;
 typedef pcl::PointCloud<point_type> pointcloud_type;
 //#define CONCURRENT_EDGE_COMPUTATION
 //Compile out DEBUG Statements. Hardly benefitial though

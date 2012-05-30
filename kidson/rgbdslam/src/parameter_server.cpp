@@ -46,7 +46,7 @@ void ParameterServer::defaultConfig() {
     config["fixed_frame_name"]              = std::string("/map");
     config["ground_truth_frame_name"]       = std::string("");                  //use empty string if no ground truth tf frame available
     config["base_frame_name"]               = std::string("/openni_camera");    //if the camera is articulated use robot base
-    config["bagfile_name"]                  = std::string("/media/burg/data/bagfiles/bench1-3sweeps3-1.bag");                  // /home/ross/ros_workspace/bagfiles/testSet/featureStructured3.bag
+    config["bagfile_name"]                  = std::string("/home/ross/ros_workspace/bagfiles/bench1-2sweeps.bag");                  // /home/ross/ros_workspace/bagfiles/testSet/featureStructured3.bag
     config["batch_processing"]              = static_cast<bool> (false);        //store results and close after bagfile has been processed
     config["fixed_camera"]                  = static_cast<bool> (true);         //is camera fixed relative to base?
     config["feature_detector_type"]         = std::string("SURF");              //SURF, SIFT, FAST, ... see misc.cpp
@@ -77,7 +77,7 @@ void ParameterServer::defaultConfig() {
     config["use_gui"]                       = static_cast<bool> (true);
     config["use_wide"]                      = static_cast<bool> (true);
     config["concurrent_node_construction"]  = static_cast<bool> (true);
-    config["concurrent_edge_construction"]  = static_cast<bool> (true);		// turn this off to broadcast nodes.  concurrent broadcasting of nodes not supported
+    config["concurrent_edge_construction"]  = static_cast<bool> (false);		// turn this off to broadcast nodes.  concurrent broadcasting of nodes not supported
     config["voxelfilter_size"]              = static_cast<double> (-0.1); //in meters. Values <= 0 deactivate
     config["wide_queue_size"]               = static_cast<int> (2);
     config["visualization_skip_step"]       = static_cast<int> (1);

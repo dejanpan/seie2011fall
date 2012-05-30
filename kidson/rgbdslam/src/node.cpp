@@ -24,7 +24,9 @@
 #include <pcl/common/transformation_from_correspondences.h>
 //#include <opencv2/highgui/highgui.hpp>
 #include <qtconcurrentrun.h>
-#include <QtConcurrentMap> 
+#include <QtConcurrentMap>
+#include <pcl/point_types.h>
+#include <pcl/features/normal_3d.h>
 
 #ifdef USE_SIFT_GPU
 #include "sift_gpu_wrapper.h"
@@ -819,17 +821,17 @@ bool Node::getRelativeTransformationTo(const Node* earlier_node,
   assert(initial_matches != NULL);
   matches.clear();
   
-  if(initial_matches->size() <= (unsigned int) ParameterServer::instance()->get<int>("min_matches")) {
-	  ROS_INFO("Only %d feature matches between %d and %d (minimal: %i)",(int)initial_matches->size() , this->id_, earlier_node->id_, ParameterServer::instance()->get<int>("min_matches"));
+  if(initial_matches->size() <= min_matches) {
+	  ROS_INFO("Only %d feature matches between %d and %d (minimal: %i)",(int)initial_matches->size() , this->id_, earlier_node->id_, min_matches);
     return false;
   }
   else
   {
-	  ROS_INFO("Only %d feature matches between %d and %d (minimal: %i)",(int)initial_matches->size() , this->id_, earlier_node->id_, ParameterServer::instance()->get<int>("min_matches"));
+	  ROS_INFO("%d feature matches between %d and %d (minimal: %i)",(int)initial_matches->size() , this->id_, earlier_node->id_, min_matches);
   }
 
   //unsigned int min_inlier_threshold = int(initial_matches->size()*0.2);
-  unsigned int min_inlier_threshold = (unsigned int) ParameterServer::instance()->get<int>("min_matches");
+  unsigned int min_inlier_threshold = (unsigned int) min_matches;
   std::vector<cv::DMatch> inlier; //holds those feature correspondences that support the transformation
   double inlier_error; //all squared errors
   srand((long)std::clock());
@@ -1113,4 +1115,18 @@ void Node::cachePointCloudToFile()
 	 std::stringstream filename;
 	 filename << "node_" << id_ << ".pcd";
 	 writer.write (filename.str(), *pc_col, true);
+}
+
+// calcuate the normals of the node's pointcloud
+void Node::calculateNormals()
+{
+	pointcloud_type::Ptr pointCloudOut (new pointcloud_type);
+	// Create the normal estimation class, and pass the input dataset to it
+	pcl::NormalEstimation<point_type, point_type> ne;
+	ne.setInputCloud (pc_col);
+	pcl::search::KdTree<point_type>::Ptr tree (new pcl::search::KdTree<point_type> ());
+	ne.setSearchMethod (tree);
+	ne.setRadiusSearch (0.03);
+	ne.compute (*pc_col);
+	//pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }

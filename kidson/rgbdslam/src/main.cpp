@@ -41,6 +41,7 @@ void ui_connections(QObject* ui, GraphManager* graph_mgr, OpenNIListener* listen
     QObject::connect(ui, SIGNAL(saveIndividualClouds(QString)), graph_mgr, SLOT(saveIndividualClouds(QString)));
     QObject::connect(ui, SIGNAL(setMaxDepth(float)), graph_mgr, SLOT(setMaxDepth(float)));
     QObject::connect(ui, SIGNAL(saveTrajectory(QString)), graph_mgr, SLOT(saveTrajectory(QString)));
+    QObject::connect(ui, SIGNAL(runRGBDICP()), graph_mgr, SLOT(runRGBDICPOptimization()));
 }
 
 ///Connect Signals and Slots only relevant for the graphical interface

@@ -52,6 +52,11 @@ void RosUi::saveIndividual() {
     ROS_INFO("Saving Model Node-Wise");
 }
 
+void RosUi::runRGBDICPCmd() {
+    Q_EMIT runRGBDICP();
+    ROS_INFO("Running Joint Optimization");
+}
+
 void RosUi::sendAll() {
     Q_EMIT sendAllClouds();
     ROS_INFO("Sending Whole Model");
