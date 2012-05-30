@@ -1025,6 +1025,107 @@ public:
 
 	}
 
+	bool extract3DCircle(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud){
+
+		pcl::PointCloud<pcl::Normal>::Ptr normals_cloud(
+						new pcl::PointCloud<pcl::Normal>);
+				pcl::NormalEstimation<PointType, pcl::Normal> norm_est;
+				norm_est.setSearchMethod(KdTreePtr(new KdTree));
+				norm_est.setInputCloud(cloud);
+				norm_est.setRadiusSearch(0.03);
+				norm_est.compute(*normals_cloud);
+
+
+				pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+				pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+						if (cloud->size()==0)
+							return false;
+
+						pcl::SACSegmentationFromNormals<PointType,pcl::Normal> seg;
+						// Optional
+						seg.setOptimizeCoefficients(true);
+
+						seg.setModelType(pcl::SACMODEL_CIRCLE3D);
+						seg.setMethodType(pcl::SAC_RANSAC);
+						seg.setDistanceThreshold(0.003);
+//						seg.setRadiusLimits(0.01,0.15);
+						seg.setInputNormals(normals_cloud);
+						seg.setInputCloud(cloud);
+						seg.setMaxIterations (10000);
+
+						seg.segment(*inliers, *coefficients);
+						if (inliers->indices.size() < 5) {
+							PCL_ERROR(
+									"Could not estimate a circle model for the given dataset.");
+							return false;
+						}
+				//DEBUG
+						/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
+						 for (size_t i = 0; i < inliers->indices.size(); ++i)
+						 std::cerr << inliers->indices[i] << "    "
+						 << cloud->points[inliers->indices[i]].x << " "
+						 << cloud->points[inliers->indices[i]].y << " "
+						 << cloud->points[inliers->indices[i]].z << std::endl;*/
+
+
+
+						for (size_t i = 0; i < inliers->indices.size(); i++) {
+							PointType point = cloud->points[inliers->indices[i]];
+							result.points.push_back(point);
+
+						}
+		//EUCLIDIAN CLUSTERING PART
+		//				  CloudPtr cloudForEuclidianDistance(new Cloud);
+		//				  pcl::copyPointCloud(result, *cloudForEuclidianDistance);
+		//
+		//
+		//				  KdTreePtr tree(new KdTree());
+		//				  tree->setInputCloud (cloudForEuclidianDistance);
+
+
+		//				  std::vector<pcl::PointIndices> cluster_indices;
+		//				  pcl::EuclideanClusterExtraction<PointType> ec;
+		//				  ec.setClusterTolerance (0.03); // 2cm
+		//				  ec.setMinClusterSize (1000);
+		//				  ec.setMaxClusterSize (25000);
+		//				  ec.setSearchMethod (tree);
+		//				  ec.setInputCloud (cloudForEuclidianDistance);
+		//				  ec.extract (cluster_indices);
+		//				  std::cerr<<"Size of result before cylinder euclidian clustering: "<<cloudForEuclidianDistance->points.size()<<std::endl;
+		//
+		//					if (cluster_indices.size()==0) {
+		//						PCL_ERROR(
+		//								"Could not do cylinder euclidian clustering for the given dataset.");
+		//						return false;
+		//					}
+		//
+		//				  result.clear();
+		//				  for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
+		//				  					PointType point = cloudForEuclidianDistance->points[cluster_indices[0].indices[i]];
+		//				  					result.points.push_back(point);
+		//				  				}
+		//
+		//
+		//				  std::cerr<<"Size of result after cylinder euclidian clustering: "<<result.points.size()<<std::endl;
+
+						  pcl::ExtractIndices<PointType> extract;
+						  extract.setNegative (true);
+						  extract.setInputCloud (cloud);
+						  extract.setIndices (inliers);
+						  extract.filter (newCloud);
+
+
+
+
+						result.width = result.points.size();
+						result.height = 1;
+						result.is_dense = true;
+
+						return true;
+
+
+
+	}
 
 	bool extractCylinder(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud){
 
@@ -1623,7 +1724,7 @@ public:
 //					}
 
 
-					if(extractCylinder(nonzero_ref,*nonzero_ref_cylinder,*nonzero_ref_no_cylinder)){
+					if(extract3DCircle(nonzero_ref,*nonzero_ref_cylinder,*nonzero_ref_no_cylinder)){
 						clouds_vector.push_back(nonzero_ref_cylinder);
 						is_line_vector.push_back("cylinder");
 						coeff_vector.push_back(coefficients2);
@@ -1631,12 +1732,12 @@ public:
 					}
 
 
-					if(extractCylinder(nonzero_ref_no_cylinder,*nonzero_ref_cylinder2,*nonzero_ref_no_cylinder2)){
-						clouds_vector.push_back(nonzero_ref_cylinder2);
-						is_line_vector.push_back("cylinder");
-						coeff_vector.push_back(coefficients2);
-						directions_vector.push_back(direction4);
-					}
+//					if(extractCylinder(nonzero_ref_no_cylinder,*nonzero_ref_cylinder2,*nonzero_ref_no_cylinder2)){
+//						clouds_vector.push_back(nonzero_ref_cylinder2);
+//						is_line_vector.push_back("cylinder");
+//						coeff_vector.push_back(coefficients2);
+//						directions_vector.push_back(direction4);
+//					}
 //
 //					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
 
@@ -1730,7 +1831,7 @@ public:
 
 					std::stringstream ss;
 						ss <<track;
-//					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
+					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
 
 
 
