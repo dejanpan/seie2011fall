@@ -94,9 +94,6 @@ void refineWithSegmentsICP(const std::vector<std::string> & models,
     for (size_t i = 0; i < segments_vector.size(); i++)
     {
 
-      pcl::PointNormal p;
-      p.getNormalVector3fMap();
-
       pcl::SampleConsensusModel3DOF<pcl::PointNormal>::Ptr
                                                            model(
                                                                  new pcl::SampleConsensusModel3DOF<pcl::PointNormal>(

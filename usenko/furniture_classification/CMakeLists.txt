@@ -44,6 +44,12 @@ target_link_libraries(scan vtkCommon vtkIO vtkFiltering vtkGraphics vtkRendering
 rosbuild_add_executable(convert src/convert.cpp)
 rosbuild_link_boost(convert system filesystem)
 
+INCLUDE_DIRECTORIES("/usr/include/python2.7")
+
 rosbuild_add_gtest(utest test/utest.cpp)
 target_link_libraries(utest training)
+
+rosbuild_add_executable(sac_test src/sac_test.cpp)
+rosbuild_add_executable(region_grow src/region_grow.cpp)
+target_link_libraries(region_grow vtkCommon vtkIO vtkFiltering vtkGraphics vtkRendering)
 
