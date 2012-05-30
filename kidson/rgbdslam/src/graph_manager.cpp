@@ -695,6 +695,13 @@ void GraphManager::visualizeFeatureFlow3D(unsigned int marker_id,
 void GraphManager::runRGBDICPOptimization()
 {
 	ROS_INFO_STREAM(" GraphManager::runRGBDICPOptimization");
+
+	//Calculate normals for all nodes
+    QString message;
+	for (unsigned int i = 0; i < graph_.size(); ++i) {
+		Q_EMIT setGUIStatus(message.sprintf("Calculating normals for node %i",(int)i));
+		graph_[i]->calculateNormals();
+	}
     for (unsigned int i = 0; i < graph_.size(); ++i) {
         g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(i));
         if(!v){
@@ -712,11 +719,10 @@ void GraphManager::runRGBDICPOptimization()
 
         	MatchingResult mr;
         	graph_[i]->findPairsFlann(graph_[nodesToCompareIndices[id_of_id]], &mr.all_matches);
-        	ROS_INFO_STREAM("node[" << i << "] and node[" << nodesToCompareIndices[id_of_id] << "] mr.all_matches " << mr.all_matches.size());
+        	//ROS_INFO_STREAM("node[" << i << "] and node[" << nodesToCompareIndices[id_of_id] << "] mr.all_matches " << mr.all_matches.size());
 
         	graph_[i]->getRelativeTransformationTo(graph_[nodesToCompareIndices[id_of_id]],
         			&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches, 30); //ROSS-TODO: make 30 a parameter
-
 
         }
 
