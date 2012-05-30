@@ -684,7 +684,7 @@ public:
 //		std::cerr<<"boundary size: "<<cloud->points.size()<<std::endl;
 
 
-		extractNeighbor(cloud,result,*thickResult);
+		extractNeighbor(cloud,result,*thickResult,0.002);
 
 		//DEBUG
 //		std::cerr<<"thick result size: "<<thickResult->points.size()<<std::endl;
@@ -693,13 +693,15 @@ public:
 					PointType point = thickResult->points[i];
 
 
-					for(size_t j = 0; j < newCloud.points.size(); j++){
+					for(size_t j = 1; j < newCloud.points.size()+1; j++){
 
-						PointType pointNew = newCloud.points[j];
+						PointType pointNew = newCloud.points[j-1];
 
 						float dist= sqrt((point.x-pointNew.x)*(point.x-pointNew.x)+(point.y-pointNew.y)*(point.y-pointNew.y)+(point.z-pointNew.z)*(point.z-pointNew.z));
-						if(dist<0.00001)
-							newCloud.erase(newCloud.begin()+j);
+						if(dist<0.00001){
+							newCloud.erase(newCloud.begin()+j-1);
+							j--;
+						}
 
 
 
@@ -771,7 +773,7 @@ public:
 
 	}
 
-	void extractNeighbor(const CloudConstPtr &cloud,Cloud &searchCloud, Cloud &result){
+	void extractNeighbor(const CloudConstPtr &cloud,Cloud &searchCloud, Cloud &result,float radius = 0.05){
 
 		  pcl::KdTreeFLANN<PointType> kdtree;
 
@@ -782,7 +784,7 @@ public:
 		  std::vector<int> pointIdxRadiusSearch;
 		  std::vector<float> pointRadiusSquaredDistance;
 
-		   float radius = 0.05;
+//		   float radius = 0.05;
 
 
 
@@ -994,7 +996,7 @@ public:
 				seg.segment(*inliers, *coefficients);
 				if (inliers->indices.size() < 60) {
 					PCL_ERROR(
-							"Could not estimate a line model for the given dataset.");
+							"Could not estimate a plane model for the given dataset.");
 					return false;
 				}
 		//DEBUG
@@ -1023,6 +1025,108 @@ public:
 
 	}
 
+
+	bool extractCylinder(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud){
+
+
+		pcl::PointCloud<pcl::Normal>::Ptr normals_cloud(
+				new pcl::PointCloud<pcl::Normal>);
+		pcl::NormalEstimation<PointType, pcl::Normal> norm_est;
+		norm_est.setSearchMethod(KdTreePtr(new KdTree));
+		norm_est.setInputCloud(cloud);
+		norm_est.setRadiusSearch(0.03);
+		norm_est.compute(*normals_cloud);
+
+
+		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+				if (cloud->size()==0)
+					return false;
+
+				pcl::SACSegmentationFromNormals<PointType,pcl::Normal> seg;
+				// Optional
+				seg.setOptimizeCoefficients(true);
+
+				seg.setModelType(pcl::SACMODEL_CYLINDER);
+				seg.setMethodType(pcl::SAC_RANSAC);
+				seg.setDistanceThreshold(0.03);
+				seg.setRadiusLimits(0.01,0.15);
+				seg.setInputNormals(normals_cloud);
+				seg.setInputCloud(cloud);
+				seg.setMaxIterations (10000);
+
+
+				seg.segment(*inliers, *coefficients);
+				if (inliers->indices.size() < 5) {
+					PCL_ERROR(
+							"Could not estimate a cylinder model for the given dataset.");
+					return false;
+				}
+		//DEBUG
+				/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
+				 for (size_t i = 0; i < inliers->indices.size(); ++i)
+				 std::cerr << inliers->indices[i] << "    "
+				 << cloud->points[inliers->indices[i]].x << " "
+				 << cloud->points[inliers->indices[i]].y << " "
+				 << cloud->points[inliers->indices[i]].z << std::endl;*/
+
+
+
+				for (size_t i = 0; i < inliers->indices.size(); i++) {
+					PointType point = cloud->points[inliers->indices[i]];
+					result.points.push_back(point);
+
+				}
+//EUCLIDIAN CLUSTERING PART
+//				  CloudPtr cloudForEuclidianDistance(new Cloud);
+//				  pcl::copyPointCloud(result, *cloudForEuclidianDistance);
+//
+//
+//				  KdTreePtr tree(new KdTree());
+//				  tree->setInputCloud (cloudForEuclidianDistance);
+
+
+//				  std::vector<pcl::PointIndices> cluster_indices;
+//				  pcl::EuclideanClusterExtraction<PointType> ec;
+//				  ec.setClusterTolerance (0.03); // 2cm
+//				  ec.setMinClusterSize (1000);
+//				  ec.setMaxClusterSize (25000);
+//				  ec.setSearchMethod (tree);
+//				  ec.setInputCloud (cloudForEuclidianDistance);
+//				  ec.extract (cluster_indices);
+//				  std::cerr<<"Size of result before cylinder euclidian clustering: "<<cloudForEuclidianDistance->points.size()<<std::endl;
+//
+//					if (cluster_indices.size()==0) {
+//						PCL_ERROR(
+//								"Could not do cylinder euclidian clustering for the given dataset.");
+//						return false;
+//					}
+//
+//				  result.clear();
+//				  for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
+//				  					PointType point = cloudForEuclidianDistance->points[cluster_indices[0].indices[i]];
+//				  					result.points.push_back(point);
+//				  				}
+//
+//
+//				  std::cerr<<"Size of result after cylinder euclidian clustering: "<<result.points.size()<<std::endl;
+
+				  pcl::ExtractIndices<PointType> extract;
+				  extract.setNegative (true);
+				  extract.setInputCloud (cloud);
+				  extract.setIndices (inliers);
+				  extract.filter (newCloud);
+
+
+
+
+				result.width = result.points.size();
+				result.height = 1;
+				result.is_dense = true;
+
+				return true;
+
+	}
 
 	void covariancePCA(const CloudConstPtr &cloud, Eigen::Vector3f &direction){
 
@@ -1111,7 +1215,7 @@ public:
 		  		  }
 
 
-			  max_dist_general=/*0.9**/sqrt((borderPoint1.x-borderPoint2.x)*(borderPoint1.x-borderPoint2.x)+(borderPoint1.y-borderPoint2.y)*(borderPoint1.y-borderPoint2.y)+(borderPoint1.z-borderPoint2.z)*(borderPoint1.z-borderPoint2.z));
+			  max_dist_general=0.95*sqrt((borderPoint1.x-borderPoint2.x)*(borderPoint1.x-borderPoint2.x)+(borderPoint1.y-borderPoint2.y)*(borderPoint1.y-borderPoint2.y)+(borderPoint1.z-borderPoint2.z)*(borderPoint1.z-borderPoint2.z));
 
 
 		  for (size_t i = 0; i < cloud_projected->size(); i++){
@@ -1428,6 +1532,15 @@ public:
 
 					RefCloudPtr nonzero_ref_plane(new RefCloud);
 
+					RefCloudPtr nonzero_ref_cylinder(new RefCloud);
+					RefCloudPtr nonzero_ref_cylinder2(new RefCloud);
+
+
+					RefCloudPtr nonzero_ref_no_cylinder(new RefCloud);
+					RefCloudPtr nonzero_ref_no_cylinder2(new RefCloud);
+
+
+
 
 					RefCloudPtr nonzero_ref_no_corner(new RefCloud);
 					RefCloudPtr nonzero_ref_no_corner2(new RefCloud);
@@ -1451,7 +1564,7 @@ public:
 
 
 					std::vector<RefCloudPtr> clouds_vector;
-					std::vector<bool> is_line_vector;
+					std::vector<std::string> is_line_vector;
 					std::vector<pcl::ModelCoefficients::Ptr> coeff_vector;
 					std::vector<Eigen::Vector3f> directions_vector;
 
@@ -1465,51 +1578,65 @@ public:
 					findBoundaries(nonzero_ref, *nonzero_ref_boundary);
 					//extract the corners
 
-					if(extractCorners(nonzero_ref, *nonzero_ref_corners,*nonzero_ref_no_corner,cloud_intensity,0)){
-
-						clouds_vector.push_back(nonzero_ref_corners);
-						is_line_vector.push_back(false);
-						coeff_vector.push_back(coefficients4);
-						directions_vector.push_back(direction1);
-					}
+//					if(extractCorners(nonzero_ref, *nonzero_ref_corners,*nonzero_ref_no_corner,cloud_intensity,0)){
+//
+//						clouds_vector.push_back(nonzero_ref_corners);
+//						is_line_vector.push_back("corner");
+//						coeff_vector.push_back(coefficients4);
+//						directions_vector.push_back(direction1);
+//					}
 ////
-					if(extractCorners(nonzero_ref_no_corner, *nonzero_ref_corners2,*nonzero_ref_no_corner2,cloud_intensity,0)){
-
-
-						clouds_vector.push_back(nonzero_ref_corners2);
-						is_line_vector.push_back(false);
-						coeff_vector.push_back(coefficients4);
-						directions_vector.push_back(direction2);
-
-					}
+//					if(extractCorners(nonzero_ref_no_corner, *nonzero_ref_corners2,*nonzero_ref_no_corner2,cloud_intensity,0)){
+//
+//
+//						clouds_vector.push_back(nonzero_ref_corners2);
+//						is_line_vector.push_back("corner");
+//						coeff_vector.push_back(coefficients4);
+//						directions_vector.push_back(direction2);
+//
+//					}
 
 					//extracting first line
-					if(extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line,coefficients)){
-
-						clouds_vector.push_back(nonzero_ref_lines);
-						is_line_vector.push_back(true);
-						coeff_vector.push_back(coefficients);
-						covariancePCA(nonzero_ref_lines,direction3);
-						std::cerr<<"DIRECTION"<<direction3<<std::endl;
-						directions_vector.push_back(direction3);
-
-
-					}
+//					if(extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line,coefficients)){
+//
+//						clouds_vector.push_back(nonzero_ref_lines);
+//						is_line_vector.push_back("line");
+//						coeff_vector.push_back(coefficients);
+//						covariancePCA(nonzero_ref_lines,direction3);
+//						std::cerr<<"DIRECTION"<<direction3<<std::endl;
+//						directions_vector.push_back(direction3);
+//
+//
+//					}
 
 					//extracting second line
 
 //					std::cerr<< "true or false: "<< extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)<<std::endl;
+//
+//					if(extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)){
+//											clouds_vector.push_back(nonzero_ref_lines2);
+//											is_line_vector.push_back("line");
+//											coeff_vector.push_back(coefficients2);
+//											covariancePCA(nonzero_ref_lines2,direction4);
+//											directions_vector.push_back(direction4);
+//
+//					}
 
-					if(extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)){
-											clouds_vector.push_back(nonzero_ref_lines2);
-											is_line_vector.push_back(true);
-											coeff_vector.push_back(coefficients2);
-											covariancePCA(nonzero_ref_lines2,direction4);
-											directions_vector.push_back(direction4);
 
+					if(extractCylinder(nonzero_ref,*nonzero_ref_cylinder,*nonzero_ref_no_cylinder)){
+						clouds_vector.push_back(nonzero_ref_cylinder);
+						is_line_vector.push_back("cylinder");
+						coeff_vector.push_back(coefficients2);
+						directions_vector.push_back(direction4);
 					}
 
 
+					if(extractCylinder(nonzero_ref_no_cylinder,*nonzero_ref_cylinder2,*nonzero_ref_no_cylinder2)){
+						clouds_vector.push_back(nonzero_ref_cylinder2);
+						is_line_vector.push_back("cylinder");
+						coeff_vector.push_back(coefficients2);
+						directions_vector.push_back(direction4);
+					}
 //
 //					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
 
@@ -1544,16 +1671,17 @@ public:
 						RefCloudPtr nonzero_ref_final_cloud(new RefCloud);
 						RefCloudPtr nonzero_ref_very_final_cloud(new RefCloud);
 
-
-					//making point cloud thicker- in case of change(i.e. corner instead of the line or so) change second param
+						if ((is_line_vector[track]=="line")||(is_line_vector[track]=="corner"))
 					extractNeighbor(nonzero_ref,*clouds_vector[track], *nonzero_ref_final_cloud);
+						else
+					pcl::copyPointCloud(*clouds_vector[track],*nonzero_ref_final_cloud);
 
 
 
 					int planes_number=countPlanes(nonzero_ref_final_cloud,*nonzero_ref_final_cloud);
 
-					if ((is_line_vector[track])&&(coeff_vector[track]!=NULL)){
-						if(( planes_number< 2)||(planes_number > 3)){
+					if ((is_line_vector[track]=="line")&&(coeff_vector[track]!=NULL)){
+						if(( planes_number< 2)||(planes_number > 4)){
 							std::cerr<<"delete this line"<<std::endl;
 							tracker_vector_.erase(tracker_vector_.begin()+track);
 							is_line_vector.erase(is_line_vector.begin()+track);
@@ -1589,7 +1717,7 @@ public:
 					tracker_vector_[track]->setStepNoiseCovariance(step_covariance_);
 
 					}
-					else if ((planes_number<3)&&(!is_line_vector[track])){
+					else if ((planes_number<3)&&(is_line_vector[track]=="corner")){
 						std::cerr<<"delete this corner"<<std::endl;
 						tracker_vector_.erase(tracker_vector_.begin()+track);
 						is_line_vector.erase(is_line_vector.begin()+track);
@@ -1775,6 +1903,6 @@ int main(int argc, char** argv) {
 	// open kinect
 	OpenNISegmentTracking<pcl::PointXYZRGBA> v(device_id, 8,
 			downsampling_grid_size, use_convex_hull, visualize_non_downsample,
-			visualize_particles, use_fixed,4);
+			visualize_particles, use_fixed,6);
 	v.run();
 }
