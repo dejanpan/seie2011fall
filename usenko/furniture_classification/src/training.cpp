@@ -120,7 +120,7 @@ void append_segments_from_file(const std::string & filename, std::vector<feature
   segment_indices = region_growing.getSegments();
 
   // Return cloud scene
-  scene = *mls_points;
+  scene = *mls_points_filtered;
 
   pcl::PointCloud<featureType> feature;
   featureEstimation feature_estimator;

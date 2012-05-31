@@ -112,8 +112,8 @@ template<typename PointT>
       std::vector<int> idx;
       std::vector<float> dist;
 
-      pcl::search::KdTree<PointT> target_tree;
-      target_tree.setInputCloud(this->target);
+      //pcl::search::KdTree<PointT> target_tree;
+      //target_tree.setInputCloud(this->target);
 
       for (size_t i = 0; i < transformed_input.points.size(); i++)
       {

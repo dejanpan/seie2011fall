@@ -12,125 +12,172 @@
 #include <training.h>
 #include <set>
 
+template<class ScenePoint>
+  void findVotedSegments(const pcl::PointCloud<pcl::PointXYZ> & local_maxima_cloud, float cell_size, boost::shared_ptr<
+      pcl::PointCloud<ScenePoint> > scene, const std::vector<std::vector<int> > & segment_indices,
+                         const pcl::PointCloud<pcl::PointXYZI> & votes, const std::vector<int> & vote_segment_idx,
+                         std::vector<pcl::PointCloud<ScenePoint> > & voted_segments)
+  {
+
+    std::vector<std::set<int> > segment_combinations;
+
+    for (size_t j = 0; j < local_maxima_cloud.points.size(); j++)
+    {
+      pcl::PointXYZ local_maxima = local_maxima_cloud.points[j];
+      std::vector<int> idx;
+
+      for (size_t i = 0; i < votes.points.size(); i++)
+      {
+
+        bool in_cell_x1 = votes.points[i].x > (local_maxima.x - 10 * cell_size);
+        bool in_cell_x2 = votes.points[i].x < (local_maxima.x + 10 * cell_size);
+        bool in_cell_y1 = votes.points[i].y > (local_maxima.y - 10 * cell_size);
+        bool in_cell_y2 = votes.points[i].y < (local_maxima.y + 10 * cell_size);
+
+        if (in_cell_x1 && in_cell_x2 && in_cell_y1 && in_cell_y2)
+        {
+          idx.push_back(i);
+        }
+      }
+
+      //std::cerr << "Number of points voted " << idx.size() << std::endl;
+
+      std::set<int> segment_idx;
+
+      for (size_t i = 0; i < idx.size(); i++)
+      {
+        segment_idx.insert(vote_segment_idx[idx[i]]);
+      }
+
+      //std::cerr << "Number of segments voted " << segment_idx.size() << std::endl;
+      segment_combinations.push_back(segment_idx);
+
+      //    for (std::set<int>::iterator it = segment_idx.begin(); it != segment_idx.end(); it++)
+      //    {
+      //      pcl::PointCloud<pcl::PointXYZ> segment(*scene, segment_indices[*it]);
+      //      voted_segments += segment;
+      //    }
+
+    }
+
+    std::unique(segment_combinations.begin(), segment_combinations.end());
+
+    for (size_t i = 0; i < segment_combinations.size(); i++)
+    {
+      pcl::PointCloud<ScenePoint> cloud;
+
+      for (std::set<int>::iterator it = segment_combinations[i].begin(); it != segment_combinations[i].end(); it++)
+      {
+        pcl::PointCloud<ScenePoint> segment(*scene, segment_indices[*it]);
+        cloud += segment;
+      }
+
+      //      pcl::visualization::PCLVisualizer viz;
+      //      viz.initCameraParameters();
+      //      viz.updateCamera();
+      //
+      //      boost::shared_ptr<pcl::PointCloud<ScenePoint> > cloud_ptr = cloud.makeShared();
+      //
+      //      pcl::visualization::PointCloudColorHandlerCustom<ScenePoint> single_color(cloud_ptr, 255, 0, 0);
+      //
+      //      viz.addPointCloud<ScenePoint> (scene);
+      //      viz.addPointCloud<ScenePoint> (cloud_ptr, single_color, "cloud2");
+      //
+      //      viz.spin();
+
+      voted_segments.push_back(cloud);
+
+    }
+
+  }
 
 template<class ScenePoint>
-void findVotedSegments(const pcl::PointCloud<pcl::PointXYZ> & local_maxima_cloud, float cell_size, boost::shared_ptr<pcl::PointCloud<
-    ScenePoint> > scene, const std::vector<std::vector<int> > & segment_indices, const pcl::PointCloud<
-    pcl::PointXYZI> & votes, const std::vector<int> & vote_segment_idx,
-                       std::vector<pcl::PointCloud<ScenePoint> > & voted_segments)
-{
-
-  std::vector<std::set<int> > segment_combinations;
-
-  for (size_t j = 0; j < local_maxima_cloud.points.size(); j++)
+  void refineWithSegmentsICP(const std::vector<std::string> & models,
+                             const std::vector<pcl::PointCloud<ScenePoint> > & segments_vector, std::vector<
+                                 pcl::PointCloud<pcl::PointXYZ> > & result, std::vector<float> & score)
   {
-    pcl::PointXYZ local_maxima = local_maxima_cloud.points[j];
-    std::vector<int> idx;
 
-    for (size_t i = 0; i < votes.points.size(); i++)
+    for (size_t model_idx = 0; model_idx < models.size(); model_idx++)
     {
+      pcl::PointCloud<pcl::PointNormal>::Ptr full_model(new pcl::PointCloud<pcl::PointNormal>);
+      pcl::io::loadPCDFile(models[model_idx], *full_model);
 
-      bool in_cell_x1 = votes.points[i].x > (local_maxima.x - 5 * cell_size);
-      bool in_cell_x2 = votes.points[i].x < (local_maxima.x + 5 * cell_size);
-      bool in_cell_y1 = votes.points[i].y > (local_maxima.y - 5 * cell_size);
-      bool in_cell_y2 = votes.points[i].y < (local_maxima.y + 5 * cell_size);
+      //pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+      //pcl::SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::PointXYZ> sac;
 
-      if (in_cell_x1 && in_cell_x2 && in_cell_y1 && in_cell_y2)
+      for (size_t i = 0; i < segments_vector.size(); i++)
       {
-        idx.push_back(i);
+
+        pcl::SampleConsensusModel3DOF<pcl::PointNormal>::Ptr
+                                                             model(
+                                                                   new pcl::SampleConsensusModel3DOF<pcl::PointNormal>(
+                                                                                                                       full_model));
+
+        //pcl::SampleConsensusModelRegistration<pcl::PointXYZ>::Ptr model(new pcl::SampleConsensusModelRegistration<
+        //    pcl::PointXYZ>(full_model));
+
+        // TODO dont use makeShared
+        model->setTarget(segments_vector[i].makeShared());
+        pcl::RandomSampleConsensus<pcl::PointNormal> ransac(model);
+
+        ransac.setDistanceThreshold(.01);
+        ransac.setProbability(0.9);
+        ransac.setMaxIterations(200);
+        ransac.computeModel();
+
+        std::vector<int> tmp1;
+        ransac.getInliers(tmp1);
+        float weight = ((float)tmp1.size()) / full_model->points.size();
+
+        if (weight > .5)
+        {
+          Eigen::VectorXf model_coefs;
+          ransac.getModelCoefficients(model_coefs);
+
+          Eigen::Affine3f transform;
+          transform.setIdentity();
+          transform.translate(Eigen::Vector3f(model_coefs[0], model_coefs[1], 0));
+          transform.rotate(Eigen::AngleAxisf(model_coefs[2], Eigen::Vector3f(0, 0, 1)));
+
+          pcl::PointCloud<pcl::PointNormal> full_model_transformed;
+          pcl::transformPointCloudWithNormals(*full_model, full_model_transformed, transform);
+
+          pcl::PointCloud<pcl::PointXYZ> model_xyz;
+          pcl::copyPointCloud(full_model_transformed, model_xyz);
+
+          result.push_back(model_xyz);
+          score.push_back(1 - weight);
+
+        }
+
+//        Eigen::VectorXf model_coefs;
+//        ransac.getModelCoefficients(model_coefs);
+//        std::cerr << "Model coefs " << std::endl << model_coefs << std::endl;
+//        std::vector<int> tmp;
+//        ransac.getInliers(tmp);
+//        std::cerr << "Weight " << ((float)tmp.size()) / full_model->points.size() << std::endl;
+//
+//        Eigen::Affine3f transform;
+//        transform.setIdentity();
+//        transform.translate(Eigen::Vector3f(model_coefs[0], model_coefs[1], 0));
+//        transform.rotate(Eigen::AngleAxisf(model_coefs[2], Eigen::Vector3f(0, 0, 1)));
+
+        //        pcl::PointCloud<pcl::PointNormal>::Ptr full_model_transformed(new pcl::PointCloud<pcl::PointNormal>);
+        //        pcl::PointCloud<pcl::PointNormal>::Ptr seg = segments_vector[i].makeShared();
+        //        pcl::transformPointCloudWithNormals(*full_model, *full_model_transformed, transform);
+        //
+        //        pcl::visualization::PCLVisualizer viz;
+        //        viz.initCameraParameters();
+        //        viz.updateCamera();
+        //        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointNormal> single_color(seg, 255, 0, 0);
+        //
+        //        viz.addPointCloud<pcl::PointNormal> (seg, single_color, "cloud2");
+        //        viz.addPointCloud<pcl::PointNormal> (full_model_transformed);//, single_color);
+        //        viz.spin();
+
       }
     }
-
-    //std::cerr << "Number of points voted " << idx.size() << std::endl;
-
-    std::set<int> segment_idx;
-
-    for (size_t i = 0; i < idx.size(); i++)
-    {
-      segment_idx.insert(vote_segment_idx[idx[i]]);
-    }
-
-    //std::cerr << "Number of segments voted " << segment_idx.size() << std::endl;
-    segment_combinations.push_back(segment_idx);
-
-    //    for (std::set<int>::iterator it = segment_idx.begin(); it != segment_idx.end(); it++)
-    //    {
-    //      pcl::PointCloud<pcl::PointXYZ> segment(*scene, segment_indices[*it]);
-    //      voted_segments += segment;
-    //    }
-
   }
-
-  std::unique(segment_combinations.begin(), segment_combinations.end());
-
-  for (size_t i = 0; i < segment_combinations.size(); i++)
-  {
-    pcl::PointCloud<ScenePoint> cloud;
-
-    for (std::set<int>::iterator it = segment_combinations[i].begin(); it != segment_combinations[i].end(); it++)
-    {
-      pcl::PointCloud<ScenePoint> segment(*scene, segment_indices[*it]);
-      cloud += segment;
-    }
-
-    voted_segments.push_back(cloud);
-
-  }
-
-}
-
-
-
-template<class ScenePoint>
-void refineWithSegmentsICP(const std::vector<std::string> & models,
-                           const std::vector<pcl::PointCloud<ScenePoint> > & segments_vector, std::vector<
-                               pcl::PointCloud<pcl::PointXYZ> > & result, std::vector<float> & score)
-{
-
-  for (size_t model_idx = 0; model_idx < models.size(); model_idx++)
-  {
-    pcl::PointCloud<pcl::PointNormal>::Ptr full_model(new pcl::PointCloud<pcl::PointNormal>);
-    pcl::io::loadPCDFile(models[model_idx], *full_model);
-
-    //pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-    //pcl::SampleConsensusInitialAlignment<pcl::PointXYZ, pcl::PointXYZ, pcl::PointXYZ> sac;
-
-    for (size_t i = 0; i < segments_vector.size(); i++)
-    {
-
-      pcl::SampleConsensusModel3DOF<pcl::PointNormal>::Ptr
-                                                           model(
-                                                                 new pcl::SampleConsensusModel3DOF<pcl::PointNormal>(
-                                                                                                                     full_model));
-
-      //pcl::SampleConsensusModelRegistration<pcl::PointXYZ>::Ptr model(new pcl::SampleConsensusModelRegistration<
-      //    pcl::PointXYZ>(full_model));
-
-      // TODO dont use makeShared
-      model->setTarget(segments_vector[i].makeShared());
-      pcl::RandomSampleConsensus<pcl::PointNormal> ransac(model);
-
-      ransac.setDistanceThreshold(.01);
-      ransac.
-      ransac.computeModel();
-
-      Eigen::VectorXf model_coefs;
-      ransac.getModelCoefficients(model_coefs);
-      std::cerr << "Model coefs " << model_coefs << std::endl;
-
-
-      pcl::visualization::PCLVisualizer viz;
-      viz.initCameraParameters();
-      viz.updateCamera();
-      pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(cloud, 255, 0, 0);
-
-      viz.addPointCloud<pcl::PointXYZ> (scene, "cloud2");
-      viz.addPointCloud<pcl::PointXYZ> (segments_vector[i].makeShared());//, single_color);
-      viz.spin();
-
-    }
-  }
-}
 
 int main(int argc, char** argv)
 {
@@ -295,9 +342,9 @@ int main(int argc, char** argv)
 
       std::cerr << class_name << std::endl;
       std::vector<pcl::PointCloud<pcl::PointNormal> > segments_vector;
-      findVotedSegments<pcl::PointNormal>(local_maxima, cell_size, scene, segment_indices, votes[class_name],
-                        vote_segment_idx[class_name], segments_vector);
-      refineWithSegmentsICP<pcl::PointNormal>(class_to_full_pointcloud[class_name], segments_vector, result, score);
+      findVotedSegments<pcl::PointNormal> (local_maxima, cell_size, scene, segment_indices, votes[class_name],
+                                           vote_segment_idx[class_name], segments_vector);
+      refineWithSegmentsICP<pcl::PointNormal> (class_to_full_pointcloud[class_name], segments_vector, result, score);
 
       if (result.size() > 0)
         removeIntersecting(result, score, no_intersection_result);
