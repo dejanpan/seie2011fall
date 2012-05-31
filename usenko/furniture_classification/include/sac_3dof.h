@@ -6,6 +6,7 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/common/transforms.h>
 #include <pcl/search/kdtree.h>
+#include <pcl/io/pcd_io.h>
 
 namespace pcl
 {
@@ -46,7 +47,7 @@ template<typename PointT>
     {
 
       PointT input_point = input_->points[samples[0]];
- //     std::cerr << "IP " << input_point << std::endl;
+      //std::cerr << "IP " << input_point << std::endl;
 
       // Select points with the same height
       std::vector<int> idx;
@@ -67,26 +68,29 @@ template<typename PointT>
 
       model_coefficients.resize(3);
 
-      //std::cerr << "MC " << model_coefficients.rows() << " " << model_coefficients.cols() << std::endl;
-
-
       model_coefficients[0] = target_point.x - input_point.x;
       model_coefficients[1] = target_point.y - input_point.y;
       model_coefficients[2] = atan2(target_point.normal_y, target_point.normal_x) - atan2(input_point.normal_y,
                                                                                           input_point.normal_x);
 
-      std::cerr << "MC " << model_coefficients << std::endl;
-//
-//      PointCloudPtr transformed_input(new PointCloud);
+
+
+//      PointCloud transformed_input;
 //
 //      Eigen::Affine3f transform;
+//      transform.setIdentity();
 //      transform.translate(Eigen::Vector3f(model_coefficients[0], model_coefficients[1], 0));
 //      transform.rotate(Eigen::AngleAxisf(model_coefficients[2], Eigen::Vector3f(0, 0, 1)));
 //
-//      pcl::transformPointCloudWithNormals(*input_, *transformed_input, transform);
-//      PointT input_point_transformed = transformed_input->points[samples[0]];
+//      //pcl::io::savePCDFileASCII("tmp_inp.pcd", *input_);
+//      //pcl::io::savePCDFileASCII("tmp_tgt.pcd", *target);
+//      ///std::cerr << "Transform " << transform.matrix() << std::endl;
+//      pcl::transformPointCloudWithNormals(*input_, transformed_input, transform);
+//      //pcl::io::savePCDFileASCII("tmp_res.pcd", transformed_input);
+//      PointT input_point_transformed = transformed_input.points[samples[0]];
 //
-//      std::cerr << "IPT " << input_point_transformed << std::endl;
+//      //std::cerr << "IPT " << input_point_transformed << std::endl;
+//      //std::cerr << "MC " << model_coefficients << std::endl;
 
       return true;
 
@@ -95,23 +99,27 @@ template<typename PointT>
     virtual void selectWithinDistance(const Eigen::VectorXf & model_coefficients, const double threshold, std::vector<
         int> & inliers)
     {
-      PointCloudPtr transformed_input(new PointCloud);
+      PointCloud transformed_input;
 
       Eigen::Affine3f transform;
+      transform.setIdentity();
       transform.translate(Eigen::Vector3f(model_coefficients[0], model_coefficients[1], 0));
       transform.rotate(Eigen::AngleAxisf(model_coefficients[2], Eigen::Vector3f(0, 0, 1)));
 
-      pcl::transformPointCloudWithNormals(*input_, *transformed_input, transform);
+      pcl::transformPointCloudWithNormals(*input_, transformed_input, transform);
       inliers.clear();
 
       std::vector<int> idx;
       std::vector<float> dist;
 
-      for (size_t i = 0; i < transformed_input->points.size(); i++)
+      pcl::search::KdTree<PointT> target_tree;
+      target_tree.setInputCloud(this->target);
+
+      for (size_t i = 0; i < transformed_input.points.size(); i++)
       {
         idx.clear();
         dist.clear();
-        target_tree.nearestKSearch(transformed_input->points[i], 1, idx, dist);
+        target_tree.nearestKSearch(transformed_input.points[i], 1, idx, dist);
         if (dist[0] < threshold)
           inliers.push_back(i);
       }
@@ -121,7 +129,7 @@ template<typename PointT>
     {
       std::vector<int> inliers;
       selectWithinDistance(model_coefficients, threshold, inliers);
-      std::cerr << "Number of inliers " << inliers.size() << std::endl;
+      //std::cerr << "Number of inliers " << inliers.size() << std::endl;
       return inliers.size();
     }
 
@@ -159,8 +167,7 @@ template<typename PointT>
     }
     virtual bool isSampleGood(const std::vector<int> &samples) const
     {
-      return input_->points[samples[0]].normal_z < 0.6;
-
+      return input_->points[samples[0]].normal_z < 0.5;
     }
 
     inline unsigned int getSampleSize() const

@@ -44,7 +44,7 @@ int main(int argc, char** argv)
   std::vector<std::string> files_to_process;
   get_files_to_process(input_dir, files_to_process, class_to_full_pointcloud);
 
-  pcl::PointCloud<pcl::PointXYZ> tmp;
+  pcl::PointCloud<pcl::PointNormal> tmp;
 
   for (size_t i = 0; i < files_to_process.size(); i++)
   {

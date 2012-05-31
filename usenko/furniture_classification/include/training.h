@@ -59,7 +59,7 @@ void transform_to_features(const cv::Mat & mat, std::vector<featureType> & featu
 
 void append_segments_from_file(const std::string & filename, std::vector<featureType> & features, pcl::PointCloud<
     pcl::PointXYZ> & centroids, std::vector<std::string> & classes, size_t min_points_in_segment, pcl::PointCloud<
-    pcl::PointXYZ> & scene, std::vector<std::vector<int> > & new_segment_indices, pcl::PointXYZ * min_bound = NULL, pcl::PointXYZ * max_bound = NULL);
+    pcl::PointNormal> & scene, std::vector<std::vector<int> > & new_segment_indices, pcl::PointXYZ * min_bound = NULL, pcl::PointXYZ * max_bound = NULL);
 
 void get_files_to_process(const std::string & input_dir, std::vector<std::string> & files_to_process, std::map<
     std::string, std::vector<std::string> > & class_to_full_pointcloud);

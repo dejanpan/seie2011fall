@@ -159,14 +159,10 @@ void createFullModelPointcloud(vtkSmartPointer<vtkPolyData> polydata, size_t n_s
   polydata = triangleMapper->GetInput();
   polydata->Update();
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>), cloud_downsampled(new pcl::PointCloud<
-      pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointNormal>::Ptr cloud_normals(new pcl::PointCloud<
+      pcl::PointNormal>);
   uniform_sampling(polydata, n_samples, *cloud);
-
-  pcl::VoxelGrid<pcl::PointXYZ> grid_;
-  grid_.setInputCloud(cloud);
-  grid_.setLeafSize(0.02f, 0.02f, 0.02f);
-  grid_.filter(*cloud_downsampled);
 
   // Create a KD-Tree
   pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
@@ -181,8 +177,13 @@ void createFullModelPointcloud(vtkSmartPointer<vtkPolyData> polydata, size_t n_s
   mls.setSearchRadius(0.03);
 
   // Reconstruct
-  mls.setInputCloud(cloud_downsampled);
-  mls.process(cloud_out);
+  mls.setInputCloud(cloud);
+  mls.process(*cloud_normals);
+
+  pcl::VoxelGrid<pcl::PointNormal> grid_;
+  grid_.setInputCloud(cloud_normals);
+  grid_.setLeafSize(0.02f, 0.02f, 0.02f);
+  grid_.filter(cloud_out);
 
 }
 

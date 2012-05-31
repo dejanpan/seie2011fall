@@ -57,7 +57,7 @@ void transform_to_features(const cv::Mat & mat, std::vector<featureType> & featu
 
 void append_segments_from_file(const std::string & filename, std::vector<featureType> & features, pcl::PointCloud<
     pcl::PointXYZ> & centroids, std::vector<std::string> & classes, size_t min_points_in_segment, pcl::PointCloud<
-    pcl::PointXYZ> & scene, std::vector<std::vector<int> > & new_segment_indices, pcl::PointXYZ * min_bound,
+    pcl::PointNormal> & scene, std::vector<std::vector<int> > & new_segment_indices, pcl::PointXYZ * min_bound,
                                pcl::PointXYZ * max_bound)
 {
   std::vector<std::string> st;
@@ -120,7 +120,7 @@ void append_segments_from_file(const std::string & filename, std::vector<feature
   segment_indices = region_growing.getSegments();
 
   // Return cloud scene
-  scene = *mls_cloud;
+  scene = *mls_points;
 
   pcl::PointCloud<featureType> feature;
   featureEstimation feature_estimator;

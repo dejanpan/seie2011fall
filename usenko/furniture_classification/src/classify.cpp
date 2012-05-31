@@ -84,7 +84,7 @@ void findVotedSegments(const pcl::PointCloud<pcl::PointXYZ> & local_maxima_cloud
 template<class ScenePoint>
 void refineWithSegmentsICP(const std::vector<std::string> & models,
                            const std::vector<pcl::PointCloud<ScenePoint> > & segments_vector, std::vector<
-                               pcl::PointCloud<ScenePoint> > & result, std::vector<float> & score)
+                               pcl::PointCloud<pcl::PointXYZ> > & result, std::vector<float> & score)
 {
 
   for (size_t model_idx = 0; model_idx < models.size(); model_idx++)
@@ -105,25 +105,28 @@ void refineWithSegmentsICP(const std::vector<std::string> & models,
 
       //pcl::SampleConsensusModelRegistration<pcl::PointXYZ>::Ptr model(new pcl::SampleConsensusModelRegistration<
       //    pcl::PointXYZ>(full_model));
-      //model->setTarget(segments_vector[i].makeShared());
+
+      // TODO dont use makeShared
+      model->setTarget(segments_vector[i].makeShared());
       pcl::RandomSampleConsensus<pcl::PointNormal> ransac(model);
 
       ransac.setDistanceThreshold(.01);
+      ransac.
       ransac.computeModel();
 
       Eigen::VectorXf model_coefs;
       ransac.getModelCoefficients(model_coefs);
-      std::cerr << "Model coefs" << model_coefs << std::endl;
+      std::cerr << "Model coefs " << model_coefs << std::endl;
 
 
-      //pcl::visualization::PCLVisualizer viz;
-      //viz.initCameraParameters();
-      //viz.updateCamera();
-      //pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(cloud, 255, 0, 0);
+      pcl::visualization::PCLVisualizer viz;
+      viz.initCameraParameters();
+      viz.updateCamera();
+      pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(cloud, 255, 0, 0);
 
-      //viz.addPointCloud<pcl::PointXYZ> (scene, "cloud2");
-      //viz.addPointCloud<pcl::PointXYZ> (segments_vector[i].makeShared());//, single_color);
-      //viz.spin();
+      viz.addPointCloud<pcl::PointXYZ> (scene, "cloud2");
+      viz.addPointCloud<pcl::PointXYZ> (segments_vector[i].makeShared());//, single_color);
+      viz.spin();
 
     }
   }
@@ -210,7 +213,7 @@ int main(int argc, char** argv)
   pcl::PointCloud<pcl::PointXYZ> centroids;
   std::vector<std::string> classes;
   pcl::PointXYZ min_bound, max_bound;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr scene(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointNormal>::Ptr scene(new pcl::PointCloud<pcl::PointNormal>);
   std::vector<std::vector<int> > segment_indices;
 
   append_segments_from_file(scene_file_name, features, centroids, classes, min_points_in_segment, *scene,
@@ -291,10 +294,10 @@ int main(int argc, char** argv)
       //              result, score);
 
       std::cerr << class_name << std::endl;
-      std::vector<pcl::PointCloud<pcl::PointXYZ> > segments_vector;
-      findVotedSegments<pcl::PointXYZ>(local_maxima, cell_size, scene, segment_indices, votes[class_name],
+      std::vector<pcl::PointCloud<pcl::PointNormal> > segments_vector;
+      findVotedSegments<pcl::PointNormal>(local_maxima, cell_size, scene, segment_indices, votes[class_name],
                         vote_segment_idx[class_name], segments_vector);
-      refineWithSegmentsICP<pcl::PointXYZ>(class_to_full_pointcloud[class_name], segments_vector, result, score);
+      refineWithSegmentsICP<pcl::PointNormal>(class_to_full_pointcloud[class_name], segments_vector, result, score);
 
       if (result.size() > 0)
         removeIntersecting(result, score, no_intersection_result);
