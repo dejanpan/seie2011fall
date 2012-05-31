@@ -29,10 +29,10 @@ template<class ScenePoint>
       for (size_t i = 0; i < votes.points.size(); i++)
       {
 
-        bool in_cell_x1 = votes.points[i].x > (local_maxima.x - 10 * cell_size);
-        bool in_cell_x2 = votes.points[i].x < (local_maxima.x + 10 * cell_size);
-        bool in_cell_y1 = votes.points[i].y > (local_maxima.y - 10 * cell_size);
-        bool in_cell_y2 = votes.points[i].y < (local_maxima.y + 10 * cell_size);
+        bool in_cell_x1 = votes.points[i].x > (local_maxima.x - 5 * cell_size);
+        bool in_cell_x2 = votes.points[i].x < (local_maxima.x + 5 * cell_size);
+        bool in_cell_y1 = votes.points[i].y > (local_maxima.y - 5 * cell_size);
+        bool in_cell_y2 = votes.points[i].y < (local_maxima.y + 5 * cell_size);
 
         if (in_cell_x1 && in_cell_x2 && in_cell_y1 && in_cell_y2)
         {
@@ -122,7 +122,7 @@ template<class ScenePoint>
 
         ransac.setDistanceThreshold(.01);
         ransac.setProbability(0.9);
-        ransac.setMaxIterations(200);
+        ransac.setMaxIterations(100);
         ransac.computeModel();
 
         std::vector<int> tmp1;
