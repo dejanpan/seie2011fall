@@ -33,6 +33,8 @@
 //for ground truth
 #include <tf/transform_datatypes.h>
 
+#include "handle_extractor.h"
+
 // ICP_1 for external binary
 //#define USE_ICP_BIN
 
