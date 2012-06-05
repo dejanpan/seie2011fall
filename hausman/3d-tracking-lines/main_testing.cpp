@@ -32,20 +32,34 @@ int main(int argc, char **argv)
   pcl::io::loadPCDFile(filename, *cloud);
 
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_input(new pcl::PointCloud<pcl::PointXYZRGBA>);
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_boundaries(new pcl::PointCloud<pcl::PointXYZRGBA>);
+
+  pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+
   pcl::copyPointCloud(*cloud,*cloud_input);
 
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr result(new pcl::PointCloud<pcl::PointXYZRGBA>);
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr result_debug(new pcl::PointCloud<pcl::PointXYZRGBA>);
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr result_corners(new pcl::PointCloud<pcl::PointXYZRGBA>);
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr result_lines(new pcl::PointCloud<pcl::PointXYZRGBA>);
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr debug(new pcl::PointCloud<pcl::PointXYZRGBA>);
+
+
 
 
   std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector;
+  std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector_lines;
 
   PrimitivesExtract <pcl::PointXYZRGBA> prim_ex(cloud_input);
-//  prim_ex.extractCorners(cloud_input,*result,*result_debug);
+  prim_ex.extractCorners(cloud_input,*result,*result_debug);
   prim_ex.extractCornerVector(cloud_input,result_vector);
+  prim_ex.findBoundaries(cloud_input,*cloud_boundaries);
+  prim_ex.extractLines(cloud_boundaries,result_vector_lines,coefficients);
+  std::cerr<<"number of lines: "<<result_vector_lines.size()<<std::endl;
 
   pcl::copyPointCloud(*result_vector[0],*result_corners);
+  pcl::copyPointCloud(*result_vector_lines[0],*result_lines);
+
 
 
 
@@ -58,22 +72,40 @@ int main(int argc, char **argv)
 //  pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(segments);
 	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> red_color(
 						cloud_input, colormap_[0], colormap_[1], colormap_[2]);
-	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
-						result, colormap_[3], colormap_[4], colormap_[5]);
+	  viz.addPointCloud<pcl::PointXYZRGBA> (cloud_input, red_color);
+
+//		pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> yellow_color(
+//				debug, colormap_[9], colormap_[10], colormap_[11]);
+//
+//	  viz.addPointCloud<pcl::PointXYZRGBA> (debug, yellow_color,"debug");
+
+
+//	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
+//						result, colormap_[3], colormap_[4], colormap_[5]);
+	for (int number=0;number<result_vector_lines.size();number++){
 	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> blue_color(
-							result_debug, colormap_[6], colormap_[7], colormap_[8]);
-	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> yellow_color(
-			result_corners, colormap_[9], colormap_[10], colormap_[11]);
+			result_vector_lines[number], colormap_[3*(number+1)], colormap_[3*(number+1)+1], colormap_[3*(number+1)+2]);
 
+//	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> diff_color(
+//			cloud_boundaries, colormap_[9], colormap_[10], colormap_[11]);
 
-  viz.addPointCloud<pcl::PointXYZRGBA> (cloud_input, red_color);
-  viz.addPointCloud<pcl::PointXYZRGBA> (result_debug, blue_color,"result_debug");
-  viz.addPointCloud<pcl::PointXYZRGBA> (result, green_color,"result");
-  viz.addPointCloud<pcl::PointXYZRGBA> (result_corners, yellow_color,"result_corners");
+	std::stringstream k;
+	k<<number;
+
+	std::cerr<<"result size "<<number<<" = "<<result_vector_lines[number]->size()<<std::endl;
+  viz.addPointCloud<pcl::PointXYZRGBA> (result_vector_lines[number], blue_color,k.str());
+  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, k.str());
+	}
+//  viz.addPointCloud<pcl::PointXYZRGBA> (result, green_color,"result");
+//  viz.addPointCloud<pcl::PointXYZRGBA> (cloud_boundaries, diff_color,"cloud_boundaries");
+
+//  viz.addPointCloud<pcl::PointXYZRGBA> (result_corners, yellow_color,"result_corners");
 
 
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "result");
-  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "result_debug");
+  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "cloud_boundaries");
+  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "debug");
+
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "result_corners");
 
 

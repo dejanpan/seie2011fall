@@ -64,11 +64,15 @@ public:
 		radius_search_harris_ = 0.01;
 		plane_distance_treshold_ = 0.005;
 		min_plane_inliers_ = 70;
+		line_distance_tresh_ = 0.002;
+		min_line_inliers_ = 50;
+		eliminate_line_neigh_radius_ = 0.008; //0.002
+		convex_corners_only_ = true;
 	}
 
 	PrimitivesExtract(CloudPtr cloud) {
 		find_boundaries_radius_search_ = 0.03;
-		best_curv_percent_ = 0.2;
+		best_curv_percent_ = 0.17;
 		best_intens_percent_ = 0.07;
 		extract_neigh_radius_ = 0.05;
 		cloud_ = cloud;
@@ -76,7 +80,10 @@ public:
 		radius_search_harris_ = 0.01;
 		plane_distance_treshold_ = 0.005;
 		min_plane_inliers_ = 70;
-		convex_corners_only_=true;
+		line_distance_tresh_ = 0.002;
+		min_line_inliers_ = 50;
+		eliminate_line_neigh_radius_ = 0.008; //0.002
+		convex_corners_only_ = true;
 
 	}
 
@@ -84,13 +91,18 @@ public:
 
 	bool extractCornerVector(CloudConstPtr input, std::vector<CloudPtr>& result,
 			int number = 0);
-
-
-private:
+	bool extractLines(const CloudConstPtr &cloud,
+			std::vector<CloudPtr> &result_vector,
+			pcl::ModelCoefficients::Ptr &coefficients, int lines_number = 0);
+	void removePrimitive(const CloudConstPtr &cloud,
+			pcl::PointIndices::Ptr &indices_to_remove, Cloud &result);
 	bool extractCorners(const CloudConstPtr cloud, Cloud &result,
 			Cloud &result_debug, int number = 0);
+
+private:
+
 	void extractNeighbor(const CloudConstPtr cloud, PointType &searchPoint,
-			Cloud &result, int& size);
+			pcl::PointIndices::Ptr &inliers, int& size, float radius = 0);
 	int countPlanes(const CloudConstPtr cloud);
 	bool extractPlane(const CloudConstPtr cloud,
 			pcl::PointIndices::Ptr &inliers);
@@ -103,6 +115,9 @@ private:
 	float radius_search_harris_;
 	float plane_distance_treshold_;
 	float min_plane_inliers_;
+	float line_distance_tresh_;
+	float min_line_inliers_;
+	float eliminate_line_neigh_radius_;
 	bool convex_corners_only_;
 	CloudPtr cloud_;
 };

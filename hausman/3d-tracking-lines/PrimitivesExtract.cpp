@@ -36,6 +36,7 @@ template<typename PointType> void PrimitivesExtract<PointType>::findBoundaries(
 	int place = (int) (temp_normals->points.size() * best_curv_percent_);
 	pcl::Normal tresh_point = *(temp_normals->points.begin() + place);
 	float treshold = tresh_point.curvature;
+	std::cerr << "tresh: " << treshold << std::endl;
 
 	for (size_t i = 0; i < normals_cloud->size(); ++i) {
 		if (normals_cloud->points[i].curvature > treshold)
@@ -59,8 +60,18 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCornerVec
 
 	for (size_t j = 0; j < corners->points.size(); j++) {
 		CloudPtr augmented_corner(new Cloud);
+		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 
-		extractNeighbor(cloud_, corners->points[j], *augmented_corner, size);
+		extractNeighbor(cloud_, corners->points[j], inliers, size);
+
+		augmented_corner->points.push_back(corners->points[j]);
+
+		for (size_t i = 0; i < inliers->indices.size(); i++) {
+			PointType point = cloud_->points[inliers->indices[i]];
+			augmented_corner->points.push_back(point);
+
+		}
+
 		if ((countPlanes(augmented_corner) == 4)
 				|| (countPlanes(augmented_corner) == 3))
 			result.push_back(augmented_corner);
@@ -72,9 +83,84 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCornerVec
 
 }
 
+template<typename PointType> void PrimitivesExtract<PointType>::removePrimitive(
+		const CloudConstPtr &cloud, pcl::PointIndices::Ptr &indices_to_remove,
+		Cloud &result) {
+
+	pcl::ExtractIndices<PointType> extract;
+	extract.setInputCloud(cloud);
+	extract.setIndices(indices_to_remove);
+	extract.setNegative(true);
+
+	extract.filter(result);
+
+}
+
+template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
+		const CloudConstPtr &cloud, std::vector<CloudPtr> &result_vector,
+		pcl::ModelCoefficients::Ptr &coefficients, int lines_number) {
+
+	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+	pcl::PointIndices::Ptr extended_inliers(new pcl::PointIndices);
+
+	CloudPtr nonline_cloud(new Cloud);
+
+	if (cloud->size() == 0)
+		return false;
+	pcl::copyPointCloud(*cloud, *nonline_cloud);
+
+	for (int number = 0;; number++) {
+
+		if (lines_number > 0)
+			if (number == lines_number)
+				break;
+		pcl::SACSegmentation<PointType> seg;
+		seg.setOptimizeCoefficients(true);
+
+		seg.setModelType(pcl::SACMODEL_LINE);
+		seg.setMethodType(pcl::SAC_RANSAC);
+		seg.setDistanceThreshold(line_distance_tresh_);
+
+		seg.setInputCloud(nonline_cloud);
+		seg.segment(*inliers, *coefficients);
+		if (inliers->indices.size() < min_line_inliers_) {
+			PCL_ERROR(
+					"Could not estimate a line model for the given dataset.");
+			return false;
+		}
+		CloudPtr one_line(new Cloud);
+		for (size_t i = 0; i < inliers->indices.size(); i++) {
+			PointType point = nonline_cloud->points[inliers->indices[i]];
+
+			one_line->points.push_back(point);
+
+			float radius = eliminate_line_neigh_radius_;
+			int size;
+			extractNeighbor(nonline_cloud, point, extended_inliers, size,
+					radius);
+			extended_inliers->indices.push_back(i);
+
+		}
+		std::sort(extended_inliers->indices.begin(),
+				extended_inliers->indices.end());
+		extended_inliers->indices.erase(
+				std::unique(extended_inliers->indices.begin(),
+						extended_inliers->indices.end()),
+				extended_inliers->indices.end());
+		result_vector.push_back(one_line);
+		removePrimitive(nonline_cloud, extended_inliers, *nonline_cloud);
+	}
+
+	if (result_vector.size() == 0)
+		return false;
+	else
+		return true;
+
+}
+
 template<typename PointType> void PrimitivesExtract<PointType>::extractNeighbor(
-		const CloudConstPtr cloud, PointType &searchPoint, Cloud &result,
-		int& size) {
+		const CloudConstPtr cloud, PointType &searchPoint,
+		pcl::PointIndices::Ptr &inliers, int& size, float radius) {
 
 	pcl::KdTreeFLANN<PointType> kdtree;
 
@@ -83,28 +169,17 @@ template<typename PointType> void PrimitivesExtract<PointType>::extractNeighbor(
 	std::vector<int> pointIdxRadiusSearch;
 	std::vector<float> pointRadiusSquaredDistance;
 
-	result.push_back(searchPoint);
-
-	if (kdtree.radiusSearch(searchPoint, extract_neigh_radius_,
-			pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
+	if (radius == 0)
+		radius = extract_neigh_radius_;
+	if (kdtree.radiusSearch(searchPoint, radius, pointIdxRadiusSearch,
+			pointRadiusSquaredDistance) > 0) {
 		for (size_t i = 0; i < pointIdxRadiusSearch.size(); ++i)
 
-			result.push_back(cloud->points[pointIdxRadiusSearch[i]]);
+			inliers->indices.push_back(pointIdxRadiusSearch[i]);
 
 	}
 
 	size = (int) pointIdxRadiusSearch.size();
-
-	CloudPtr resultPtr(new Cloud(result));
-
-	pcl::VoxelGrid<PointType> sor;
-	sor.setInputCloud(resultPtr);
-	sor.setLeafSize(0.001f, 0.001f, 0.001f);
-	sor.filter(result);
-
-	result.width = result.points.size();
-	result.height = 1;
-	result.is_dense = false;
 
 }
 
@@ -149,12 +224,7 @@ template<typename PointType> int PrimitivesExtract<PointType>::countPlanes(
 
 		if (extractPlane(nonplane_cloud, inliers)) {
 
-			pcl::ExtractIndices<PointType> extract;
-			extract.setInputCloud(nonplane_cloud);
-			extract.setIndices(inliers);
-			extract.setNegative(true);
-
-			extract.filter(*nonplane_cloud);
+			removePrimitive(nonplane_cloud, inliers, *nonplane_cloud);
 			number++;
 		} else
 			return number;
@@ -225,9 +295,9 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCorners(
 
 			for (size_t j = 0; j < result.points.size(); j++) {
 
-				CloudPtr temp_cloud(new Cloud);
+				pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 				int size;
-				extractNeighbor(cloud, result.points[j], *temp_cloud, size);
+				extractNeighbor(cloud, result.points[j], inliers, size);
 
 				if (size > 0)
 					neighbor_num.push_back(size);
