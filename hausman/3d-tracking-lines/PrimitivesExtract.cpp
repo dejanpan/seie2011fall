@@ -53,15 +53,14 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCornerVec
 
 	CloudPtr corners(new Cloud);
 	CloudPtr corners_debug(new Cloud);
+	int size;
 
 	extractCorners(cloud_input, *corners, *corners_debug, number);
 
 	for (size_t j = 0; j < corners->points.size(); j++) {
 		CloudPtr augmented_corner(new Cloud);
-		CloudPtr augmented_corner2(new Cloud);
 
-		augmented_corner2->push_back(corners->points[j]);
-		extractNeighbor(cloud_, *augmented_corner2, *augmented_corner);
+		extractNeighbor(cloud_, corners->points[j], *augmented_corner, size);
 		if ((countPlanes(augmented_corner) == 4)
 				|| (countPlanes(augmented_corner) == 3))
 			result.push_back(augmented_corner);
@@ -74,31 +73,27 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCornerVec
 }
 
 template<typename PointType> void PrimitivesExtract<PointType>::extractNeighbor(
-		const CloudConstPtr cloud, Cloud &searchCloud, Cloud &result) {
+		const CloudConstPtr cloud, PointType &searchPoint, Cloud &result,
+		int& size) {
 
 	pcl::KdTreeFLANN<PointType> kdtree;
 
 	kdtree.setInputCloud(cloud);
 
-	PointType searchPoint;
-
 	std::vector<int> pointIdxRadiusSearch;
 	std::vector<float> pointRadiusSquaredDistance;
 
-	for (size_t i = 0; i < searchCloud.size(); ++i) {
-		searchPoint = searchCloud.points.at(i);
+	result.push_back(searchPoint);
 
-		result.push_back(searchPoint);
+	if (kdtree.radiusSearch(searchPoint, extract_neigh_radius_,
+			pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
+		for (size_t i = 0; i < pointIdxRadiusSearch.size(); ++i)
 
-		if (kdtree.radiusSearch(searchPoint, extract_neigh_radius_,
-				pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
-			for (size_t i = 0; i < pointIdxRadiusSearch.size(); ++i)
-
-				result.push_back(cloud->points[pointIdxRadiusSearch[i]]);
-
-		}
+			result.push_back(cloud->points[pointIdxRadiusSearch[i]]);
 
 	}
+
+	size = (int) pointIdxRadiusSearch.size();
 
 	CloudPtr resultPtr(new Cloud(result));
 
@@ -221,48 +216,42 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCorners(
 			}
 		}
 
-		pcl::KdTreeFLANN<PointType> kdtree;
-
-		kdtree.setInputCloud(cloud);
 		pcl::copyPointCloud(*cloud_intensity_after_treshhold, result);
 		pcl::copyPointCloud(result, result_debug);
 
-		PointType searchPoint;
+		if (convex_corners_only_) {
 
-		std::vector<int> pointIdxRadiusSearch;
-		std::vector<float> pointRadiusSquaredDistance;
+			std::vector<int> neighbor_num;
 
-		float radius = 0.05;
-		std::vector<int> neighbor_num;
+			for (size_t j = 0; j < result.points.size(); j++) {
 
-		for (size_t j = 0; j < result.points.size(); j++) {
+				CloudPtr temp_cloud(new Cloud);
+				int size;
+				extractNeighbor(cloud, result.points[j], *temp_cloud, size);
 
-			searchPoint = result.points[j];
-
-			if (kdtree.radiusSearch(searchPoint, radius, pointIdxRadiusSearch,
-					pointRadiusSquaredDistance) > 0) {
-				neighbor_num.push_back((int) pointIdxRadiusSearch.size());
+				if (size > 0)
+					neighbor_num.push_back(size);
 
 			}
-		}
-		double avg = 0;
-		std::vector<int>::iterator it;
-		for (it = neighbor_num.begin(); it != neighbor_num.end(); it++)
-			avg += *it;
-		avg /= neighbor_num.size();
+			double avg = 0;
+			std::vector<int>::iterator it;
+			for (it = neighbor_num.begin(); it != neighbor_num.end(); it++)
+				avg += *it;
+			avg /= neighbor_num.size();
 
-		if (neighbor_num.size() == result.points.size()) {
-			for (int n = 0; n < neighbor_num.size(); n++) {
-				if (neighbor_num[n] > avg) {
-					neighbor_num.erase(neighbor_num.begin() + n);
-					result.points.erase(result.points.begin() + n);
+			if (neighbor_num.size() == result.points.size()) {
+				for (int n = 0; n < neighbor_num.size(); n++) {
+					if (neighbor_num[n] > avg) {
+						neighbor_num.erase(neighbor_num.begin() + n);
+						result.points.erase(result.points.begin() + n);
+					}
 				}
-			}
-		} else
-			return false;
+			} else
+				return false;
 
-	} else {
-		return false;
+		} else {
+			return false;
+		}
 	}
 	result.width = result.points.size();
 	result.height = 1;

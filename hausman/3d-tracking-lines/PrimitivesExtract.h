@@ -76,6 +76,7 @@ public:
 		radius_search_harris_ = 0.01;
 		plane_distance_treshold_ = 0.005;
 		min_plane_inliers_ = 70;
+		convex_corners_only_=true;
 
 	}
 
@@ -88,8 +89,8 @@ public:
 private:
 	bool extractCorners(const CloudConstPtr cloud, Cloud &result,
 			Cloud &result_debug, int number = 0);
-	void extractNeighbor(const CloudConstPtr cloud, Cloud &searchCloud,
-			Cloud &result);
+	void extractNeighbor(const CloudConstPtr cloud, PointType &searchPoint,
+			Cloud &result, int& size);
 	int countPlanes(const CloudConstPtr cloud);
 	bool extractPlane(const CloudConstPtr cloud,
 			pcl::PointIndices::Ptr &inliers);
@@ -102,6 +103,7 @@ private:
 	float radius_search_harris_;
 	float plane_distance_treshold_;
 	float min_plane_inliers_;
+	bool convex_corners_only_;
 	CloudPtr cloud_;
 };
 
