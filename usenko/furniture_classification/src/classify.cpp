@@ -8,9 +8,86 @@
 #include <pcl/console/parse.h>
 #include <pcl/sample_consensus/ransac.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/octree/octree.h>
 #include <sac_3dof.h>
 #include <training.h>
 #include <set>
+
+template<class ScenePoint>
+  void generateVisibilityScore(const std::vector<pcl::PointCloud<ScenePoint> > & result, boost::shared_ptr<
+      pcl::PointCloud<ScenePoint> > scene, std::vector<float> & score)
+  {
+
+    pcl::octree::OctreePointCloudSearch<ScenePoint> octree(0.02f);
+    octree.setInputCloud(scene);
+    octree.addPointsFromInputCloud();
+    //std::cerr << "Octree depth " << octree.getTreeDepth() << std::endl;
+
+    for (size_t i = 0; i < result.size(); i++)
+    {
+//      pcl::visualization::PCLVisualizer viz;
+//      viz.initCameraParameters();
+//      viz.updateCamera();
+//
+//      boost::shared_ptr<pcl::PointCloud<ScenePoint> > cloud_ptr = result[i].makeShared();
+//
+//      pcl::visualization::PointCloudColorHandlerCustom<ScenePoint> single_color(cloud_ptr, 255, 0, 0);
+//
+//      viz.addPointCloud<ScenePoint> (scene);
+//      viz.addPointCloud<ScenePoint> (cloud_ptr, single_color, "cloud2");
+//
+//      viz.spin();
+
+      int free = 0, occupied = 0, occluded = 0;
+      for (size_t j = 0; j < result[i].points.size(); j++)
+      {
+        ScenePoint point = result[i].points[j];
+
+        //if (octree.isVoxelOccupiedAtPoint(point))
+        std::vector<int> tmp;
+        octree.voxelSearch(point, tmp);
+        if (tmp.size() > 0)
+        {
+          occupied++;
+          continue;
+        }
+
+        Eigen::Vector3f sensor_orig = scene->sensor_origin_.head(3);
+        Eigen::Vector3f look_at = point.getVector3fMap() - sensor_orig;
+
+        std::vector<int> indices;
+        octree.getIntersectedVoxelIndices(sensor_orig, look_at, indices);
+
+        bool is_occluded = false;
+        if (indices.size() > 0)
+        {
+          for (size_t k = 0; k < indices.size(); k++)
+          {
+            Eigen::Vector3f ray = scene->points[indices[k]].getVector3fMap() - sensor_orig;
+
+            if (ray.norm() < look_at.norm())
+            {
+              is_occluded = true;
+            }
+
+          }
+        }
+
+        if (is_occluded)
+        {
+          occluded++;
+          continue;
+        }
+
+        free++;
+
+      }
+
+      score[i] = 1 - ((float)2 * occupied + occluded) / (2 * occupied + occluded + free);
+      std::cerr << "Score " << occupied << " " << occluded << " " << free << " " << score[i] << std::endl;
+    }
+
+  }
 
 template<class ScenePoint>
   void findVotedSegments(const pcl::PointCloud<pcl::PointXYZ> & local_maxima_cloud, float cell_size, boost::shared_ptr<
@@ -94,7 +171,7 @@ template<class ScenePoint>
 template<class ScenePoint>
   void refineWithSegmentsICP(const std::vector<std::string> & models,
                              const std::vector<pcl::PointCloud<ScenePoint> > & segments_vector, std::vector<
-                                 pcl::PointCloud<pcl::PointXYZ> > & result, std::vector<float> & score)
+                                 pcl::PointCloud<ScenePoint> > & result, std::vector<float> & score)
   {
 
     for (size_t model_idx = 0; model_idx < models.size(); model_idx++)
@@ -120,16 +197,16 @@ template<class ScenePoint>
         model->setTarget(segments_vector[i].makeShared());
         pcl::RandomSampleConsensus<pcl::PointNormal> ransac(model);
 
-        ransac.setDistanceThreshold(.01);
-        ransac.setProbability(0.9);
-        ransac.setMaxIterations(100);
+        ransac.setDistanceThreshold(.02);
+        ransac.setProbability(0.99);
+        ransac.setMaxIterations(300);
         ransac.computeModel();
 
         std::vector<int> tmp1;
         ransac.getInliers(tmp1);
         float weight = ((float)tmp1.size()) / full_model->points.size();
 
-        if (weight > .5)
+        if (weight > .4)
         {
           Eigen::VectorXf model_coefs;
           ransac.getModelCoefficients(model_coefs);
@@ -142,25 +219,22 @@ template<class ScenePoint>
           pcl::PointCloud<pcl::PointNormal> full_model_transformed;
           pcl::transformPointCloudWithNormals(*full_model, full_model_transformed, transform);
 
-          pcl::PointCloud<pcl::PointXYZ> model_xyz;
-          pcl::copyPointCloud(full_model_transformed, model_xyz);
-
-          result.push_back(model_xyz);
+          result.push_back(full_model_transformed);
           score.push_back(1 - weight);
 
         }
 
-//        Eigen::VectorXf model_coefs;
-//        ransac.getModelCoefficients(model_coefs);
-//        std::cerr << "Model coefs " << std::endl << model_coefs << std::endl;
-//        std::vector<int> tmp;
-//        ransac.getInliers(tmp);
-//        std::cerr << "Weight " << ((float)tmp.size()) / full_model->points.size() << std::endl;
-//
-//        Eigen::Affine3f transform;
-//        transform.setIdentity();
-//        transform.translate(Eigen::Vector3f(model_coefs[0], model_coefs[1], 0));
-//        transform.rotate(Eigen::AngleAxisf(model_coefs[2], Eigen::Vector3f(0, 0, 1)));
+        //        Eigen::VectorXf model_coefs;
+        //        ransac.getModelCoefficients(model_coefs);
+        //        std::cerr << "Model coefs " << std::endl << model_coefs << std::endl;
+        //        std::vector<int> tmp;
+        //        ransac.getInliers(tmp);
+        //        std::cerr << "Weight " << ((float)tmp.size()) / full_model->points.size() << std::endl;
+        //
+        //        Eigen::Affine3f transform;
+        //        transform.setIdentity();
+        //        transform.translate(Eigen::Vector3f(model_coefs[0], model_coefs[1], 0));
+        //        transform.rotate(Eigen::AngleAxisf(model_coefs[2], Eigen::Vector3f(0, 0, 1)));
 
         //        pcl::PointCloud<pcl::PointNormal>::Ptr full_model_transformed(new pcl::PointCloud<pcl::PointNormal>);
         //        pcl::PointCloud<pcl::PointNormal>::Ptr seg = segments_vector[i].makeShared();
@@ -334,7 +408,7 @@ int main(int argc, char** argv)
     if (use_icp)
     {
 
-      std::vector<pcl::PointCloud<pcl::PointXYZ> > result, no_intersection_result;
+      std::vector<pcl::PointCloud<pcl::PointNormal> > result, no_intersection_result;
       std::vector<float> score;
 
       //refineWithICP(class_to_full_pointcloud[class_name], local_maxima, scene, num_rotations_icp, icp_threshold,
@@ -345,6 +419,7 @@ int main(int argc, char** argv)
       findVotedSegments<pcl::PointNormal> (local_maxima, cell_size, scene, segment_indices, votes[class_name],
                                            vote_segment_idx[class_name], segments_vector);
       refineWithSegmentsICP<pcl::PointNormal> (class_to_full_pointcloud[class_name], segments_vector, result, score);
+      generateVisibilityScore(result, scene, score);
 
       if (result.size() > 0)
         removeIntersecting(result, score, no_intersection_result);

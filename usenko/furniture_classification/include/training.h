@@ -205,12 +205,6 @@ template<int N>
 
   }
 
-
-bool intersectXY(const pcl::PointCloud<pcl::PointXYZ> & cloud1, const pcl::PointCloud<pcl::PointXYZ> & cloud2);
-
-void removeIntersecting(const std::vector<pcl::PointCloud<pcl::PointXYZ> > & result, const std::vector<float> & score,
-                        std::vector<pcl::PointCloud<pcl::PointXYZ> > & no_intersect_result);
-
 void refineWithICP(const std::vector<std::string> & models, const pcl::PointCloud<pcl::PointXYZ> & local_maxima,
                    pcl::PointCloud<pcl::PointXYZ>::Ptr scene, int num_rotations_icp, float icp_threshold, std::vector<
                        pcl::PointCloud<pcl::PointXYZ> > & result, std::vector<float> & score);
@@ -223,6 +217,53 @@ void saveGridToPGMFile(const std::string & filename, const Eigen::MatrixXf & gri
 void findLocalMaxima(const Eigen::MatrixXf & grid, const float window_size, const pcl::PointXYZ & min_bound,
                      const float cell_size, const float local_maxima_threshold,
                      pcl::PointCloud<pcl::PointXYZ> & local_maxima);
+
+template<class ScenePoint>
+bool intersectXY(const pcl::PointCloud<ScenePoint> & cloud1, const pcl::PointCloud<ScenePoint> & cloud2)
+{
+
+  ScenePoint min1, max1, min2, max2;
+  pcl::getMinMax3D<ScenePoint>(cloud1, min1, max1);
+  pcl::getMinMax3D<ScenePoint>(cloud2, min2, max2);
+
+  bool intersectX, intersectY;
+  if (min1.x < min2.x)
+    intersectX = max1.x > min2.x;
+  else
+    intersectX = max2.x > min1.x;
+
+  if (min1.y < min2.y)
+    intersectY = max1.y > min2.y;
+  else
+    intersectY = max2.y > min1.y;
+
+  return intersectX && intersectY;
+
+}
+
+template<class ScenePoint>
+void removeIntersecting(const std::vector<pcl::PointCloud<ScenePoint> > & result, const std::vector<float> & score,
+                        std::vector<pcl::PointCloud<ScenePoint> > & no_intersect_result)
+{
+  for (size_t i = 0; i < result.size(); i++)
+  {
+    bool best = true;
+    for (size_t j = 0; j < result.size(); j++)
+    {
+      if (intersectXY(result[i], result[j]))
+      {
+        if (score[i] > score[j])
+          best = false;
+      }
+
+    }
+    if (best)
+    {
+      no_intersect_result.push_back(result[i]);
+    }
+  }
+
+}
 
 
 #endif /* TRAINING_H_ */
