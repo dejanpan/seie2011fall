@@ -49,8 +49,63 @@ template<typename PointType> void PrimitivesExtract<PointType>::findBoundaries(
 
 }
 
+template<typename PointType> bool PrimitivesExtract<PointType>::extractLineVector(
+		const CloudConstPtr& input, std::vector<CloudPtr>& result,
+		std::vector<pcl::ModelCoefficients::Ptr> &coefficients_vector,
+		int lines_number) {
+
+	CloudPtr cloud_boundaries(new Cloud);
+
+	int size;
+
+	std::vector<CloudPtr> vector_lines;
+	std::vector<pcl::ModelCoefficients::Ptr> coefficients;
+
+	findBoundaries(input, *cloud_boundaries);
+	extractLines(cloud_boundaries, vector_lines, coefficients, lines_number);
+
+	for (int number = 0; number < vector_lines.size(); number++) {
+		CloudPtr thin_line(new Cloud);
+		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+
+		thin_line = vector_lines[number];
+		CloudPtr thick_line(new Cloud);
+
+		for (size_t j = 0; j < thin_line->points.size(); j++) {
+
+			extractNeighbor(input, thin_line->points[j], inliers, size);
+		}
+		std::sort(inliers->indices.begin(), inliers->indices.end());
+		inliers->indices.erase(
+				std::unique(inliers->indices.begin(), inliers->indices.end()),
+				inliers->indices.end());
+
+		for (size_t i = 0; i < inliers->indices.size(); i++) {
+			PointType point = input->points[inliers->indices[i]];
+			thick_line->points.push_back(point);
+		}
+
+		removePointsAroundLine(thick_line, *thick_line, *thin_line,
+				coefficients[number]);
+		int planes_number = countPlanes(thick_line);
+		std::cout << "planes number: " << planes_number << std::endl;
+		if ((planes_number == 2) || (planes_number == 3)
+				|| (planes_number == 4)) {
+			result.push_back(thick_line);
+			coefficients_vector.push_back(coefficients[number]);
+		}
+
+	}
+	if (result.size() == 0)
+		return false;
+	else
+		return true;
+
+}
+
 template<typename PointType> bool PrimitivesExtract<PointType>::extractCornerVector(
-		CloudConstPtr cloud_input, std::vector<CloudPtr>& result, int number) {
+		const CloudConstPtr cloud_input, std::vector<CloudPtr>& result,
+		int number) {
 
 	CloudPtr corners(new Cloud);
 	CloudPtr corners_debug(new Cloud);
@@ -62,18 +117,17 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCornerVec
 		CloudPtr augmented_corner(new Cloud);
 		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 
-		extractNeighbor(cloud_, corners->points[j], inliers, size);
+		extractNeighbor(cloud_input, corners->points[j], inliers, size);
 
 		augmented_corner->points.push_back(corners->points[j]);
 
 		for (size_t i = 0; i < inliers->indices.size(); i++) {
-			PointType point = cloud_->points[inliers->indices[i]];
+			PointType point = cloud_input->points[inliers->indices[i]];
 			augmented_corner->points.push_back(point);
 
 		}
-			int planes_number=countPlanes(augmented_corner);
-		if ((planes_number == 4)
-				|| (planes_number == 3))
+		int planes_number = countPlanes(augmented_corner);
+		if ((planes_number == 4) || (planes_number == 3))
 			result.push_back(augmented_corner);
 	}
 	if (result.size() == 0)
@@ -98,9 +152,9 @@ template<typename PointType> void PrimitivesExtract<PointType>::removePrimitive(
 
 template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 		const CloudConstPtr &cloud, std::vector<CloudPtr> &result_vector,
-		std::vector <pcl::ModelCoefficients::Ptr> &coefficients_vector, int lines_number) {
+		std::vector<pcl::ModelCoefficients::Ptr> &coefficients_vector,
+		int lines_number) {
 
-	pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 	pcl::PointIndices::Ptr extended_inliers(new pcl::PointIndices);
 
@@ -111,6 +165,7 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 	pcl::copyPointCloud(*cloud, *nonline_cloud);
 
 	for (int number = 0;; number++) {
+		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 
 		if (lines_number > 0)
 			if (number == lines_number)
@@ -124,13 +179,14 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 
 		seg.setInputCloud(nonline_cloud);
 		seg.segment(*inliers, *coefficients);
-		if (coefficients!=NULL)
-			coefficients_vector.push_back(coefficients);
+
 		if (inliers->indices.size() < min_line_inliers_) {
 			PCL_ERROR(
 					"Could not estimate a line model for the given dataset.");
 			break;
 		}
+		if (coefficients != NULL)
+			coefficients_vector.push_back(coefficients);
 		CloudPtr one_line(new Cloud);
 		for (size_t i = 0; i < inliers->indices.size(); i++) {
 			PointType point = nonline_cloud->points[inliers->indices[i]];
@@ -153,7 +209,6 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 		result_vector.push_back(one_line);
 		removePrimitive(nonline_cloud, extended_inliers, *nonline_cloud);
 	}
-	coefficients_vector.resize(result_vector.size());
 	if (result_vector.size() == 0)
 		return false;
 	else
@@ -195,7 +250,6 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractPlane(
 		return false;
 
 	pcl::SACSegmentation<PointType> seg;
-	// Optional
 	seg.setOptimizeCoefficients(true);
 
 	seg.setModelType(pcl::SACMODEL_PLANE);
@@ -331,6 +385,142 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCorners(
 	result.is_dense = false;
 
 	return true;
+
+}
+
+template<typename PointType> void PrimitivesExtract<PointType>::removePointsAroundLine(
+		const CloudConstPtr &cloud, Cloud &result, Cloud &line,
+		pcl::ModelCoefficients::Ptr &coefficients) {
+
+	CloudPtr cloud_projected(new Cloud);
+
+	pcl::ProjectInliers<PointType> proj;
+	proj.setModelType(pcl::SACMODEL_LINE);
+	proj.setInputCloud(cloud);
+	proj.setModelCoefficients(coefficients);
+	proj.filter(*cloud_projected);
+
+	Eigen::Vector4f c;
+	pcl::compute3DCentroid<RefPointType>(line, c);
+	float dist, dist2;
+	float max_dist = 0;
+	float max_dist2 = 0;
+	float max_dist_general = 0;
+
+	PointType borderPoint1 = line.points.at(1);
+	PointType borderPoint2 = line.points.at(1);
+	PointType cloudPoint;
+	PointType linePoint;
+
+	Cloud temp_cloud;
+
+	pcl::copyPointCloud(*cloud, temp_cloud);
+
+	for (size_t i = 0; i < line.size(); ++i) {
+		linePoint = line.points.at(i);
+		dist = sqrt(
+				(linePoint.x - c[0]) * (linePoint.x - c[0])
+						+ (linePoint.y - c[1]) * (linePoint.y - c[1])
+						+ (linePoint.z - c[2]) * (linePoint.z - c[2]));
+		if (dist > max_dist) {
+			max_dist = dist;
+			borderPoint1 = linePoint;
+		}
+
+	}
+
+	for (size_t i = 0; i < line.size(); ++i) {
+		linePoint = line.points.at(i);
+		dist2 = sqrt(
+				(linePoint.x - borderPoint1.x) * (linePoint.x - borderPoint1.x)
+						+ (linePoint.y - borderPoint1.y)
+								* (linePoint.y - borderPoint1.y)
+						+ (linePoint.z - borderPoint1.z)
+								* (linePoint.z - borderPoint1.z));
+		if (dist2 > max_dist2) {
+			max_dist2 = dist2;
+			borderPoint2 = linePoint;
+		}
+
+	}
+
+	max_dist_general = shrink_line_percent_
+			* sqrt(
+					(borderPoint1.x - borderPoint2.x)
+							* (borderPoint1.x - borderPoint2.x)
+							+ (borderPoint1.y - borderPoint2.y)
+									* (borderPoint1.y - borderPoint2.y)
+							+ (borderPoint1.z - borderPoint2.z)
+									* (borderPoint1.z - borderPoint2.z));
+
+	for (size_t i = 0; i < cloud_projected->size(); i++) {
+		cloudPoint = cloud_projected->points.at(i);
+		float distance = sqrt(
+				(cloudPoint.x - borderPoint1.x)
+						* (cloudPoint.x - borderPoint1.x)
+						+ (cloudPoint.y - borderPoint1.y)
+								* (cloudPoint.y - borderPoint1.y)
+						+ (cloudPoint.z - borderPoint1.z)
+								* (cloudPoint.z - borderPoint1.z));
+		float distance2 = sqrt(
+				(cloudPoint.x - borderPoint2.x)
+						* (cloudPoint.x - borderPoint2.x)
+						+ (cloudPoint.y - borderPoint2.y)
+								* (cloudPoint.y - borderPoint2.y)
+						+ (cloudPoint.z - borderPoint2.z)
+								* (cloudPoint.z - borderPoint2.z));
+
+		if ((distance > max_dist_general) || (distance2 > max_dist_general)) {
+			temp_cloud.points.at(i).x = 0;
+			temp_cloud.points.at(i).y = 0;
+			temp_cloud.points.at(i).z = 0;
+		}
+
+	}
+
+	for (int i = 0; i < temp_cloud.size(); i++) {
+		if ((temp_cloud.points[i].x == 0) && (temp_cloud.points[i].y == 0)
+				&& (temp_cloud.points[i].z == 0)) {
+			temp_cloud.erase(temp_cloud.begin() + i);
+			i--;
+		}
+	}
+
+	if (!euclidian_clustering_after_line_projection_) {
+		result.clear();
+		pcl::copyPointCloud(temp_cloud, result);
+
+	} else {
+		CloudPtr cloudForEuclidianDistance(new Cloud);
+		pcl::copyPointCloud(temp_cloud, *cloudForEuclidianDistance);
+
+		KdTreePtr tree(new KdTree());
+		tree->setInputCloud(cloudForEuclidianDistance);
+
+		std::vector<pcl::PointIndices> cluster_indices;
+		pcl::EuclideanClusterExtraction<PointType> ec;
+		ec.setClusterTolerance(0.005);
+		ec.setMinClusterSize(30);
+		ec.setMaxClusterSize(25000);
+		ec.setSearchMethod(tree);
+		ec.setInputCloud(cloudForEuclidianDistance);
+		ec.extract(cluster_indices);
+		std::cerr << "Size of result before line euclidian clustering: "
+				<< cloudForEuclidianDistance->points.size() << std::endl;
+
+		result.clear();
+		for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
+			PointType point =
+					cloudForEuclidianDistance->points[cluster_indices[0].indices[i]];
+			result.points.push_back(point);
+		}
+
+		std::cerr << "Size of result after line euclidian clustering: "
+				<< result.points.size() << std::endl;
+	}
+	result.width = result.points.size();
+	result.height = 1;
+	result.is_dense = false;
 
 }
 

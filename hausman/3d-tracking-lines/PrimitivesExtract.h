@@ -83,7 +83,9 @@ public:
 		line_distance_tresh_ = 0.002;
 		min_line_inliers_ = 50;
 		eliminate_line_neigh_radius_ = 0.008; //0.002
+		shrink_line_percent_= 1;
 		convex_corners_only_ = true;
+		euclidian_clustering_after_line_projection_=false;
 
 	}
 
@@ -98,6 +100,9 @@ public:
 			pcl::PointIndices::Ptr &indices_to_remove, Cloud &result);
 	bool extractCorners(const CloudConstPtr cloud, Cloud &result,
 			Cloud &result_debug, int number = 0);
+	bool extractLineVector(const CloudConstPtr& input, std::vector<CloudPtr>& result,std::vector<pcl::ModelCoefficients::Ptr> &coefficients_vector,
+			int lines_number = 0);
+	void removePointsAroundLine(const CloudConstPtr &cloud, Cloud &result,Cloud &line, pcl::ModelCoefficients::Ptr &coefficients);
 
 private:
 
@@ -118,7 +123,9 @@ private:
 	float line_distance_tresh_;
 	float min_line_inliers_;
 	float eliminate_line_neigh_radius_;
+	float shrink_line_percent_;
 	bool convex_corners_only_;
+	bool euclidian_clustering_after_line_projection_;
 	CloudPtr cloud_;
 };
 

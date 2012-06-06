@@ -55,8 +55,9 @@ int main(int argc, char **argv)
   prim_ex.extractCornerVector(cloud_input,result_vector);
   std::cerr<<"number of corners: "<<result_vector.size()<<std::endl;
 
-  prim_ex.findBoundaries(cloud_input,*cloud_boundaries);
-  prim_ex.extractLines(cloud_boundaries,result_vector_lines,coefficients);
+//  prim_ex.findBoundaries(cloud_input,*cloud_boundaries);
+//  prim_ex.extractLines(cloud_boundaries,result_vector_lines,coefficients);
+  prim_ex.extractLineVector(cloud_input,result_vector_lines,coefficients);
   std::cerr<<"number of lines: "<<result_vector_lines.size()<<std::endl;
 
   pcl::copyPointCloud(*result_vector[0],*result_corners);
@@ -90,19 +91,19 @@ int main(int argc, char **argv)
 			//			cloud_boundaries, colormap_[9], colormap_[10], colormap_[11]);
 //
 //	  viz.addPointCloud<pcl::PointXYZRGBA> (debug, yellow_color,"debug");
-			for (int number=0;number<result_vector.size();number++){
-			pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
-					result_vector[number], colormap_[3*(number+1)], colormap_[3*(number+1)+1], colormap_[3*(number+1)+2]);
-
-
-
-			std::stringstream k;
-			k<<number+100;
-
-			std::cerr<<"result corners size "<<number<<" = "<<result_vector[number]->size()<<std::endl;
-		  viz.addPointCloud<pcl::PointXYZRGBA> (result_vector[number], green_color,k.str());
-		  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, k.str());
-			}
+//			for (int number=0;number<result_vector.size();number++){
+//			pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
+//					result_vector[number], colormap_[3*(number+1)], colormap_[3*(number+1)+1], colormap_[3*(number+1)+2]);
+//
+//
+//
+//			std::stringstream k;
+//			k<<number+100;
+//
+//			std::cerr<<"result corners size "<<number<<" = "<<result_vector[number]->size()<<std::endl;
+//		  viz.addPointCloud<pcl::PointXYZRGBA> (result_vector[number], green_color,k.str());
+//		  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, k.str());
+//			}
 
 
 	for (int number=0;number<result_vector_lines.size();number++){
