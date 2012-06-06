@@ -93,7 +93,7 @@ public:
 			int number = 0);
 	bool extractLines(const CloudConstPtr &cloud,
 			std::vector<CloudPtr> &result_vector,
-			pcl::ModelCoefficients::Ptr &coefficients, int lines_number = 0);
+			std::vector <pcl::ModelCoefficients::Ptr> &coefficients_vector, int lines_number = 0);
 	void removePrimitive(const CloudConstPtr &cloud,
 			pcl::PointIndices::Ptr &indices_to_remove, Cloud &result);
 	bool extractCorners(const CloudConstPtr cloud, Cloud &result,

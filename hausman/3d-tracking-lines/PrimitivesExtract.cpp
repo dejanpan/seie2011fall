@@ -36,7 +36,7 @@ template<typename PointType> void PrimitivesExtract<PointType>::findBoundaries(
 	int place = (int) (temp_normals->points.size() * best_curv_percent_);
 	pcl::Normal tresh_point = *(temp_normals->points.begin() + place);
 	float treshold = tresh_point.curvature;
-	std::cerr << "tresh: " << treshold << std::endl;
+//	std::cerr << "tresh: " << treshold << std::endl;
 
 	for (size_t i = 0; i < normals_cloud->size(); ++i) {
 		if (normals_cloud->points[i].curvature > treshold)
@@ -71,9 +71,9 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCornerVec
 			augmented_corner->points.push_back(point);
 
 		}
-
-		if ((countPlanes(augmented_corner) == 4)
-				|| (countPlanes(augmented_corner) == 3))
+			int planes_number=countPlanes(augmented_corner);
+		if ((planes_number == 4)
+				|| (planes_number == 3))
 			result.push_back(augmented_corner);
 	}
 	if (result.size() == 0)
@@ -98,8 +98,9 @@ template<typename PointType> void PrimitivesExtract<PointType>::removePrimitive(
 
 template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 		const CloudConstPtr &cloud, std::vector<CloudPtr> &result_vector,
-		pcl::ModelCoefficients::Ptr &coefficients, int lines_number) {
+		std::vector <pcl::ModelCoefficients::Ptr> &coefficients_vector, int lines_number) {
 
+	pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 	pcl::PointIndices::Ptr extended_inliers(new pcl::PointIndices);
 
@@ -123,10 +124,12 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 
 		seg.setInputCloud(nonline_cloud);
 		seg.segment(*inliers, *coefficients);
+		if (coefficients!=NULL)
+			coefficients_vector.push_back(coefficients);
 		if (inliers->indices.size() < min_line_inliers_) {
 			PCL_ERROR(
 					"Could not estimate a line model for the given dataset.");
-			return false;
+			break;
 		}
 		CloudPtr one_line(new Cloud);
 		for (size_t i = 0; i < inliers->indices.size(); i++) {
@@ -150,7 +153,7 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 		result_vector.push_back(one_line);
 		removePrimitive(nonline_cloud, extended_inliers, *nonline_cloud);
 	}
-
+	coefficients_vector.resize(result_vector.size());
 	if (result_vector.size() == 0)
 		return false;
 	else
