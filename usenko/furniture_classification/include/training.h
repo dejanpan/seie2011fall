@@ -229,13 +229,17 @@ bool intersectXY(const pcl::PointCloud<ScenePoint> & cloud1, const pcl::PointClo
   bool intersectX, intersectY;
   if (min1.x < min2.x)
     intersectX = max1.x > min2.x;
-  else
+  else if (min1.x > min2.x)
     intersectX = max2.x > min1.x;
+  else // min1.x == min2.x
+    intersectX = true;
 
   if (min1.y < min2.y)
     intersectY = max1.y > min2.y;
-  else
+  else if (min1.y > min2.y)
     intersectY = max2.y > min1.y;
+  else // min1.y == min2.y
+    intersectY = true;
 
   return intersectX && intersectY;
 

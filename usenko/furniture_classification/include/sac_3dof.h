@@ -167,7 +167,7 @@ template<typename PointT>
     }
     virtual bool isSampleGood(const std::vector<int> &samples) const
     {
-      return input_->points[samples[0]].normal_z < 0.5;
+      return input_->points[samples[0]].normal_z < 0.3;
     }
 
     inline unsigned int getSampleSize() const

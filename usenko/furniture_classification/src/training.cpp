@@ -121,6 +121,8 @@ void append_segments_from_file(const std::string & filename, std::vector<feature
 
   // Return cloud scene
   scene = *mls_points_filtered;
+  scene.sensor_origin_ = cloud->sensor_origin_;
+  scene.sensor_orientation_ = cloud->sensor_orientation_;
 
   pcl::PointCloud<featureType> feature;
   featureEstimation feature_estimator;

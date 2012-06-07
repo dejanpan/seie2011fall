@@ -18,42 +18,36 @@ template<class ScenePoint>
       pcl::PointCloud<ScenePoint> > scene, std::vector<float> & score)
   {
 
-    pcl::octree::OctreePointCloudSearch<ScenePoint> octree(0.02f);
+    pcl::octree::OctreePointCloudSearch<ScenePoint> octree(0.05f);
     octree.setInputCloud(scene);
     octree.addPointsFromInputCloud();
     //std::cerr << "Octree depth " << octree.getTreeDepth() << std::endl;
 
     for (size_t i = 0; i < result.size(); i++)
     {
-//      pcl::visualization::PCLVisualizer viz;
-//      viz.initCameraParameters();
-//      viz.updateCamera();
-//
-//      boost::shared_ptr<pcl::PointCloud<ScenePoint> > cloud_ptr = result[i].makeShared();
-//
-//      pcl::visualization::PointCloudColorHandlerCustom<ScenePoint> single_color(cloud_ptr, 255, 0, 0);
-//
-//      viz.addPointCloud<ScenePoint> (scene);
-//      viz.addPointCloud<ScenePoint> (cloud_ptr, single_color, "cloud2");
-//
-//      viz.spin();
+
+//      pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_rgb(new pcl::PointCloud<pcl::PointXYZRGB>);
+//      pcl::copyPointCloud(result[i], *cloud_rgb);
 
       int free = 0, occupied = 0, occluded = 0;
       for (size_t j = 0; j < result[i].points.size(); j++)
       {
         ScenePoint point = result[i].points[j];
 
-        //if (octree.isVoxelOccupiedAtPoint(point))
-        std::vector<int> tmp;
-        octree.voxelSearch(point, tmp);
-        if (tmp.size() > 0)
+        if (octree.isVoxelOccupiedAtPoint(point))
         {
           occupied++;
+//          cloud_rgb->points[j].r = 255;
+//          cloud_rgb->points[j].g = 0;
+//          cloud_rgb->points[j].b = 0;
+
           continue;
         }
 
         Eigen::Vector3f sensor_orig = scene->sensor_origin_.head(3);
         Eigen::Vector3f look_at = point.getVector3fMap() - sensor_orig;
+
+        //std::cerr << "Sensor origin " << std::endl << scene->sensor_origin_ << std::endl << " Look at " << look_at << std::endl;
 
         std::vector<int> indices;
         octree.getIntersectedVoxelIndices(sensor_orig, look_at, indices);
@@ -76,15 +70,36 @@ template<class ScenePoint>
         if (is_occluded)
         {
           occluded++;
+//          cloud_rgb->points[j].r = 0;
+//          cloud_rgb->points[j].g = 255;
+//          cloud_rgb->points[j].b = 0;
           continue;
         }
 
         free++;
+//        cloud_rgb->points[j].r = 0;
+//        cloud_rgb->points[j].g = 0;
+//        cloud_rgb->points[j].b = 255;
 
       }
 
       score[i] = 1 - ((float)2 * occupied + occluded) / (2 * occupied + occluded + free);
       std::cerr << "Score " << occupied << " " << occluded << " " << free << " " << score[i] << std::endl;
+
+//      pcl::visualization::PCLVisualizer viz;
+//      viz.initCameraParameters();
+//      viz.updateCamera();
+//
+//      boost::shared_ptr<pcl::PointCloud<ScenePoint> > cloud_ptr = result[i].makeShared();
+//
+//      //pcl::visualization::PointCloudColorHandlerCustom<ScenePoint> single_color(cloud_ptr, 255, 0, 0);
+//
+//      pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb_color(cloud_rgb);
+//
+//      viz.addPointCloud<ScenePoint> (scene);
+//      viz.addPointCloud<pcl::PointXYZRGB> (cloud_rgb, rgb_color, "cloud2");
+//
+//      viz.spin();
     }
 
   }
@@ -106,10 +121,10 @@ template<class ScenePoint>
       for (size_t i = 0; i < votes.points.size(); i++)
       {
 
-        bool in_cell_x1 = votes.points[i].x > (local_maxima.x - 5 * cell_size);
-        bool in_cell_x2 = votes.points[i].x < (local_maxima.x + 5 * cell_size);
-        bool in_cell_y1 = votes.points[i].y > (local_maxima.y - 5 * cell_size);
-        bool in_cell_y2 = votes.points[i].y < (local_maxima.y + 5 * cell_size);
+        bool in_cell_x1 = votes.points[i].x > (local_maxima.x - 30 * cell_size);
+        bool in_cell_x2 = votes.points[i].x < (local_maxima.x + 30 * cell_size);
+        bool in_cell_y1 = votes.points[i].y > (local_maxima.y - 30 * cell_size);
+        bool in_cell_y2 = votes.points[i].y < (local_maxima.y + 30 * cell_size);
 
         if (in_cell_x1 && in_cell_x2 && in_cell_y1 && in_cell_y2)
         {
@@ -170,8 +185,8 @@ template<class ScenePoint>
 
 template<class ScenePoint>
   void refineWithSegmentsICP(const std::vector<std::string> & models,
-                             const std::vector<pcl::PointCloud<ScenePoint> > & segments_vector, std::vector<
-                                 pcl::PointCloud<ScenePoint> > & result, std::vector<float> & score)
+                             const std::vector<pcl::PointCloud<ScenePoint> > & segments_vector, int ransac_num_iter,
+                             std::vector<pcl::PointCloud<ScenePoint> > & result, std::vector<float> & score)
   {
 
     for (size_t model_idx = 0; model_idx < models.size(); model_idx++)
@@ -197,9 +212,9 @@ template<class ScenePoint>
         model->setTarget(segments_vector[i].makeShared());
         pcl::RandomSampleConsensus<pcl::PointNormal> ransac(model);
 
-        ransac.setDistanceThreshold(.02);
-        ransac.setProbability(0.99);
-        ransac.setMaxIterations(300);
+        ransac.setDistanceThreshold(.01);
+        ransac.setProbability(0.9);
+        ransac.setMaxIterations(ransac_num_iter);
         ransac.computeModel();
 
         std::vector<int> tmp1;
@@ -281,6 +296,7 @@ int main(int argc, char** argv)
   int num_rotations_icp = 12;
   bool use_icp = false;
   float icp_threshold = 0.01;
+  float ransac_num_iter = 100;
 
   pcl::console::parse_argument(argc, argv, "-database_file_name", database_file_name);
   pcl::console::parse_argument(argc, argv, "-scene_file_name", scene_file_name);
@@ -291,6 +307,7 @@ int main(int argc, char** argv)
   pcl::console::parse_argument(argc, argv, "-use_icp", use_icp);
   pcl::console::parse_argument(argc, argv, "-icp_threshold", icp_threshold);
   pcl::console::parse_argument(argc, argv, "-num_rotations_icp", num_rotations_icp);
+  pcl::console::parse_argument(argc, argv, "-ransac_num_iter", ransac_num_iter);
 
   // create directory structure
   std::vector<std::string> st;
@@ -418,7 +435,16 @@ int main(int argc, char** argv)
       std::vector<pcl::PointCloud<pcl::PointNormal> > segments_vector;
       findVotedSegments<pcl::PointNormal> (local_maxima, cell_size, scene, segment_indices, votes[class_name],
                                            vote_segment_idx[class_name], segments_vector);
-      refineWithSegmentsICP<pcl::PointNormal> (class_to_full_pointcloud[class_name], segments_vector, result, score);
+
+      for (size_t idx = 0; idx < segments_vector.size(); idx++)
+      {
+        std::stringstream ss;
+        ss << scene_name << "/debug/" << class_name << "_voted_segment" << idx << ".pcd";
+        pcl::io::savePCDFileASCII(ss.str(), segments_vector[idx]);
+      }
+
+      refineWithSegmentsICP<pcl::PointNormal> (class_to_full_pointcloud[class_name], segments_vector, ransac_num_iter,
+                                               result, score);
       generateVisibilityScore(result, scene, score);
 
       if (result.size() > 0)
