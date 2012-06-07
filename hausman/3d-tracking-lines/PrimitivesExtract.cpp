@@ -16,6 +16,16 @@ inline bool comparison_curvature(pcl::Normal i, pcl::Normal j) {
 	return (i.curvature > j.curvature);
 }
 
+template<typename PointType> void PrimitivesExtract<PointType>::computeNormals(
+		const CloudConstPtr cloud,
+		pcl::PointCloud<pcl::Normal>::Ptr normals_cloud) {
+	pcl::NormalEstimation<PointType, pcl::Normal> norm_est;
+	norm_est.setSearchMethod(KdTreePtr(new KdTree));
+	norm_est.setInputCloud(cloud);
+	norm_est.setRadiusSearch(find_normals_radius_search_);
+	norm_est.compute(*normals_cloud);
+}
+
 template<typename PointType> void PrimitivesExtract<PointType>::findBoundaries(
 		const CloudConstPtr cloud, Cloud &result) {
 
@@ -23,11 +33,8 @@ template<typename PointType> void PrimitivesExtract<PointType>::findBoundaries(
 			new pcl::PointCloud<pcl::Normal>);
 	pcl::PointCloud<pcl::Normal>::Ptr normals_cloud(
 			new pcl::PointCloud<pcl::Normal>);
-	pcl::NormalEstimation<PointType, pcl::Normal> norm_est;
-	norm_est.setSearchMethod(KdTreePtr(new KdTree));
-	norm_est.setInputCloud(cloud);
-	norm_est.setRadiusSearch(find_boundaries_radius_search_);
-	norm_est.compute(*normals_cloud);
+
+	computeNormals(cloud, normals_cloud);
 
 	pcl::copyPointCloud(*normals_cloud, *temp_normals);
 
@@ -51,7 +58,7 @@ template<typename PointType> void PrimitivesExtract<PointType>::findBoundaries(
 
 template<typename PointType> bool PrimitivesExtract<PointType>::extractLineVector(
 		const CloudConstPtr& input, std::vector<CloudPtr>& result,
-		std::vector<pcl::ModelCoefficients::Ptr> &coefficients_vector,
+		std::vector<pcl::ModelCoefficients::Ptr> &coefficients_vector,std::vector<Eigen::Vector3f> &directions_vector,
 		int lines_number) {
 
 	CloudPtr cloud_boundaries(new Cloud);
@@ -88,11 +95,13 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLineVecto
 		removePointsAroundLine(thick_line, *thick_line, *thin_line,
 				coefficients[number]);
 		int planes_number = countPlanes(thick_line);
-		std::cout << "planes number: " << planes_number << std::endl;
 		if ((planes_number == 2) || (planes_number == 3)
 				|| (planes_number == 4)) {
+			Eigen::Vector3f line_direction;
+			lineDirectionPCA(thin_line,line_direction);
 			result.push_back(thick_line);
 			coefficients_vector.push_back(coefficients[number]);
+			directions_vector.push_back(line_direction);
 		}
 
 	}
@@ -388,6 +397,23 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCorners(
 
 }
 
+template<typename PointType> void PrimitivesExtract<PointType>::euclidianClustering(
+		CloudPtr& cloudForEuclidianDistance,
+		std::vector<pcl::PointIndices>& cluster_indices,
+		float euclidian_cluster_tolerance) {
+	KdTreePtr tree(new KdTree());
+	tree->setInputCloud(cloudForEuclidianDistance);
+
+//	std::vector<pcl::PointIndices> cluster_indices;
+	pcl::EuclideanClusterExtraction<PointType> ec;
+	ec.setClusterTolerance(euclidian_cluster_tolerance);
+	ec.setMinClusterSize(euclidian_min_cluster_size_);
+	ec.setMaxClusterSize(euclidian_max_cluster_size_);
+	ec.setSearchMethod(tree);
+	ec.setInputCloud(cloudForEuclidianDistance);
+	ec.extract(cluster_indices);
+}
+
 template<typename PointType> void PrimitivesExtract<PointType>::removePointsAroundLine(
 		const CloudConstPtr &cloud, Cloud &result, Cloud &line,
 		pcl::ModelCoefficients::Ptr &coefficients) {
@@ -494,17 +520,11 @@ template<typename PointType> void PrimitivesExtract<PointType>::removePointsArou
 		CloudPtr cloudForEuclidianDistance(new Cloud);
 		pcl::copyPointCloud(temp_cloud, *cloudForEuclidianDistance);
 
-		KdTreePtr tree(new KdTree());
-		tree->setInputCloud(cloudForEuclidianDistance);
-
 		std::vector<pcl::PointIndices> cluster_indices;
-		pcl::EuclideanClusterExtraction<PointType> ec;
-		ec.setClusterTolerance(0.005);
-		ec.setMinClusterSize(30);
-		ec.setMaxClusterSize(25000);
-		ec.setSearchMethod(tree);
-		ec.setInputCloud(cloudForEuclidianDistance);
-		ec.extract(cluster_indices);
+
+		euclidianClustering(cloudForEuclidianDistance, cluster_indices,
+				euclidian_line_cluster_tolerance_);
+
 		std::cerr << "Size of result before line euclidian clustering: "
 				<< cloudForEuclidianDistance->points.size() << std::endl;
 
@@ -523,4 +543,162 @@ template<typename PointType> void PrimitivesExtract<PointType>::removePointsArou
 	result.is_dense = false;
 
 }
+
+template<typename PointType> bool PrimitivesExtract<PointType>::extractCylinderVector(
+		const CloudConstPtr &cloud, std::vector<CloudPtr> &result,
+		int cylinders_number) {
+	return extractCircular(cloud, result, cylinders_number, "cylinder");
+}
+
+template<typename PointType> bool PrimitivesExtract<PointType>::extractCircleVector(
+		const CloudConstPtr &cloud, std::vector<CloudPtr> &result,
+		int cylinders_number) {
+	return extractCircular(cloud, result, cylinders_number, "circle");
+}
+
+template<typename PointType> bool PrimitivesExtract<PointType>::extractCircular(
+		const CloudConstPtr &cloud, std::vector<CloudPtr> &result,
+		int cylinders_number, std::string what) {
+
+	CloudPtr noncylinder_cloud(new Cloud);
+
+	pcl::copyPointCloud(*cloud, *noncylinder_cloud);
+
+	for (int number = 0;; number++) {
+
+		if (cylinders_number > 0) {
+			if (number > cylinders_number)
+				break;
+		}
+
+		CloudPtr one_cylinder_cloud(new Cloud);
+		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+		if (cloud->size() == 0)
+			return false;
+
+		pcl::PointCloud<pcl::Normal>::Ptr normals_cloud(
+				new pcl::PointCloud<pcl::Normal>);
+
+		computeNormals(noncylinder_cloud, normals_cloud);
+
+		pcl::SACSegmentationFromNormals<PointType, pcl::Normal> seg;
+		seg.setOptimizeCoefficients(true);
+
+		if (what == "cylinder")
+			seg.setModelType(pcl::SACMODEL_CYLINDER);
+		else
+			seg.setModelType(pcl::SACMODEL_CIRCLE3D);
+
+		seg.setMethodType(pcl::SAC_RANSAC);
+		if (what == "cylinder")
+			seg.setDistanceThreshold(cylinder_distance_treshold_);
+		else
+			seg.setDistanceThreshold(circle_distance_treshold_);
+
+		if (what == "cylinder")
+			seg.setRadiusLimits(cylinder_min_radius_, cylinder_max_radius_);
+//		else
+//			seg.setRadiusLimits(circle_min_radius_, circle_max_radius_);
+
+		seg.setInputNormals(normals_cloud);
+		seg.setInputCloud(noncylinder_cloud);
+//		seg.setMaxIterations(10000);
+
+		seg.segment(*inliers, *coefficients);
+
+		if (what == "cylinder") {
+			if (inliers->indices.size() < cylinder_min_inliers_) {
+				PCL_ERROR(
+						"Could not estimate a cylinder model for the given dataset.");
+				break;
+			}
+		} else {
+			if (inliers->indices.size() < circle_min_inliers_) {
+				PCL_ERROR(
+						"Could not estimate a cylinder model for the given dataset.");
+				break;
+			}
+		}
+
+		for (size_t i = 0; i < inliers->indices.size(); i++) {
+			PointType point = noncylinder_cloud->points[inliers->indices[i]];
+			one_cylinder_cloud->points.push_back(point);
+		}
+
+		if (euclidian_clustering_after_circular_extraction_) {
+
+			std::vector<pcl::PointIndices> cluster_indices;
+
+			if (what == "cylinder")
+			euclidianClustering(one_cylinder_cloud, cluster_indices,
+					euclidian_cylinder_cluster_tolerance_);
+			else
+				euclidianClustering(one_cylinder_cloud, cluster_indices,
+						euclidian_circle_cluster_tolerance_);
+
+			CloudPtr one_cylinder_after_euclidian_cloud(new Cloud);
+
+			for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
+				PointType point =
+						one_cylinder_cloud->points[cluster_indices[0].indices[i]];
+				one_cylinder_after_euclidian_cloud->points.push_back(point);
+			}
+
+			result.push_back(one_cylinder_after_euclidian_cloud);
+			pcl::PointIndices::Ptr cluster_inliers(new pcl::PointIndices);
+			for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
+				int index = inliers->indices[cluster_indices[0].indices[i]];
+				cluster_inliers->indices.push_back(index);
+			}
+
+			removePrimitive(noncylinder_cloud, cluster_inliers,
+					*noncylinder_cloud);
+		} else {
+			result.push_back(one_cylinder_cloud);
+			removePrimitive(noncylinder_cloud, inliers, *noncylinder_cloud);
+		}
+
+	}
+
+	if (result.size() == 0)
+		return false;
+	else
+		return true;
+
+}
+
+template<typename PointType> void PrimitivesExtract<PointType>::lineDirectionPCA(const CloudConstPtr &cloud, Eigen::Vector3f &direction){
+
+		Eigen::Vector4f centroid;
+
+
+			EIGEN_ALIGN16 Eigen::Vector3f eigen_values;
+			EIGEN_ALIGN16 Eigen::Matrix3f eigen_vectors;
+			Eigen::Matrix3f cov;
+			Eigen::Vector3f eigen_vector1;
+			Eigen::Vector3f eigen_vector2;
+			Eigen::Vector3f vector3rd;
+
+
+			pcl::compute3DCentroid(*cloud, centroid);
+
+
+			pcl::computeCovarianceMatrixNormalized(*cloud, centroid, cov);
+			pcl::eigen33(cov, eigen_vectors, eigen_values);
+
+
+			eigen_vector1(0) = eigen_vectors(0, 2);
+			eigen_vector1(1) = eigen_vectors(1, 2);
+			eigen_vector1(2) = eigen_vectors(2, 2);
+			eigen_vector2(0) = eigen_vectors(0, 1);
+			eigen_vector2(1) = eigen_vectors(1, 1);
+			eigen_vector2(2) = eigen_vectors(2, 1);
+
+			direction=eigen_vector1;
+
+
+}
+
+
 

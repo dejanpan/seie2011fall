@@ -44,7 +44,7 @@ int main(int argc, char **argv)
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr result_lines(new pcl::PointCloud<pcl::PointXYZRGBA>);
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr debug(new pcl::PointCloud<pcl::PointXYZRGBA>);
 
-
+  std::vector<Eigen::Vector3f> directions_vector;
 
 
   std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector;
@@ -57,7 +57,8 @@ int main(int argc, char **argv)
 
 //  prim_ex.findBoundaries(cloud_input,*cloud_boundaries);
 //  prim_ex.extractLines(cloud_boundaries,result_vector_lines,coefficients);
-  prim_ex.extractLineVector(cloud_input,result_vector_lines,coefficients);
+  prim_ex.extractLineVector(cloud_input,result_vector_lines,coefficients,directions_vector);
+//  prim_ex.extractCircleVector(cloud_input,result_vector_lines);
   std::cerr<<"number of lines: "<<result_vector_lines.size()<<std::endl;
 
   pcl::copyPointCloud(*result_vector[0],*result_corners);
