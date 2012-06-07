@@ -1,0 +1,6 @@
+Ideas:
+
+- add icp alignment of the model before visibility scores
+- implement feature and model scaling 
+- implement model learning from real objects
+
