@@ -198,7 +198,6 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 					"Could not estimate a line model for the given dataset.");
 			PCL_INFO(
 					"Number of line inliers: %f  is smaller than treshold: %f \n", inliers->indices.size(), min_line_inliers_);
-			std::cerr<<"min line inliers: "<<min_line_inliers_<<std::endl;
 			break;
 		}
 		if (coefficients != NULL)
