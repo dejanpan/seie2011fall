@@ -56,6 +56,7 @@
 #include <iostream>
 
 #include <math.h>
+#include "PrimitivesExtract.cpp"
 
 #define FPS_CALC_BEGIN                          \
     static double duration = 0;                 \
@@ -77,14 +78,17 @@
     }                                           \
   }
 
-unsigned char colormap_ [36] = { 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0, 255, 0, 255, 0, 255, 255, 127, 0, 0, 0, 127, 0, 0, 0, 127,127, 127, 0, 127, 0, 127, 0, 127, 127 };
+unsigned char colormap_[36] = { 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0,
+		255, 0, 255, 0, 255, 255, 127, 0, 0, 0, 127, 0, 0, 0, 127, 127, 127, 0,
+		127, 0, 127, 0, 127, 127 };
 
+bool comparison(pcl::PointXYZI i, pcl::PointXYZI j) {
+	return (i.intensity > j.intensity);
+}
 
-bool comparison (pcl::PointXYZI i,pcl::PointXYZI j) {
-	 return (i.intensity > j.intensity); }
-
-bool comparison_curv (pcl::Normal i,pcl::Normal j) {
-	 return (i.curvature > j.curvature); }
+bool comparison_curv(pcl::Normal i, pcl::Normal j) {
+	return (i.curvature > j.curvature);
+}
 
 using namespace pcl::tracking;
 
@@ -123,11 +127,6 @@ public:
 		ne_.setSearchMethod(tree);
 		ne_.setRadiusSearch(0.03);
 
-
-
-
-
-
 		a_file_.open("poses_final.txt");
 		//here
 		//std::vector<double> default_step_covariance = std::vector<double>(6,
@@ -139,215 +138,209 @@ public:
 		default_step_covariance[5] *= 40.0;
 //		default_step_covariance[0] *=50.0;
 
-		step_covariance_=default_step_covariance;
+		step_covariance_ = default_step_covariance;
 
-		std::cerr << "step covariance: " << default_step_covariance.size()
-				<< std::endl;
+
 
 		std::vector<double> initial_noise_covariance = std::vector<double>(6,
 				0.00001);
 		std::vector<double> default_initial_mean = std::vector<double>(6, 0.0);
 
-		for (int i=0; i<trackers_number; i++){
+		for (int i = 0; i < trackers_number; i++) {
 
-		if (use_fixed) {
-			boost::shared_ptr<ParticleFilterOMPTracker<RefPointType, ParticleT> > tracker(
-					new ParticleFilterOMPTracker<RefPointType, ParticleT>(
-							thread_nr));
-			tracker_ = tracker;
+			if (use_fixed) {
+				boost::shared_ptr<
+						ParticleFilterOMPTracker<RefPointType, ParticleT> > tracker(
+						new ParticleFilterOMPTracker<RefPointType, ParticleT>(
+								thread_nr));
+				tracker_ = tracker;
 
-		} else {
-			boost::shared_ptr<
-					KLDAdaptiveParticleFilterOMPTracker<RefPointType, ParticleT> > tracker(
-					new KLDAdaptiveParticleFilterOMPTracker<RefPointType,
-							ParticleT>(thread_nr));
+			} else {
+				boost::shared_ptr<
+						KLDAdaptiveParticleFilterOMPTracker<RefPointType,
+								ParticleT> > tracker(
+						new KLDAdaptiveParticleFilterOMPTracker<RefPointType,
+								ParticleT>(thread_nr));
+				//here
+				//tracker->setMaximumParticleNum(500);
+				tracker->setMaximumParticleNum(1000);
+
+				tracker->setDelta(0.99);
+				tracker->setEpsilon(0.2);
+				ParticleT bin_size;
+				bin_size.x = 0.1;
+				bin_size.y = 0.1;
+				bin_size.z = 0.1;
+				bin_size.roll = 0.1;
+				bin_size.pitch = 0.1;
+				bin_size.yaw = 0.1;
+				tracker->setBinSize(bin_size);
+				tracker_ = tracker;
+			}
+
+			tracker_->setTrans(Eigen::Affine3f::Identity());
+			tracker_->setStepNoiseCovariance(default_step_covariance);
+			tracker_->setInitialNoiseCovariance(initial_noise_covariance);
+			tracker_->setInitialNoiseMean(default_initial_mean);
+			tracker_->setIterationNum(1);
+
 			//here
-			//tracker->setMaximumParticleNum(500);
-			tracker->setMaximumParticleNum(1000);
-
-			tracker->setDelta(0.99);
-			tracker->setEpsilon(0.2);
-			ParticleT bin_size;
-			bin_size.x = 0.1;
-			bin_size.y = 0.1;
-			bin_size.z = 0.1;
-			bin_size.roll = 0.1;
-			bin_size.pitch = 0.1;
-			bin_size.yaw = 0.1;
-			tracker->setBinSize(bin_size);
-			tracker_ = tracker;
-		}
-
-		tracker_->setTrans(Eigen::Affine3f::Identity());
-		tracker_->setStepNoiseCovariance(default_step_covariance);
-		tracker_->setInitialNoiseCovariance(initial_noise_covariance);
-		tracker_->setInitialNoiseMean(default_initial_mean);
-		tracker_->setIterationNum(1);
-
-		//here
 
 //		tracker_->setParticleNum(400);
-		tracker_->setParticleNum(800);
+			tracker_->setParticleNum(800);
 
-		tracker_->setResampleLikelihoodThr(0.00);
-		tracker_->setUseNormal(false);
+			tracker_->setResampleLikelihoodThr(0.00);
+			tracker_->setUseNormal(false);
 
-		//here
-		tracker_->setMotionRatio(0.2);
+			//here
+			tracker_->setMotionRatio(0.2);
 
-		// setup coherences
-		ApproxNearestPairPointCloudCoherence<RefPointType>::Ptr coherence =
-				ApproxNearestPairPointCloudCoherence<RefPointType>::Ptr(
-						new ApproxNearestPairPointCloudCoherence<RefPointType>());
-		// NearestPairPointCloudCoherence<RefPointType>::Ptr coherence = NearestPairPointCloudCoherence<RefPointType>::Ptr
-		//   (new NearestPairPointCloudCoherence<RefPointType> ());
+			// setup coherences
+			ApproxNearestPairPointCloudCoherence<RefPointType>::Ptr coherence =
+					ApproxNearestPairPointCloudCoherence<RefPointType>::Ptr(
+							new ApproxNearestPairPointCloudCoherence<
+									RefPointType>());
+			// NearestPairPointCloudCoherence<RefPointType>::Ptr coherence = NearestPairPointCloudCoherence<RefPointType>::Ptr
+			//   (new NearestPairPointCloudCoherence<RefPointType> ());
 
-		boost::shared_ptr<DistanceCoherence<RefPointType> > distance_coherence =
-				boost::shared_ptr<DistanceCoherence<RefPointType> >(
-						new DistanceCoherence<RefPointType>());
-		coherence->addPointCoherence(distance_coherence);
+			boost::shared_ptr<DistanceCoherence<RefPointType> > distance_coherence =
+					boost::shared_ptr<DistanceCoherence<RefPointType> >(
+							new DistanceCoherence<RefPointType>());
+			coherence->addPointCoherence(distance_coherence);
 
-		boost::shared_ptr<HSVColorCoherence<RefPointType> > color_coherence =
-				boost::shared_ptr<HSVColorCoherence<RefPointType> >(
-						new HSVColorCoherence<RefPointType>());
-		color_coherence->setWeight(0.1);
-		coherence->addPointCoherence(color_coherence);
+			boost::shared_ptr<HSVColorCoherence<RefPointType> > color_coherence =
+					boost::shared_ptr<HSVColorCoherence<RefPointType> >(
+							new HSVColorCoherence<RefPointType>());
+			color_coherence->setWeight(0.1);
+			coherence->addPointCoherence(color_coherence);
 
-		//boost::shared_ptr<pcl::search::KdTree<RefPointType> > search (new pcl::search::KdTree<RefPointType> (false));
-		boost::shared_ptr<pcl::search::Octree<RefPointType> > search(
-				new pcl::search::Octree<RefPointType>(0.01));
-		//boost::shared_ptr<pcl::search::OrganizedNeighbor<RefPointType> > search (new pcl::search::OrganizedNeighbor<RefPointType>);
-		coherence->setSearchMethod(search);
-		coherence->setMaximumDistance(0.01);
-		tracker_->setCloudCoherence(coherence);
+			//boost::shared_ptr<pcl::search::KdTree<RefPointType> > search (new pcl::search::KdTree<RefPointType> (false));
+			boost::shared_ptr<pcl::search::Octree<RefPointType> > search(
+					new pcl::search::Octree<RefPointType>(0.01));
+			//boost::shared_ptr<pcl::search::OrganizedNeighbor<RefPointType> > search (new pcl::search::OrganizedNeighbor<RefPointType>);
+			coherence->setSearchMethod(search);
+			coherence->setMaximumDistance(0.01);
+			tracker_->setCloudCoherence(coherence);
 
-
-		tracker_vector_.push_back(tracker_);
+			tracker_vector_.push_back(tracker_);
 		}
 
 	}
 
 	bool drawParticles(pcl::visualization::PCLVisualizer& viz) {
 
+		for (uint track = 0; track < tracker_vector_.size(); track++) {
+			bool drawParticles = true;
+			ParticleFilter::PointCloudStatePtr particles =
+					tracker_vector_[track]->getParticles();
+			//ParticleFilter::PointCloudStatePtr particles = tracker_->getParticles();
+			if (particles) {
+				if (visualize_particles_) {
+					pcl::PointCloud<pcl::PointXYZ>::Ptr particle_cloud(
+							new pcl::PointCloud<pcl::PointXYZ>());
+					for (size_t i = 0; i < particles->points.size(); i++) {
+						pcl::PointXYZ point;
 
-		for (uint track=0; track < tracker_vector_.size(); track++) {
-		bool drawParticles= true;
-		ParticleFilter::PointCloudStatePtr particles = tracker_vector_[track]->getParticles();
-		//ParticleFilter::PointCloudStatePtr particles = tracker_->getParticles();
-		if (particles) {
-			if (visualize_particles_) {
-				pcl::PointCloud<pcl::PointXYZ>::Ptr particle_cloud(
-						new pcl::PointCloud<pcl::PointXYZ>());
-				for (size_t i = 0; i < particles->points.size(); i++) {
-					pcl::PointXYZ point;
+						point.x = particles->points[i].x;
+						point.y = particles->points[i].y;
+						point.z = particles->points[i].z;
+						particle_cloud->points.push_back(point);
+					}
 
-					point.x = particles->points[i].x;
-					point.y = particles->points[i].y;
-					point.z = particles->points[i].z;
-					particle_cloud->points.push_back(point);
-				}
+					{
+						if (drawParticles) {
 
-				{
-					if (drawParticles){
-
-						pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> blue_color(
-														particle_cloud, colormap_[3*track], colormap_[3*track+1], colormap_[3*track+2]);
+							pcl::visualization::PointCloudColorHandlerCustom<
+									pcl::PointXYZ> blue_color(particle_cloud,
+									colormap_[3 * track],
+									colormap_[3 * track + 1],
+									colormap_[3 * track + 2]);
 //					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> blue_color(particle_cloud, 250, 99,71);
-					 if (!viz.updatePointCloud(particle_cloud, blue_color,
-					 "particle cloud" +track))
-					 viz.addPointCloud(particle_cloud, blue_color,
-					 "particle cloud" +track);
+							if (!viz.updatePointCloud(particle_cloud,
+									blue_color, "particle cloud" + track))
+								viz.addPointCloud(particle_cloud, blue_color,
+										"particle cloud" + track);
+						}
 					}
 				}
-			}
 
 //			return true;
-		} else {
-			PCL_WARN("no particles\n");
-			return false;
-		}} return true;
+			} else {
+				PCL_WARN("no particles\n");
+				return false;
+			}
+		}
+		return true;
 	}
 
 	void drawResult(pcl::visualization::PCLVisualizer& viz) {
 
-		for (uint track=0; track < tracker_vector_.size(); track++) {
+		for (uint track = 0; track < tracker_vector_.size(); track++) {
 
+			ParticleXYZRPY result = tracker_vector_[track]->getResult();
+			bool non_tracking = false;
+			float row, pitch, yaw, x, y, z;
 
-		ParticleXYZRPY result = tracker_vector_[track]->getResult();
-		bool non_tracking=false;
-		float row,pitch,yaw,x,y,z;
+			if (non_tracking) {
+				if (counter_ < 13) {
 
-
-		if (non_tracking)
-		{
-			if (counter_<13){
-
-				Eigen::Affine3f transformation = tracker_vector_[track]->toEigenMatrix(result);
-				// move a little bit for better visualization
-				transformation.translation() += Eigen::Vector3f(0.0, 0.0, -0.005);
-				transformation_=transformation;
+					Eigen::Affine3f transformation =
+							tracker_vector_[track]->toEigenMatrix(result);
+					// move a little bit for better visualization
+					transformation.translation() += Eigen::Vector3f(0.0, 0.0,
+							-0.005);
+					transformation_ = transformation;
 				}
+			} else {
+				Eigen::Affine3f transformation =
+						tracker_vector_[track]->toEigenMatrix(result);
+				// move a little bit for better visualization
+				transformation.translation() += Eigen::Vector3f(0.0, 0.0,
+						-0.005);
+				transformation_ = transformation;
+
+
+			}
+
+			RefCloudPtr result_cloud(new RefCloud());
+
+			if (!visualize_non_downsample_)
+				pcl::transformPointCloud<RefPointType>(
+						*(tracker_vector_[track]->getReferenceCloud()),
+						*result_cloud, transformation_);
+			else
+
+				pcl::transformPointCloud<RefPointType>(
+						*(tracker_vector_[track]->getReferenceCloud()),
+						*result_cloud, transformation_);
+
+			Eigen::Vector4f center;
+			pcl::compute3DCentroid<RefPointType>(*result_cloud, center);
+
+			std::stringstream ss;
+			ss << track;
+
+			a_file_ << center[0] << " " << center[1] << " " << center[2]
+					<< std::endl;
+
+
+			{
+
+				pcl::visualization::PointCloudColorHandlerCustom<RefPointType> red_color(
+						result_cloud, colormap_[3 * track],
+						colormap_[3 * track + 1], colormap_[3 * track + 2]);
+
+
+				if (!viz.updatePointCloud(result_cloud, red_color, ss.str()))
+					viz.addPointCloud(result_cloud, red_color, ss.str());
+
+				//points' size
+				viz.setPointCloudRenderingProperties(
+						pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4,
+						ss.str());
+
+			}
 		}
-		else
-		{
-			Eigen::Affine3f transformation = tracker_vector_[track]->toEigenMatrix(result);
-							// move a little bit for better visualization
-							transformation.translation() += Eigen::Vector3f(0.0, 0.0, -0.005);
-							transformation_=transformation;
-
-//			pcl::getTransformation(x,y,z,row,pitch,yaw,transformation);
-
-		}
-
-
-		RefCloudPtr result_cloud(new RefCloud());
-
-		if (!visualize_non_downsample_)
-			pcl::transformPointCloud<RefPointType>(
-					*(tracker_vector_[track]->getReferenceCloud()), *result_cloud,
-					transformation_);
-		else
-//			pcl::transformPointCloud<RefPointType>(*reference_, *result_cloud,
-//					transformation_);
-		pcl::transformPointCloud<RefPointType>(*(tracker_vector_[track]->getReferenceCloud()), *result_cloud,
-							transformation_);
-
-
-		Eigen::Vector4f center;
-		pcl::compute3DCentroid<RefPointType>(*result_cloud, center);
-
-		std::stringstream ss;
-					ss <<track;
-
-		//a_file_<<ss.str();
-		a_file_<< center[0] << " " << center[1] << " " << center[2] << std::endl;
-//		a_file_<< x << " " << y << " " << z <<" " << row << " " << pitch <<  " " << yaw <<std::endl;
-		std::cerr<<"center: "<<center<<std::endl;
-
-
-
-
-		{
-//			pcl::visualization::PointCloudColorHandlerCustom<RefPointType> red_color(
-//					result_cloud, 0, 0, 255);
-
-			//if (track<12)
-			pcl::visualization::PointCloudColorHandlerCustom<RefPointType> red_color(
-								result_cloud, colormap_[3*track], colormap_[3*track+1], colormap_[3*track+2]);
-
-			std::cerr<<"track: "<<track<<std::endl;
-
-
-
-
-			if (!viz.updatePointCloud(result_cloud, red_color, ss.str()))
-				viz.addPointCloud(result_cloud, red_color, ss.str());
-
-			//points' size
-			 viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4, ss.str());
-
-		}
-}
 	}
 
 	void viz_cb(pcl::visualization::PCLVisualizer& viz) {
@@ -408,18 +401,18 @@ public:
 //								% (1.0 / computation_time_)).str(), 10, 100, 20,
 //						1.0, 1.0, 1.0, "computation");
 
-				for (uint track=0; track < tracker_vector_.size(); track++) {
+				for (uint track = 0; track < tracker_vector_.size(); track++) {
 //						tracker_vector_[track]->getParticles();
 					std::stringstream ss;
-					ss <<track;
+					ss << track;
 
-				viz.removeShape("particles"+ss.str());
-				viz.addText(
-						(boost::format("particles:     %d")
-								% (tracker_vector_[track]->getParticles()->points.size())).str(),
-						10, 120*track, 20, 1.0, 1.0, 1.0, "particles"+ss.str());
+					viz.removeShape("particles" + ss.str());
+					viz.addText(
+							(boost::format("particles:     %d")
+									% (tracker_vector_[track]->getParticles()->points.size())).str(),
+							10, 120 * track, 20, 1.0, 1.0, 1.0,
+							"particles" + ss.str());
 				}
-
 
 //				viz.addText("Particle filtering-based tracking of 3D lines and corners. ",20,60,23,1.0,1.0,1.0,"title"+counter_);
 			}
@@ -532,10 +525,10 @@ public:
 	void tracking(const RefCloudConstPtr &cloud) {
 		double start = pcl::getTime();
 		FPS_CALC_BEGIN;
-		for (uint track=0; track < tracker_vector_.size(); track++) {
+		for (uint track = 0; track < tracker_vector_.size(); track++) {
 
-		tracker_vector_[track]->setInputCloud(cloud);
-		tracker_vector_[track]->compute();
+			tracker_vector_[track]->setInputCloud(cloud);
+			tracker_vector_[track]->compute();
 
 //		tracker_->setInputCloud(cloud);
 //		tracker_->compute();
@@ -609,942 +602,50 @@ public:
 		result.is_dense = true;
 	}
 
-	void extractLinesNew(const CloudConstPtr &cloud, Cloud &result) {
-		std::vector<int> inliers;
-
-
-		typename pcl::SampleConsensusModelLine<PointType>::Ptr model_l(
-				new pcl::SampleConsensusModelLine<PointType>(cloud));
-
-		pcl::RandomSampleConsensus<PointType> ransac(model_l);
-		ransac.setDistanceThreshold(.002);
-		ransac.computeModel();
-		ransac.getInliers(inliers);
-
-		// copies all inliers of the model computed to another PointCloud
-		pcl::copyPointCloud<PointType>(*cloud, inliers, result);
-
-
-
-
-	}
-
-	bool extractLines(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud, pcl::ModelCoefficients::Ptr &coefficients) {
-
-		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-
-		if (cloud->size()==0)
-			return false;
-
-		pcl::SACSegmentation<PointType> seg;
-		// Optional
-		seg.setOptimizeCoefficients(true);
-
-		seg.setModelType(pcl::SACMODEL_LINE);
-		seg.setMethodType(pcl::SAC_RANSAC);
-		seg.setDistanceThreshold(0.002);
-
-		seg.setInputCloud(cloud);
-		seg.segment(*inliers, *coefficients);
-		if (inliers->indices.size() == 0) {
-			PCL_ERROR(
-					"Could not estimate a line model for the given dataset.");
-			return false;
-		}
-//DEBUG
-		/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
-		 for (size_t i = 0; i < inliers->indices.size(); ++i)
-		 std::cerr << inliers->indices[i] << "    "
-		 << cloud->points[inliers->indices[i]].x << " "
-		 << cloud->points[inliers->indices[i]].y << " "
-		 << cloud->points[inliers->indices[i]].z << std::endl;*/
-
-		pcl::copyPointCloud<PointType>(*cloud,newCloud);
-
-
-		for (size_t i = 0; i < inliers->indices.size(); i++) {
-			PointType point = cloud->points[inliers->indices[i]];
-			result.points.push_back(point);
-
-		}
-
-
-
-		result.width = result.points.size();
-		result.height = 1;
-		result.is_dense = true;
-
-		//removing line
-
-		RefCloudPtr thickResult(new RefCloud);
-
-		//DEBUG
-//		std::cerr<<"result size: "<<result.points.size()<<std::endl;
-//
-//		std::cerr<<"boundary size: "<<cloud->points.size()<<std::endl;
-
-
-		extractNeighbor(cloud,result,*thickResult,0.002);
-
-		//DEBUG
-//		std::cerr<<"thick result size: "<<thickResult->points.size()<<std::endl;
-
-		for (size_t i = 0; i < thickResult->points.size(); i++) {
-					PointType point = thickResult->points[i];
-
-
-					for(size_t j = 1; j < newCloud.points.size()+1; j++){
-
-						PointType pointNew = newCloud.points[j-1];
-
-						float dist= sqrt((point.x-pointNew.x)*(point.x-pointNew.x)+(point.y-pointNew.y)*(point.y-pointNew.y)+(point.z-pointNew.z)*(point.z-pointNew.z));
-						if(dist<0.00001){
-							newCloud.erase(newCloud.begin()+j-1);
-							j--;
-						}
-
-
-
-					}
-
-
-
-
-				}
-
-		//DEBUG
-		//std::cerr<<"new cloud size: "<<newCloud.points.size()<<std::endl;
-
-		newCloud.width = newCloud.points.size();
-		newCloud.height = 1;
-		newCloud.is_dense = true;
-		return true;
-
-	}
-
-	void findBoundaries(const CloudConstPtr &cloud, Cloud &result) {
-
-		pcl::PointCloud<pcl::Normal>::Ptr normals(
-				new pcl::PointCloud<pcl::Normal>);
-		pcl::PointCloud<pcl::Normal>::Ptr normals_cloud(
-				new pcl::PointCloud<pcl::Normal>);
-		pcl::NormalEstimation<PointType, pcl::Normal> norm_est;
-		norm_est.setSearchMethod(KdTreePtr(new KdTree));
-		norm_est.setInputCloud(cloud);
-		norm_est.setRadiusSearch(0.03);
-		norm_est.compute(*normals_cloud);
-
-		std::cerr<<"cloud before: "<<cloud->size()<<std::endl;
-
-
-//		 std::sort(normals_cloud->points.begin(),normals_cloud->points.end(),comparison_curv);
-
-
-		for (size_t i = 0; i < normals_cloud->size(); ++i)
-		{
-			//std::cerr<<"CURVATURE: "<<normals_cloud->points[i].curvature<<std::endl;
-			if (normals_cloud->points[i].curvature > 0.055)
-				result.push_back(cloud->points.at(i));
-		}
-
-		std::cerr<<"cloud after: "<<result.size()<<std::endl;
-
-
-		/*
-
-		pcl::PointCloud<pcl::Boundary> boundaries;
-		pcl::BoundaryEstimation<PointType, pcl::Normal, pcl::Boundary> est;
-		est.setInputCloud(cloud);
-		est.setInputNormals(normals_cloud);
-		est.setRadiusSearch(0.02); // 2cm radius
-		est.setSearchMethod(KdTreePtr(new KdTree));
-		est.compute(boundaries);
-
-		for (int i = 0; i < boundaries.size(); i++) {
-			if (boundaries.points[i].boundary_point != 0) {
-				result.push_back(cloud->points.at(i));
-			}
-		}
-		*/
-
-		result.width = result.points.size();
-		result.height = 1;
-		result.is_dense = true;
-
-	}
-
-	void extractNeighbor(const CloudConstPtr &cloud,Cloud &searchCloud, Cloud &result,float radius = 0.05){
-
-		  pcl::KdTreeFLANN<PointType> kdtree;
-
-		  kdtree.setInputCloud (cloud);
-
-		  PointType searchPoint;
-
-		  std::vector<int> pointIdxRadiusSearch;
-		  std::vector<float> pointRadiusSquaredDistance;
-
-//		   float radius = 0.05;
-
-
-
-
-		   for (size_t i = 0; i < searchCloud.size(); ++i){
-			   searchPoint=searchCloud.points.at(i);
-
-	   		   	  result.push_back(searchPoint);
-
-
-
-			   	   if ( kdtree.radiusSearch (searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 )
-			   	   	   {
-			   		   	   for (size_t i = 0; i < pointIdxRadiusSearch.size (); ++i)
-
-			   		   		   	  result.push_back(cloud->points[ pointIdxRadiusSearch[i] ]);
-
-			   		   	   //DEBUG
-			   		   	   /*std::cout << "    "  <<   cloud->points[ pointIdxRadiusSearch[i] ].x
-		                 << " " << cloud->points[ pointIdxRadiusSearch[i] ].y
-		                 << " " << cloud->points[ pointIdxRadiusSearch[i] ].z
-		                 << " (squared distance: " << pointRadiusSquaredDistance[i] << ")" << std::endl;*/
-			   	   	   	 }
-
-
-		   	 }
-
-		   CloudPtr resultPtr(new Cloud(result));
-
-		   pcl::VoxelGrid<PointType> sor;
-		   sor.setInputCloud (resultPtr);
-		   sor.setLeafSize (0.001f, 0.001f, 0.001f);
-		   sor.filter (result);
-
-
-		   result.width = result.points.size();
-		   		 		result.height = 1;
-		   		 		result.is_dense = true;
-
-
-	}
-
-
-
-
-
-	bool extractCorners(const CloudConstPtr &cloud, Cloud &result,Cloud &newCloud, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity,int number) {
-
-
-
-		 pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>* harris3D = new pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI> (pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>::HARRIS);
-		 harris3D->setNonMaxSupression(true);
-//		 harris3D->setThreshold(0.0009);
-//		 harris3D->setThreshold(0.00011);
-
-
-		 harris3D->setRadius (0.01);
-		 harris3D->setRadiusSearch (0.01);
-		 harris3D->setInputCloud(cloud);
-		 harris3D->setRefine(false);
-		 harris3D->setMethod(pcl::HarrisKeypoint3D<PointType,pcl::PointXYZI>::HARRIS);
-		 harris3D->compute(*cloud_intensity);
-
-		 pcl::copyPointCloud<PointType>(*cloud,newCloud);
-
-
-		 cloud_intensity_.reset(new pcl::PointCloud<pcl::PointXYZI>);
-		 pcl::copyPointCloud(*cloud_intensity, *cloud_intensity_);
-
-//		 get the best corner
-
-		 bool best_corner=true;
-
-		 if(cloud_intensity_->size()>0){
-		 std::sort(cloud_intensity_->points.begin(),cloud_intensity_->points.end(),comparison);
-
-		 if (best_corner)
-		 {
-		 pcl::PointXYZI max=cloud_intensity_->points[number];
-		 pcl::PointXYZI max2=cloud_intensity_->points[number+1];
-
-
-		 	/* for (size_t i = 0; i < cloud_intensity_->size(); ++i)
-		 	 {
-		 		   if (max.intensity < cloud_intensity_->points[i].intensity) {
-		 			   max = cloud_intensity_->points[i];
-		 		   }
-
-
-
-		 	 }*/
-
-
-
-
-
-
-			 cloud_intensity_.reset(new pcl::PointCloud<pcl::PointXYZI>);
-		 	 cloud_intensity_->push_back(max);
-		 	 cloud_intensity_->push_back(max2);
-
-
-
-
-		 }
-
-
-		 pcl::copyPointCloud(*cloud_intensity_, result);
-
-
-		 pcl::KdTreeFLANN<PointType> kdtree;
-
-				  kdtree.setInputCloud (cloud);
-
-				  PointType searchPoint,searchPoint2;
-
-				  std::vector<int> pointIdxRadiusSearch;
-				  std::vector<float> pointRadiusSquaredDistance;
-
-				   float radius = 0.05;
-				   int big1,big2;
-
-				   searchPoint=result.points[0];
-				   searchPoint2=result.points[1];
-
-
-				   if ( kdtree.radiusSearch (searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 ){
-					   big1=(int)pointIdxRadiusSearch.size ();
-				   }
-
-				   pointIdxRadiusSearch.clear();
-				   pointRadiusSquaredDistance.clear();
-
-				   if ( kdtree.radiusSearch (searchPoint2, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0 ){
-				   					   big2=(int)pointIdxRadiusSearch.size ();
-				   				   }
-
-
-				   if (big1>big2)
-					   result.erase(result.begin() + 0);
-				   else
-					   result.erase(result.begin() + 1);
-
-
-				   RefCloudPtr thickResult(new RefCloud);
-
-				   		//DEBUG
-				   //		std::cerr<<"result size: "<<result.points.size()<<std::endl;
-				   //
-				   //		std::cerr<<"boundary size: "<<cloud->points.size()<<std::endl;
-
-
-				   		extractNeighbor(cloud,result,*thickResult);
-
-				   		//DEBUG
-				   //		std::cerr<<"thick result size: "<<thickResult->points.size()<<std::endl;
-
-				   		for (size_t i = 0; i < thickResult->points.size(); i++) {
-				   					PointType point = thickResult->points[i];
-
-
-				   for(size_t j = 0; j < newCloud.points.size(); j++){
-
-				   						PointType pointNew = newCloud.points[j];
-
-//				   						PointType point =result.points[0];
-
-				   						float dist= sqrt((point.x-pointNew.x)*(point.x-pointNew.x)+(point.y-pointNew.y)*(point.y-pointNew.y)+(point.z-pointNew.z)*(point.z-pointNew.z));
-				   						if(dist<0.00001)
-				   							newCloud.erase(newCloud.begin()+j);
-
-
-
-				   					}
-				   		}
-
-		 }
-		 else{
-			 return false;
-		 }
-
-
-
-		 		result.width = result.points.size();
-		 		result.height = 1;
-		 		result.is_dense = true;
-
-		 		return true;
-
-
-	}
-
-	bool extractPlane(const CloudConstPtr &cloud, Cloud &result,pcl::PointIndices::Ptr &inliers){
-
-		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-
-				if (cloud->size()==0)
-					return false;
-
-				pcl::SACSegmentation<PointType> seg;
-				// Optional
-				seg.setOptimizeCoefficients(true);
-
-				seg.setModelType(pcl::SACMODEL_PLANE);
-				seg.setMethodType(pcl::SAC_RANSAC);
-				seg.setDistanceThreshold(0.005);
-
-				seg.setInputCloud(cloud);
-				seg.segment(*inliers, *coefficients);
-				if (inliers->indices.size() < 60) {
-					PCL_ERROR(
-							"Could not estimate a plane model for the given dataset.");
-					return false;
-				}
-		//DEBUG
-				/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
-				 for (size_t i = 0; i < inliers->indices.size(); ++i)
-				 std::cerr << inliers->indices[i] << "    "
-				 << cloud->points[inliers->indices[i]].x << " "
-				 << cloud->points[inliers->indices[i]].y << " "
-				 << cloud->points[inliers->indices[i]].z << std::endl;*/
-
-
-
-				for (size_t i = 0; i < inliers->indices.size(); i++) {
-					PointType point = cloud->points[inliers->indices[i]];
-					result.points.push_back(point);
-
-				}
-
-
-
-				result.width = result.points.size();
-				result.height = 1;
-				result.is_dense = true;
-
-				return true;
-
-	}
-
-	bool extract3DCircle(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud){
-
-		pcl::PointCloud<pcl::Normal>::Ptr normals_cloud(
-						new pcl::PointCloud<pcl::Normal>);
-				pcl::NormalEstimation<PointType, pcl::Normal> norm_est;
-				norm_est.setSearchMethod(KdTreePtr(new KdTree));
-				norm_est.setInputCloud(cloud);
-				norm_est.setRadiusSearch(0.03);
-				norm_est.compute(*normals_cloud);
-
-
-				pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-				pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-						if (cloud->size()==0)
-							return false;
-
-						pcl::SACSegmentationFromNormals<PointType,pcl::Normal> seg;
-						// Optional
-						seg.setOptimizeCoefficients(true);
-
-						seg.setModelType(pcl::SACMODEL_CIRCLE3D);
-						seg.setMethodType(pcl::SAC_RANSAC);
-						seg.setDistanceThreshold(0.003);
-//						seg.setRadiusLimits(0.01,0.15);
-						seg.setInputNormals(normals_cloud);
-						seg.setInputCloud(cloud);
-						seg.setMaxIterations (10000);
-
-						seg.segment(*inliers, *coefficients);
-						if (inliers->indices.size() < 5) {
-							PCL_ERROR(
-									"Could not estimate a circle model for the given dataset.");
-							return false;
-						}
-				//DEBUG
-						/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
-						 for (size_t i = 0; i < inliers->indices.size(); ++i)
-						 std::cerr << inliers->indices[i] << "    "
-						 << cloud->points[inliers->indices[i]].x << " "
-						 << cloud->points[inliers->indices[i]].y << " "
-						 << cloud->points[inliers->indices[i]].z << std::endl;*/
-
-
-
-						for (size_t i = 0; i < inliers->indices.size(); i++) {
-							PointType point = cloud->points[inliers->indices[i]];
-							result.points.push_back(point);
-
-						}
-		//EUCLIDIAN CLUSTERING PART
-		//				  CloudPtr cloudForEuclidianDistance(new Cloud);
-		//				  pcl::copyPointCloud(result, *cloudForEuclidianDistance);
-		//
-		//
-		//				  KdTreePtr tree(new KdTree());
-		//				  tree->setInputCloud (cloudForEuclidianDistance);
-
-
-		//				  std::vector<pcl::PointIndices> cluster_indices;
-		//				  pcl::EuclideanClusterExtraction<PointType> ec;
-		//				  ec.setClusterTolerance (0.03); // 2cm
-		//				  ec.setMinClusterSize (1000);
-		//				  ec.setMaxClusterSize (25000);
-		//				  ec.setSearchMethod (tree);
-		//				  ec.setInputCloud (cloudForEuclidianDistance);
-		//				  ec.extract (cluster_indices);
-		//				  std::cerr<<"Size of result before cylinder euclidian clustering: "<<cloudForEuclidianDistance->points.size()<<std::endl;
-		//
-		//					if (cluster_indices.size()==0) {
-		//						PCL_ERROR(
-		//								"Could not do cylinder euclidian clustering for the given dataset.");
-		//						return false;
-		//					}
-		//
-		//				  result.clear();
-		//				  for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
-		//				  					PointType point = cloudForEuclidianDistance->points[cluster_indices[0].indices[i]];
-		//				  					result.points.push_back(point);
-		//				  				}
-		//
-		//
-		//				  std::cerr<<"Size of result after cylinder euclidian clustering: "<<result.points.size()<<std::endl;
-
-						  pcl::ExtractIndices<PointType> extract;
-						  extract.setNegative (true);
-						  extract.setInputCloud (cloud);
-						  extract.setIndices (inliers);
-						  extract.filter (newCloud);
-
-
-
-
-						result.width = result.points.size();
-						result.height = 1;
-						result.is_dense = true;
-
-						return true;
-
-
-
-	}
-
-	bool extractCylinder(const CloudConstPtr &cloud, Cloud &result, Cloud &newCloud){
-
-
-		pcl::PointCloud<pcl::Normal>::Ptr normals_cloud(
-				new pcl::PointCloud<pcl::Normal>);
-		pcl::NormalEstimation<PointType, pcl::Normal> norm_est;
-		norm_est.setSearchMethod(KdTreePtr(new KdTree));
-		norm_est.setInputCloud(cloud);
-		norm_est.setRadiusSearch(0.03);
-		norm_est.compute(*normals_cloud);
-
-
-		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-				if (cloud->size()==0)
-					return false;
-
-				pcl::SACSegmentationFromNormals<PointType,pcl::Normal> seg;
-				// Optional
-				seg.setOptimizeCoefficients(true);
-
-				seg.setModelType(pcl::SACMODEL_CYLINDER);
-				seg.setMethodType(pcl::SAC_RANSAC);
-				seg.setDistanceThreshold(0.03);
-				seg.setRadiusLimits(0.01,0.15);
-				seg.setInputNormals(normals_cloud);
-				seg.setInputCloud(cloud);
-				seg.setMaxIterations (10000);
-
-
-				seg.segment(*inliers, *coefficients);
-				if (inliers->indices.size() < 5) {
-					PCL_ERROR(
-							"Could not estimate a cylinder model for the given dataset.");
-					return false;
-				}
-		//DEBUG
-				/*std::cerr << "Model inliers: " << inliers->indices.size() << std::endl;
-				 for (size_t i = 0; i < inliers->indices.size(); ++i)
-				 std::cerr << inliers->indices[i] << "    "
-				 << cloud->points[inliers->indices[i]].x << " "
-				 << cloud->points[inliers->indices[i]].y << " "
-				 << cloud->points[inliers->indices[i]].z << std::endl;*/
-
-
-
-				for (size_t i = 0; i < inliers->indices.size(); i++) {
-					PointType point = cloud->points[inliers->indices[i]];
-					result.points.push_back(point);
-
-				}
-//EUCLIDIAN CLUSTERING PART
-//				  CloudPtr cloudForEuclidianDistance(new Cloud);
-//				  pcl::copyPointCloud(result, *cloudForEuclidianDistance);
-//
-//
-//				  KdTreePtr tree(new KdTree());
-//				  tree->setInputCloud (cloudForEuclidianDistance);
-
-
-//				  std::vector<pcl::PointIndices> cluster_indices;
-//				  pcl::EuclideanClusterExtraction<PointType> ec;
-//				  ec.setClusterTolerance (0.03); // 2cm
-//				  ec.setMinClusterSize (1000);
-//				  ec.setMaxClusterSize (25000);
-//				  ec.setSearchMethod (tree);
-//				  ec.setInputCloud (cloudForEuclidianDistance);
-//				  ec.extract (cluster_indices);
-//				  std::cerr<<"Size of result before cylinder euclidian clustering: "<<cloudForEuclidianDistance->points.size()<<std::endl;
-//
-//					if (cluster_indices.size()==0) {
-//						PCL_ERROR(
-//								"Could not do cylinder euclidian clustering for the given dataset.");
-//						return false;
-//					}
-//
-//				  result.clear();
-//				  for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
-//				  					PointType point = cloudForEuclidianDistance->points[cluster_indices[0].indices[i]];
-//				  					result.points.push_back(point);
-//				  				}
-//
-//
-//				  std::cerr<<"Size of result after cylinder euclidian clustering: "<<result.points.size()<<std::endl;
-
-				  pcl::ExtractIndices<PointType> extract;
-				  extract.setNegative (true);
-				  extract.setInputCloud (cloud);
-				  extract.setIndices (inliers);
-				  extract.filter (newCloud);
-
-
-
-
-				result.width = result.points.size();
-				result.height = 1;
-				result.is_dense = true;
-
-				return true;
-
-	}
-
-	void covariancePCA(const CloudConstPtr &cloud, Eigen::Vector3f &direction){
-
-			Eigen::Vector4f centroid;
-			//DEBUG
-			//std::cerr << "centroid: " << centroid << std::endl;
-
-				EIGEN_ALIGN16 Eigen::Vector3f eigen_values;
-				EIGEN_ALIGN16 Eigen::Matrix3f eigen_vectors;
-				Eigen::Matrix3f cov;
-				Eigen::Vector3f eigen_vector1;
-				Eigen::Vector3f eigen_vector2;
-				Eigen::Vector3f vector3rd;
-
-
-				pcl::compute3DCentroid(*cloud, centroid);
-
-
-				//orientation of the gripper based on PCA
-
-				pcl::computeCovarianceMatrixNormalized(*cloud, centroid, cov);
-				pcl::eigen33(cov, eigen_vectors, eigen_values);
-
-
-				eigen_vector1(0) = eigen_vectors(0, 2);
-				eigen_vector1(1) = eigen_vectors(1, 2);
-				eigen_vector1(2) = eigen_vectors(2, 2);
-				eigen_vector2(0) = eigen_vectors(0, 1);
-				eigen_vector2(1) = eigen_vectors(1, 1);
-				eigen_vector2(2) = eigen_vectors(2, 1);
-
-				direction=eigen_vector1;
-
-
-	}
-
-	void onlyLineNeighbor(const CloudConstPtr &cloud, Cloud &result,Cloud &line, pcl::ModelCoefficients::Ptr &coefficients){
-
-		  CloudPtr cloud_projected (new Cloud);
-		  PointType linePoint,linePoint2;
-
-		pcl::ProjectInliers<PointType> proj;
-		  proj.setModelType (pcl::SACMODEL_LINE);
-		  proj.setInputCloud (cloud);
-		  proj.setModelCoefficients (coefficients);
-		  proj.filter (*cloud_projected);
-
-		  std::cerr<<"CLOUD SIZE: "<<cloud->size()<<std::endl;
-
-			Eigen::Vector4f c;
-			pcl::compute3DCentroid<RefPointType>(line, c);
-			float dist,dist2;
-			float max_dist=0;
-			float max_dist2=0;
-			float max_dist_general=0;
-
-			PointType borderPoint1=line.points.at(1);
-			PointType borderPoint2=line.points.at(1);
-			PointType cloudPoint;
-
-			Cloud resultBefore;
-
-			pcl::copyPointCloud(*cloud, resultBefore);
-			  std::cerr<<"CLOUD PROJECTED SIZE: "<<resultBefore.size()<<std::endl;
-
-
-
-		  for (size_t i = 0; i < line.size(); ++i){
-		  			   linePoint=line.points.at(i);
-		  			   dist=sqrt((linePoint.x-c[0])*(linePoint.x-c[0])+(linePoint.y-c[1])*(linePoint.y-c[1])+(linePoint.z-c[2])*(linePoint.z-c[2]));
-		  			   if (dist>max_dist){
-		  				   max_dist=dist;
-		  				   borderPoint1=linePoint;
-		  			   }
-
-		  }
-
-		  for (size_t i = 0; i < line.size(); ++i){
-		  		  			   linePoint2=line.points.at(i);
-		  		  			   dist2=sqrt((linePoint2.x-borderPoint1.x)*(linePoint2.x-borderPoint1.x)+(linePoint2.y-borderPoint1.y)*(linePoint2.y-borderPoint1.y)+(linePoint2.z-borderPoint1.z)*(linePoint2.z-borderPoint1.z));
-		  		  			   if (dist2>max_dist2){
-		  		  				   max_dist2=dist2;
-		  		  				   borderPoint2=linePoint2;
-		  		  			   }
-
-		  		  }
-
-
-			  max_dist_general=0.95*sqrt((borderPoint1.x-borderPoint2.x)*(borderPoint1.x-borderPoint2.x)+(borderPoint1.y-borderPoint2.y)*(borderPoint1.y-borderPoint2.y)+(borderPoint1.z-borderPoint2.z)*(borderPoint1.z-borderPoint2.z));
-
-
-		  for (size_t i = 0; i < cloud_projected->size(); i++){
-			  cloudPoint=cloud_projected->points.at(i);
-			  float distance=sqrt((cloudPoint.x-borderPoint1.x)*(cloudPoint.x-borderPoint1.x)+(cloudPoint.y-borderPoint1.y)*(cloudPoint.y-borderPoint1.y)+(cloudPoint.z-borderPoint1.z)*(cloudPoint.z-borderPoint1.z));
-			  float distance2=sqrt((cloudPoint.x-borderPoint2.x)*(cloudPoint.x-borderPoint2.x)+(cloudPoint.y-borderPoint2.y)*(cloudPoint.y-borderPoint2.y)+(cloudPoint.z-borderPoint2.z)*(cloudPoint.z-borderPoint2.z));
-
-			  if((distance>max_dist_general)||(distance2>max_dist_general))
-			  {
-				  resultBefore.points.at(i).x=0;
-				  resultBefore.points.at(i).y=0;
-				  resultBefore.points.at(i).z=0;
-			  }
-
-		  }
-
-		  for (size_t i = 1; i < resultBefore.points.size()+1; i++) {
-		  		if ((resultBefore.points[i-1].x == 0)||(resultBefore.points[i-1].y == 0)||(resultBefore.points[i-1].z == 0)) {
-		  			resultBefore.erase(resultBefore.begin() + i-1);
-		  			resultBefore.width--;
-		  			resultBefore.points.resize(resultBefore.width);
-		  			i--;
-		  		}
-		  	}
-
-
-//		  pcl::copyPointCloud(resultBefore, result);
-
-
-		  CloudPtr cloudForEuclidianDistance(new Cloud);
-		  pcl::copyPointCloud(resultBefore, *cloudForEuclidianDistance);
-
-
-		  KdTreePtr tree(new KdTree());
-		  tree->setInputCloud (cloudForEuclidianDistance);
-
-
-		  std::vector<pcl::PointIndices> cluster_indices;
-		  pcl::EuclideanClusterExtraction<PointType> ec;
-		  ec.setClusterTolerance (0.005); // 2cm
-		  ec.setMinClusterSize (30);
-		  ec.setMaxClusterSize (25000);
-		  ec.setSearchMethod (tree);
-		  ec.setInputCloud (cloudForEuclidianDistance);
-		  ec.extract (cluster_indices);
-		  std::cerr<<"Size of result after line euclidian clustering: "<<cloudForEuclidianDistance->points.size()<<std::endl;
-
-		  result.clear();
-		  for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
-		  					PointType point = cloudForEuclidianDistance->points[cluster_indices[0].indices[i]];
-		  					result.points.push_back(point);
-		  				}
-
-
-		  std::cerr<<"Size of result after line euclidian clustering: "<<result.points.size()<<std::endl;
-
-
-
-
-		  /*for (size_t i = 0; i < result.size(); i++){
-		  if (result.points.at(i).x=0)||(result.points.at(i).y=0)||(result.points.at(i).z=0)
-
-		  }*/
-
-			//pcl::copyPointCloud(*cloud_projected, result);
-
-		 // result.push_back(borderPoint1);
-		  //result.push_back(borderPoint2);
-
-		  result.width = result.points.size();
-		  result.height = 1;
-		  result.is_dense = true;
-
-
-
-	}
-
-	int countPlanes(const CloudConstPtr &cloud,Cloud &result){
-		pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-
-		int number=0;
-
-
-		CloudPtr cloud_plane(new Cloud);
-		CloudPtr nonplane_cloud(new Cloud);
-
-		if(extractPlane(cloud,*cloud_plane,inliers)){
-
-	    pcl::ExtractIndices<PointType> extract;
-	    extract.setInputCloud (cloud);
-	    extract.setIndices (inliers);
-	    extract.setNegative (true);
-
-	    // Write the planar inliers to disk
-	    extract.filter (*nonplane_cloud);
-	    number++;
-		}
-
-		cloud_plane.reset(new Cloud);
-		inliers.reset(new pcl::PointIndices);
-		CloudPtr nonplane_cloud2(new Cloud);
-
-		if(extractPlane(nonplane_cloud,*cloud_plane,inliers)){
-
-			    pcl::ExtractIndices<PointType> extract;
-			    extract.setInputCloud (nonplane_cloud);
-			    extract.setIndices (inliers);
-			    extract.setNegative (true);
-
-			    // Write the planar inliers to disk
-			    extract.filter (*nonplane_cloud2);
-			    number++;
-				}
-
-
-
-		cloud_plane.reset(new Cloud);
-		inliers.reset(new pcl::PointIndices);
-		CloudPtr nonplane_cloud3(new Cloud);
-
-		if(extractPlane(nonplane_cloud2,*cloud_plane,inliers)){
-
-			    pcl::ExtractIndices<PointType> extract;
-			    extract.setInputCloud (nonplane_cloud2);
-			    extract.setIndices (inliers);
-			    extract.setNegative (true);
-
-			    // Write the planar inliers to disk
-			    extract.filter (*nonplane_cloud3);
-			    number++;
-				}
-
-//		pcl::copyPointCloud(*nonplane_cloud,result);
-
-
-
-		cloud_plane.reset(new Cloud);
-		inliers.reset(new pcl::PointIndices);
-		CloudPtr nonplane_cloud4(new Cloud);
-
-		if(extractPlane(nonplane_cloud3,*cloud_plane,inliers)){
-
-			    pcl::ExtractIndices<PointType> extract;
-			    extract.setInputCloud (nonplane_cloud3);
-			    extract.setIndices (inliers);
-			    extract.setNegative (true);
-
-			    // Write the planar inliers to disk
-			    extract.filter (*nonplane_cloud4);
-			    number++;
-				}
-
-
-		cloud_plane.reset(new Cloud);
-		inliers.reset(new pcl::PointIndices);
-		CloudPtr nonplane_cloud5(new Cloud);
-
-		if(extractPlane(nonplane_cloud4,*cloud_plane,inliers)){
-
-			    pcl::ExtractIndices<PointType> extract;
-			    extract.setInputCloud (nonplane_cloud4);
-			    extract.setIndices (inliers);
-			    extract.setNegative (true);
-
-			    // Write the planar inliers to disk
-			    extract.filter (*nonplane_cloud5);
-			    number++;
-				}
-
-
-
-
-		std::cerr<<"number of planes: "<<number<<std::endl;
-
-
-
-		return number;
-
-	}
-
 	void cloud_cb(const CloudConstPtr &cloud) {
 		boost::mutex::scoped_lock lock(mtx_);
 		double start = pcl::getTime();
 		FPS_CALC_BEGIN;
 		bool online = true;
 
+//		std::cerr<<"cloud height: "<<cloud->height<<std::endl;
+//		std::cerr<<"cloud width: "<<cloud->width<<std::endl;
+
 		if (online)
-		cloud_pass_.reset(new Cloud);
+			cloud_pass_.reset(new Cloud);
 
 		cloud_pass_downsampled_.reset(new Cloud);
 		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
 		pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
 
+		if (!online) {
 
+			if (counter_ == 0) {
 
+				cloud_pass_.reset(new Cloud);
 
-		if(!online){
+				pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud23(
+						new pcl::PointCloud<pcl::PointXYZRGB>);
+				//CloudPtr cloud23(new CloudPtr);
 
-			if (counter_==0){
+				if (pcl::io::loadPCDFile<pcl::PointXYZRGB>("cloud1.pcd",
+						*cloud23) == -1) //* load the file
+						{
+					PCL_ERROR("Couldn't read file test_pcd.pcd \n");
+				}
 
-			cloud_pass_.reset(new Cloud);
+				CloudPtr cloud22(new Cloud);
 
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud23 (new pcl::PointCloud<pcl::PointXYZRGB>);
-		//CloudPtr cloud23(new CloudPtr);
+				pcl::copyPointCloud(*cloud23, *cloud22);
 
-		  if (pcl::io::loadPCDFile<pcl::PointXYZRGB> ("cloud1.pcd", *cloud23) == -1) //* load the file
-		  {
-		    PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
-		  }
-
-		  CloudPtr cloud22(new Cloud);
-
-		  pcl::copyPointCloud(*cloud23, *cloud22);
-
-		  filterPassThrough(cloud22, *cloud_pass_);
-
+				filterPassThrough(cloud22, *cloud_pass_);
 
 			}
 		}
 
-
-
-
-
-
-
 		if (online)
-		filterPassThrough(cloud, *cloud_pass_);
+			filterPassThrough(cloud, *cloud_pass_);
+
 		if (counter_ < 10) {
 			gridSample(cloud_pass_, *cloud_pass_downsampled_,
 					downsampling_grid_size_);
@@ -1574,11 +675,6 @@ public:
 				PCL_WARN("without plane segmentation\n");
 				target_cloud = cloud_pass_downsampled_;
 			}
-
-
-
-
-
 
 			if (target_cloud != NULL) {
 				PCL_INFO("segmentation, please wait...\n");
@@ -1616,253 +712,101 @@ public:
 					RefCloudPtr nonzero_ref(new RefCloud);
 					removeZeroPoints(ref_cloud, *nonzero_ref);
 
-
-
-
-
-
-
-					RefCloudPtr nonzero_ref_lines(new RefCloud);
-					RefCloudPtr nonzero_ref_lines2(new RefCloud);
-					RefCloudPtr nonzero_ref_lines3(new RefCloud);
-
-
-					RefCloudPtr nonzero_ref_boundary(new RefCloud);
-					RefCloudPtr nonzero_ref_corners(new RefCloud);
-					RefCloudPtr nonzero_ref_corners2(new RefCloud);
-
-					RefCloudPtr nonzero_ref_plane(new RefCloud);
-
-					RefCloudPtr nonzero_ref_cylinder(new RefCloud);
-					RefCloudPtr nonzero_ref_cylinder2(new RefCloud);
-
-
-					RefCloudPtr nonzero_ref_no_cylinder(new RefCloud);
-					RefCloudPtr nonzero_ref_no_cylinder2(new RefCloud);
-
-
-
-
-					RefCloudPtr nonzero_ref_no_corner(new RefCloud);
-					RefCloudPtr nonzero_ref_no_corner2(new RefCloud);
-
-
-
-					RefCloudPtr nonzero_ref_no_line(new RefCloud);
-					RefCloudPtr nonzero_ref_no_line2(new RefCloud);
-					RefCloudPtr nonzero_ref_no_line3(new RefCloud);
-
-					pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-					pcl::ModelCoefficients::Ptr coefficients2(new pcl::ModelCoefficients);
-					pcl::ModelCoefficients::Ptr coefficients3(new pcl::ModelCoefficients);
-					pcl::ModelCoefficients::Ptr coefficients4(new pcl::ModelCoefficients);
-
-					Eigen::Vector3f direction1;
-					Eigen::Vector3f direction2;
-					Eigen::Vector3f direction3;
-					Eigen::Vector3f direction4;
-
-
-
-					std::vector<RefCloudPtr> clouds_vector;
-					std::vector<std::string> is_line_vector;
-					std::vector<pcl::ModelCoefficients::Ptr> coeff_vector;
+					PrimitivesExtract<pcl::PointXYZRGBA> prim_ex(nonzero_ref);
+					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector_lines;
+					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector_corners;
+					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector_cylinders;
+					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector_circles;
+					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector;
 					std::vector<Eigen::Vector3f> directions_vector;
 
+					std::string what = "rectangular";
 
+					if (what == "circular") {
+						prim_ex.extractCylinderVector(nonzero_ref,
+								result_vector_cylinders, 2);
+						prim_ex.extractCircleVector(nonzero_ref,
+								result_vector_circles, 2);
+						PCL_INFO(
+								"number of cylinders: %d \n", result_vector_cylinders.size());
+						PCL_INFO(
+								"number of circles: %d \n", result_vector_circles.size());
 
-					pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity(new pcl::PointCloud<pcl::PointXYZI>);
+						result_vector = result_vector_cylinders;
+						result_vector.insert(result_vector.end(),
+								result_vector_circles.begin(),
+								result_vector_circles.end());
+					} else {
+						prim_ex.extractLineVector(nonzero_ref,
+								result_vector_lines, directions_vector);
+						prim_ex.extractCornerVector(nonzero_ref,
+								result_vector_corners);
+						PCL_INFO(
+								"number of lines: %d \n", result_vector_lines.size());
+						PCL_INFO(
+								"number of corners: %d \n", result_vector_corners.size());
 
+						result_vector = result_vector_lines;
+						result_vector.insert(result_vector.end(),
+								result_vector_corners.begin(),
+								result_vector_corners.end());
+					}PCL_INFO(
+							"number of features: %d \n", result_vector.size());
 
+					tracker_vector_.resize(result_vector.size());
 
-					//finding boundaries
-					findBoundaries(nonzero_ref, *nonzero_ref_boundary);
-					//extract the corners
-
-//					if(extractCorners(nonzero_ref, *nonzero_ref_corners,*nonzero_ref_no_corner,cloud_intensity,0)){
-//
-//						clouds_vector.push_back(nonzero_ref_corners);
-//						is_line_vector.push_back("corner");
-//						coeff_vector.push_back(coefficients4);
-//						directions_vector.push_back(direction1);
-//					}
-////
-//					if(extractCorners(nonzero_ref_no_corner, *nonzero_ref_corners2,*nonzero_ref_no_corner2,cloud_intensity,0)){
-//
-//
-//						clouds_vector.push_back(nonzero_ref_corners2);
-//						is_line_vector.push_back("corner");
-//						coeff_vector.push_back(coefficients4);
-//						directions_vector.push_back(direction2);
-//
-//					}
-
-					//extracting first line
-//					if(extractLines(nonzero_ref_boundary, *nonzero_ref_lines,*nonzero_ref_no_line,coefficients)){
-//
-//						clouds_vector.push_back(nonzero_ref_lines);
-//						is_line_vector.push_back("line");
-//						coeff_vector.push_back(coefficients);
-//						covariancePCA(nonzero_ref_lines,direction3);
-//						std::cerr<<"DIRECTION"<<direction3<<std::endl;
-//						directions_vector.push_back(direction3);
-//
-//
-//					}
-
-					//extracting second line
-
-//					std::cerr<< "true or false: "<< extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)<<std::endl;
-//
-//					if(extractLines(nonzero_ref_no_line, *nonzero_ref_lines2,*nonzero_ref_no_line2,coefficients2)){
-//											clouds_vector.push_back(nonzero_ref_lines2);
-//											is_line_vector.push_back("line");
-//											coeff_vector.push_back(coefficients2);
-//											covariancePCA(nonzero_ref_lines2,direction4);
-//											directions_vector.push_back(direction4);
-//
-//					}
-
-
-					if(extract3DCircle(nonzero_ref,*nonzero_ref_cylinder,*nonzero_ref_no_cylinder)){
-						clouds_vector.push_back(nonzero_ref_cylinder);
-						is_line_vector.push_back("cylinder");
-						coeff_vector.push_back(coefficients2);
-						directions_vector.push_back(direction4);
-					}
-
-
-//					if(extractCylinder(nonzero_ref_no_cylinder,*nonzero_ref_cylinder2,*nonzero_ref_no_cylinder2)){
-//						clouds_vector.push_back(nonzero_ref_cylinder2);
-//						is_line_vector.push_back("cylinder");
-//						coeff_vector.push_back(coefficients2);
-//						directions_vector.push_back(direction4);
-//					}
-//
-//					extractLines(nonzero_ref_no_line2, *nonzero_ref_lines3,*nonzero_ref_no_line3,coefficients3);
-
-
-//					if(extractPlane(nonzero_ref,*nonzero_ref_plane)){
-//										clouds_vector.push_back(nonzero_ref_plane);
-//										is_line_vector.push_back(true);
-//										coeff_vector.push_back(coefficients2);
-//					}
-
-
-					tracker_vector_.resize(clouds_vector.size());
-
-
-
-
-
-
-
-//					clouds_vector.push_back(nonzero_ref_lines3);
-//					is_line_vector.push_back(true);
-//					coeff_vector.push_back(coefficients3);
-
-
-
-
-
-
-
-					for (int track=0; track < tracker_vector_.size(); track++) {
+					for (int track = 0; track < tracker_vector_.size();
+							track++) {
 
 						RefCloudPtr nonzero_ref_final_cloud(new RefCloud);
-						RefCloudPtr nonzero_ref_very_final_cloud(new RefCloud);
 
-						if ((is_line_vector[track]=="line")||(is_line_vector[track]=="corner"))
-					extractNeighbor(nonzero_ref,*clouds_vector[track], *nonzero_ref_final_cloud);
-						else
-					pcl::copyPointCloud(*clouds_vector[track],*nonzero_ref_final_cloud);
+						pcl::copyPointCloud(*result_vector[track],
+								*nonzero_ref_final_cloud);
 
+						if (track < directions_vector.size()) {
+							directions_vector[track].normalize();
 
+							step_covariance_[0] *= fabs(
+									directions_vector[track][0]);
+							step_covariance_[1] *= fabs(
+									directions_vector[track][1]);
+							step_covariance_[2] *= fabs(
+									directions_vector[track][2]);
 
-					int planes_number=countPlanes(nonzero_ref_final_cloud,*nonzero_ref_final_cloud);
+							tracker_vector_[track]->setStepNoiseCovariance(
+									step_covariance_);
+						}
 
-					if ((is_line_vector[track]=="line")&&(coeff_vector[track]!=NULL)){
-						if(( planes_number< 2)||(planes_number > 4)){
-							std::cerr<<"delete this line"<<std::endl;
-							tracker_vector_.erase(tracker_vector_.begin()+track);
-							is_line_vector.erase(is_line_vector.begin()+track);
-							clouds_vector.erase(clouds_vector.begin()+track);
-							coeff_vector.erase(coeff_vector.begin()+track);
-							directions_vector.erase(directions_vector.begin()+track);
-							track--;
-							continue;
-							}
+						std::stringstream ss;
+						ss << track;
+//					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
 
-					onlyLineNeighbor(nonzero_ref_final_cloud,*nonzero_ref_final_cloud,*clouds_vector[track],coeff_vector[track]);
+						PCL_INFO("calculating cog\n");
 
+						RefCloudPtr transed_ref(new RefCloud);
+						//pcl::compute3DCentroid<RefPointType> (*nonzero_ref, c);
+						pcl::compute3DCentroid<RefPointType>(
+								*nonzero_ref_final_cloud, c);
 
-//					std::vector<double> step_covariance = std::vector<double>(6,
-//									0.005 * 0.015);//0.000075
-//							step_covariance_[3] *= 40.0;
-//							step_covariance_[4] *= 40.0;
-//							step_covariance_[5] *= 40.0;
+						Eigen::Affine3f trans = Eigen::Affine3f::Identity();
+						trans.translation() = Eigen::Vector3f(c[0], c[1], c[2]);
+						//pcl::transformPointCloudWithNormals<RefPointType> (*ref_cloud, *transed_ref, trans.inverse());
+						//pcl::transformPointCloud<RefPointType> (*nonzero_ref, *transed_ref, trans.inverse());
+						pcl::transformPointCloud<RefPointType>(
+								*nonzero_ref_final_cloud, *transed_ref,
+								trans.inverse());
 
-					directions_vector[track].normalize();
-					std::cerr<<"direction vector x: "<<fabs (directions_vector[track][0])<<std::endl;
-					std::cerr<<"direction vector y: "<<fabs (directions_vector[track][1])<<std::endl;
-					std::cerr<<"direction vector z: "<<fabs (directions_vector[track][2])<<std::endl;
-
-
-					step_covariance_[0]*=fabs (directions_vector[track][0]);
-					step_covariance_[1]*=fabs (directions_vector[track][1]);
-					step_covariance_[2]*=fabs (directions_vector[track][2]);
-
-
-
-
-					tracker_vector_[track]->setStepNoiseCovariance(step_covariance_);
-
+						CloudPtr transed_ref_downsampled(new Cloud);
+						gridSample(transed_ref, *transed_ref_downsampled,
+								downsampling_grid_size_);
+						tracker_vector_[track]->setReferenceCloud(
+								transed_ref_downsampled);
+						tracker_vector_[track]->setTrans(trans);
+						reference_ = transed_ref;
+						tracker_vector_[track]->setMinIndices(
+								ref_cloud->points.size() / 2);
 					}
-					else if ((planes_number<3)&&(is_line_vector[track]=="corner")){
-						std::cerr<<"delete this corner"<<std::endl;
-						tracker_vector_.erase(tracker_vector_.begin()+track);
-						is_line_vector.erase(is_line_vector.begin()+track);
-						clouds_vector.erase(clouds_vector.begin()+track);
-						coeff_vector.erase(coeff_vector.begin()+track);
-						directions_vector.erase(directions_vector.begin()+track);
-						track--;
-						continue;
-					}
-
-					std::stringstream ss;
-						ss <<track;
-					 pcl::io::savePCDFileASCII (ss.str()+".pcd", *nonzero_ref_final_cloud);
-
-
-
-
-
-
-
-
-					PCL_INFO("calculating cog\n");
-
-					RefCloudPtr transed_ref(new RefCloud);
-					//pcl::compute3DCentroid<RefPointType> (*nonzero_ref, c);
-					pcl::compute3DCentroid<RefPointType>(*nonzero_ref_final_cloud, c);
-
-					Eigen::Affine3f trans = Eigen::Affine3f::Identity();
-					trans.translation() = Eigen::Vector3f(c[0], c[1], c[2]);
-					//pcl::transformPointCloudWithNormals<RefPointType> (*ref_cloud, *transed_ref, trans.inverse());
-					//pcl::transformPointCloud<RefPointType> (*nonzero_ref, *transed_ref, trans.inverse());
-					pcl::transformPointCloud<RefPointType>(*nonzero_ref_final_cloud,
-							*transed_ref, trans.inverse());
-
-					CloudPtr transed_ref_downsampled(new Cloud);
-					gridSample(transed_ref, *transed_ref_downsampled,
-							downsampling_grid_size_);
-					tracker_vector_[track]->setReferenceCloud(transed_ref_downsampled);
-					tracker_vector_[track]->setTrans(trans);
-					reference_ = transed_ref;
-					tracker_vector_[track]->setMinIndices(ref_cloud->points.size() / 2);
-				}
-			}
-			else {
+				} else {
 					PCL_WARN("euclidean segmentation failed\n");
 				}
 
@@ -1885,15 +829,7 @@ public:
 		double end = pcl::getTime();
 		computation_time_ = end - start;
 		FPS_CALC_END("computation");
-		if (cloud_intensity_ !=NULL)
-		{
-			//DEBUG
-		 //std::cerr<<"number of points: "<<cloud_intensity_->size()<<std::endl;
-		/*	std::cerr<<"START"<<std::endl;
-		 for (size_t i = 0; i < cloud_intensity_->size(); ++i)
-		     std::cerr << "    " << cloud_intensity_->points[i].intensity << std::endl;
-			std::cerr<<"STOP"<<std::endl;
-		 */
+		if (cloud_intensity_ != NULL) {
 
 		}
 		counter_++;
@@ -1915,7 +851,7 @@ public:
 		while (!viewer_.wasStopped())
 			boost::this_thread::sleep(boost::posix_time::seconds(1));
 		interface->stop();
-	    a_file_.close();
+		a_file_.close();
 
 	}
 
@@ -1932,7 +868,6 @@ public:
 	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_intensity_;
 
 	Eigen::Affine3f transformation_;
-
 
 	std::vector<pcl::Vertices> hull_vertices_;
 
@@ -1951,11 +886,9 @@ public:
 	double computation_time_;
 	double downsampling_time_;
 	double downsampling_grid_size_;
-	std::ofstream a_file_ ;
+	std::ofstream a_file_;
 
 };
-
-
 
 void usage(char** argv) {
 	std::cout << "usage: " << argv[0] << " <device_id> [-C] [-g]\n\n";
@@ -2004,6 +937,6 @@ int main(int argc, char** argv) {
 	// open kinect
 	OpenNISegmentTracking<pcl::PointXYZRGBA> v(device_id, 8,
 			downsampling_grid_size, use_convex_hull, visualize_non_downsample,
-			visualize_particles, use_fixed,6);
+			visualize_particles, use_fixed, 6);
 	v.run();
 }

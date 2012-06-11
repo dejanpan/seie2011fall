@@ -43,7 +43,7 @@ template<typename PointType> void PrimitivesExtract<PointType>::findBoundaries(
 	int place = (int) (temp_normals->points.size() * best_curv_percent_);
 	pcl::Normal tresh_point = *(temp_normals->points.begin() + place);
 	float treshold = tresh_point.curvature;
-//	std::cerr << "tresh: " << treshold << std::endl;
+	PCL_DEBUG("Curvature treshold for corners: %f \n",treshold);
 
 	for (size_t i = 0; i < normals_cloud->size(); ++i) {
 		if (normals_cloud->points[i].curvature > treshold)
@@ -58,8 +58,7 @@ template<typename PointType> void PrimitivesExtract<PointType>::findBoundaries(
 
 template<typename PointType> bool PrimitivesExtract<PointType>::extractLineVector(
 		const CloudConstPtr& input, std::vector<CloudPtr>& result,
-		std::vector<pcl::ModelCoefficients::Ptr> &coefficients_vector,std::vector<Eigen::Vector3f> &directions_vector,
-		int lines_number) {
+		std::vector<Eigen::Vector3f> &directions_vector, int lines_number) {
 
 	CloudPtr cloud_boundaries(new Cloud);
 
@@ -98,11 +97,12 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLineVecto
 		if ((planes_number == 2) || (planes_number == 3)
 				|| (planes_number == 4)) {
 			Eigen::Vector3f line_direction;
-			lineDirectionPCA(thin_line,line_direction);
+			lineDirectionPCA(thin_line, line_direction);
 			result.push_back(thick_line);
-			coefficients_vector.push_back(coefficients[number]);
 			directions_vector.push_back(line_direction);
-		}
+		} else
+			PCL_INFO(
+					"Line deleted because of too many planes. Planes number:  %f \n", planes_number);
 
 	}
 	if (result.size() == 0)
@@ -138,6 +138,10 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCornerVec
 		int planes_number = countPlanes(augmented_corner);
 		if ((planes_number == 4) || (planes_number == 3))
 			result.push_back(augmented_corner);
+		else
+			PCL_INFO(
+					"Corner deleted because of too many planes. Planes number:  %f \n", planes_number);
+
 	}
 	if (result.size() == 0)
 		return false;
@@ -177,7 +181,7 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 		pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 
 		if (lines_number > 0)
-			if (number == lines_number)
+			if (number >= lines_number)
 				break;
 		pcl::SACSegmentation<PointType> seg;
 		seg.setOptimizeCoefficients(true);
@@ -190,8 +194,11 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractLines(
 		seg.segment(*inliers, *coefficients);
 
 		if (inliers->indices.size() < min_line_inliers_) {
-			PCL_ERROR(
+			PCL_DEBUG(
 					"Could not estimate a line model for the given dataset.");
+			PCL_INFO(
+					"Number of line inliers: %f  is smaller than treshold: %f \n", inliers->indices.size(), min_line_inliers_);
+			std::cerr<<"min line inliers: "<<min_line_inliers_<<std::endl;
 			break;
 		}
 		if (coefficients != NULL)
@@ -268,7 +275,7 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractPlane(
 	seg.setInputCloud(cloud);
 	seg.segment(*inliers, *coefficients);
 	if (inliers->indices.size() < min_plane_inliers_) {
-		PCL_ERROR( "Could not estimate a plane model for the given dataset.");
+		PCL_DEBUG( "Could not estimate a plane model for the given dataset.");
 		return false;
 	}
 
@@ -341,7 +348,7 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCorners(
 			}
 		} else {
 			if (number > cloud_intensity->size()) {
-				PCL_ERROR("Number of corners is bigger than found corners.");
+				PCL_DEBUG("Number of corners is bigger than found corners.");
 				return false;
 			} else {
 
@@ -525,9 +532,6 @@ template<typename PointType> void PrimitivesExtract<PointType>::removePointsArou
 		euclidianClustering(cloudForEuclidianDistance, cluster_indices,
 				euclidian_line_cluster_tolerance_);
 
-		std::cerr << "Size of result before line euclidian clustering: "
-				<< cloudForEuclidianDistance->points.size() << std::endl;
-
 		result.clear();
 		for (size_t i = 0; i < cluster_indices[0].indices.size(); i++) {
 			PointType point =
@@ -535,8 +539,6 @@ template<typename PointType> void PrimitivesExtract<PointType>::removePointsArou
 			result.points.push_back(point);
 		}
 
-		std::cerr << "Size of result after line euclidian clustering: "
-				<< result.points.size() << std::endl;
 	}
 	result.width = result.points.size();
 	result.height = 1;
@@ -567,7 +569,7 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCircular(
 	for (int number = 0;; number++) {
 
 		if (cylinders_number > 0) {
-			if (number > cylinders_number)
+			if (number >= cylinders_number)
 				break;
 		}
 
@@ -598,25 +600,31 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCircular(
 
 		if (what == "cylinder")
 			seg.setRadiusLimits(cylinder_min_radius_, cylinder_max_radius_);
-//		else
-//			seg.setRadiusLimits(circle_min_radius_, circle_max_radius_);
+		else
+			seg.setRadiusLimits(circle_min_radius_, circle_max_radius_);
 
 		seg.setInputNormals(normals_cloud);
 		seg.setInputCloud(noncylinder_cloud);
-//		seg.setMaxIterations(10000);
+		seg.setMaxIterations(10000);
 
 		seg.segment(*inliers, *coefficients);
 
 		if (what == "cylinder") {
 			if (inliers->indices.size() < cylinder_min_inliers_) {
-				PCL_ERROR(
+				PCL_DEBUG(
 						"Could not estimate a cylinder model for the given dataset.");
+				PCL_INFO(
+						"Number of cylinder inliers: %f  is smaller than treshold: %f \n", inliers->indices.size(), cylinder_min_inliers_);
+
 				break;
 			}
 		} else {
 			if (inliers->indices.size() < circle_min_inliers_) {
-				PCL_ERROR(
-						"Could not estimate a cylinder model for the given dataset.");
+				PCL_DEBUG(
+						"Could not estimate a 3D circle model for the given dataset.");
+				PCL_INFO(
+						"Number of circle inliers: %f  is smaller than treshold: %f \n", inliers->indices.size(), circle_min_inliers_);
+
 				break;
 			}
 		}
@@ -631,8 +639,8 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCircular(
 			std::vector<pcl::PointIndices> cluster_indices;
 
 			if (what == "cylinder")
-			euclidianClustering(one_cylinder_cloud, cluster_indices,
-					euclidian_cylinder_cluster_tolerance_);
+				euclidianClustering(one_cylinder_cloud, cluster_indices,
+						euclidian_cylinder_cluster_tolerance_);
 			else
 				euclidianClustering(one_cylinder_cloud, cluster_indices,
 						euclidian_circle_cluster_tolerance_);
@@ -668,37 +676,33 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCircular(
 
 }
 
-template<typename PointType> void PrimitivesExtract<PointType>::lineDirectionPCA(const CloudConstPtr &cloud, Eigen::Vector3f &direction){
+template<typename PointType> void PrimitivesExtract<PointType>::lineDirectionPCA(
+		const CloudConstPtr &cloud, Eigen::Vector3f &direction) {
 
-		Eigen::Vector4f centroid;
+	Eigen::Vector4f centroid;
 
+	EIGEN_ALIGN16
+	Eigen::Vector3f eigen_values;
+	EIGEN_ALIGN16
+	Eigen::Matrix3f eigen_vectors;
+	Eigen::Matrix3f cov;
+	Eigen::Vector3f eigen_vector1;
+	Eigen::Vector3f eigen_vector2;
+	Eigen::Vector3f vector3rd;
 
-			EIGEN_ALIGN16 Eigen::Vector3f eigen_values;
-			EIGEN_ALIGN16 Eigen::Matrix3f eigen_vectors;
-			Eigen::Matrix3f cov;
-			Eigen::Vector3f eigen_vector1;
-			Eigen::Vector3f eigen_vector2;
-			Eigen::Vector3f vector3rd;
+	pcl::compute3DCentroid(*cloud, centroid);
 
+	pcl::computeCovarianceMatrixNormalized(*cloud, centroid, cov);
+	pcl::eigen33(cov, eigen_vectors, eigen_values);
 
-			pcl::compute3DCentroid(*cloud, centroid);
+	eigen_vector1(0) = eigen_vectors(0, 2);
+	eigen_vector1(1) = eigen_vectors(1, 2);
+	eigen_vector1(2) = eigen_vectors(2, 2);
+	eigen_vector2(0) = eigen_vectors(0, 1);
+	eigen_vector2(1) = eigen_vectors(1, 1);
+	eigen_vector2(2) = eigen_vectors(2, 1);
 
-
-			pcl::computeCovarianceMatrixNormalized(*cloud, centroid, cov);
-			pcl::eigen33(cov, eigen_vectors, eigen_values);
-
-
-			eigen_vector1(0) = eigen_vectors(0, 2);
-			eigen_vector1(1) = eigen_vectors(1, 2);
-			eigen_vector1(2) = eigen_vectors(2, 2);
-			eigen_vector2(0) = eigen_vectors(0, 1);
-			eigen_vector2(1) = eigen_vectors(1, 1);
-			eigen_vector2(2) = eigen_vectors(2, 1);
-
-			direction=eigen_vector1;
-
+	direction = eigen_vector1;
 
 }
-
-
 

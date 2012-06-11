@@ -92,7 +92,7 @@ public:
 		best_curv_percent_ = 0.17;
 		line_distance_tresh_ = 0.002;
 		min_line_inliers_ = 50;
-		eliminate_line_neigh_radius_ = 0.008; //0.002
+		eliminate_line_neigh_radius_ = 0.01; //0.002
 		shrink_line_percent_ = 1;
 		euclidian_clustering_after_line_projection_ = true;
 		if (euclidian_clustering_after_line_projection_) {
@@ -110,17 +110,17 @@ public:
 		euclidian_clustering_after_circular_extraction_ = true;
 		//parameters for cylinder extraction
 		cylinder_distance_treshold_ = 0.03;
-		cylinder_min_radius_ = 0.01;
+		cylinder_min_radius_ = 0.03;
 		cylinder_max_radius_ = 0.15;
-		cylinder_min_inliers_ = 100;
+		cylinder_min_inliers_ = 1000;
 		if (euclidian_clustering_after_circular_extraction_)
 			euclidian_cylinder_cluster_tolerance_ = 0.03;
 
 		//parameters for 3d circle extraction
-		circle_distance_treshold_ = 0.03;
+		circle_distance_treshold_ = 0.003;
 		circle_min_radius_ = 0.01;
 		circle_max_radius_ = 0.15;
-		circle_min_inliers_ = 100;
+		circle_min_inliers_ = 270;
 		if (euclidian_clustering_after_circular_extraction_)
 			euclidian_circle_cluster_tolerance_ = 0.03;
 
@@ -136,7 +136,7 @@ public:
 			int number = 0);
 	bool extractLineVector(const CloudConstPtr& input,
 			std::vector<CloudPtr>& result,
-			std::vector<pcl::ModelCoefficients::Ptr> &coefficients_vector,std::vector<Eigen::Vector3f> &directions_vector,
+			std::vector<Eigen::Vector3f> &directions_vector,
 			int lines_number = 0);
 	bool extractCylinderVector(
 			const CloudConstPtr &cloud, std::vector<CloudPtr> &result,
