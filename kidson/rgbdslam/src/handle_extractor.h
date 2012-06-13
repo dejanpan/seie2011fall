@@ -23,7 +23,7 @@ typedef KdTree::Ptr KdTreePtr;
 class HandleExtractor {
 public:
 	HandleExtractor();
-	void extractHandles(PointCloudNormal::Ptr& cloudInput, std::vector<int>& handles);
+	void extractHandles(const PointCloudNormal::Ptr& cloudInput, std::vector<int>& handles);
 	virtual ~HandleExtractor();
 };
 

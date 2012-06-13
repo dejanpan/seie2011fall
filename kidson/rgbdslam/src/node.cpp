@@ -27,6 +27,7 @@
 #include <QtConcurrentMap>
 #include <pcl/point_types.h>
 #include <pcl/features/normal_3d.h>
+#include <pcl/features/normal_3d_omp.h>
 
 #ifdef USE_SIFT_GPU
 #include "sift_gpu_wrapper.h"
@@ -987,7 +988,7 @@ void Node::gicpSetIdentity(dgc_transform_t m){
 #endif
 
 
-MatchingResult Node::matchNodePair(const Node* older_node){
+MatchingResult Node::matchNodePair(const Node* older_node, bool isNewNode){
   MatchingResult mr;
   if(initial_node_matches_ > ParameterServer::instance()->get<int>("max_connections")) return mr; //enough is enough
   const unsigned int min_matches = (unsigned int) ParameterServer::instance()->get<int>("min_matches");// minimal number of feature correspondences to be a valid candidate for a link
@@ -996,7 +997,11 @@ MatchingResult Node::matchNodePair(const Node* older_node){
   this->findPairsFlann(older_node, &mr.all_matches); 
 
   ROS_DEBUG("found %i inital matches",(int) mr.all_matches.size());
-  if ((mr.all_matches.size() < min_matches)){
+  if(isNewNode)		// don't check number of inliers for new nodes
+  {
+	  getRelativeTransformationTo(older_node,&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches, 40);
+  }
+  else if ((mr.all_matches.size() < min_matches)){
     ROS_INFO("Too few inliers: Adding no Edge between %i and %i. Only %i correspondences to begin with.",
         older_node->id_,this->id_,(int)mr.all_matches.size());
   } 
@@ -1122,11 +1127,20 @@ void Node::calculateNormals()
 {
 	pointcloud_type::Ptr pointCloudOut (new pointcloud_type);
 	// Create the normal estimation class, and pass the input dataset to it
-	pcl::NormalEstimation<point_type, point_type> ne;
+	//pcl::NormalEstimation<point_type, point_type> ne;
+	ROS_INFO("about to crash 1");
+	pcl::NormalEstimationOMP<point_type, point_type> ne;
+	ROS_INFO("about to crash 2");
+	ne.setNumberOfThreads (4);
+	ROS_INFO("about to crash 3");
 	ne.setInputCloud (pc_col);
+	ROS_INFO("about to crash 4");
 	pcl::search::KdTree<point_type>::Ptr tree (new pcl::search::KdTree<point_type> ());
+	ROS_INFO("about to crash 5");
 	ne.setSearchMethod (tree);
+	ROS_INFO("about to crash 6");
 	ne.setRadiusSearch (0.03);
+	ROS_INFO("about to crash 7");
 	ne.compute (*pc_col);
 	//pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
@@ -1156,3 +1170,20 @@ void Node::getFeatureIndices(const Node* previousNode, MatchingResult& mr,
 	}
 
 }
+
+void Node::extractHandlesIndices()
+{
+	HandleExtractor handleExtractor_;
+	handleExtractor_.extractHandles(pc_col, handleIndices);
+}
+
+void Node::reloadPointCloudFromDisk()
+{
+	std::stringstream nodeName;
+	nodeName << "node_" << id_ << ".pcd";
+	ROS_INFO_STREAM("Retrieving node " << nodeName.str() << " from cache and saving to map");
+	pcl::PCDReader nodeFetcher;
+	nodeFetcher.read(nodeName.str(), *pc_col);
+}
+
+//void Node::runJointOptimization()

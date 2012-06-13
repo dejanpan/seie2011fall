@@ -83,7 +83,7 @@ public:
 	~Node();
 
 	///Compare the features of two nodes and compute the transformation
-  MatchingResult matchNodePair(const Node* older_node);
+  MatchingResult matchNodePair(const Node* older_node, bool isNewNode);
 
   ///Transform, e.g., from MoCap
   void setGroundTruthTransform(tf::StampedTransform gt);
@@ -148,6 +148,8 @@ public:
   void calculateNormals();
   void getFeatureIndices(const Node* previousNode, MatchingResult& mr,
 			std::vector<int>& sourceIndices, std::vector<int>& targetIndices);
+  void extractHandlesIndices();
+  void reloadPointCloudFromDisk();
 	//PointCloud pc;
 	///pointcloud_type centrally defines what the pc is templated on
 	unsigned int id_; ///must correspond to the g2o vertex id
@@ -166,6 +168,9 @@ public:
 
 	// keep matching results for 2nd round optimization (rgbdicp)
 	std::vector<MatchingResult> matchingResultsList;
+
+  //indices for handles
+	std::vector<int> handleIndices;
 
 
 protected:

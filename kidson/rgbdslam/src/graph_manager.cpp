@@ -201,7 +201,7 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
 /// max_targets = 1: Compare to previous frame only
 /// max_targets > 1: Select intelligently (TODO: rather stupid at the moment)
 QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_targets){
-    int last_targets = 3; //always compare to the last n, spread evenly for the rest //3
+    int last_targets = 8; //always compare to the last n, spread evenly for the rest //3
     QList<int> ids_to_link_to;
     //max_targets = last_targets;
     int gsize = graph_.size();
@@ -403,7 +403,7 @@ bool GraphManager::addNode(Node* new_node) {
     //First check if trafo to last frame is not too small
     Node* prev_frame = graph_[graph_.size()-1];
     ROS_INFO("Comparing new node (%i) with previous node %i", new_node->id_, prev_frame->id_);
-    MatchingResult mr = new_node->matchNodePair(prev_frame);
+    MatchingResult mr = new_node->matchNodePair(prev_frame, false);
 
     if(mr.edge.id1 >= 0 && !isBigTrafo(mr.edge.mean)){
         ROS_WARN("Transformation not relevant. Did not add as Node");
@@ -450,7 +450,7 @@ bool GraphManager::addNode(Node* new_node) {
             qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
         }
         QList<MatchingResult> results = QtConcurrent::blockingMapped(
-                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1));
+                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1, false));
 
         for (int i = 0; i < results.size(); i++) {
             MatchingResult& mr = results[i];
@@ -475,7 +475,7 @@ bool GraphManager::addNode(Node* new_node) {
         for (int id_of_id = (int) vertices_to_comp.size() - 1; id_of_id >= 0; id_of_id--) {
             Node* abcd = graph_[vertices_to_comp[id_of_id]];
             ROS_INFO("Comparing new node (%i) with node %i / %i", new_node->id_, vertices_to_comp[id_of_id], abcd->id_);
-            MatchingResult mr = new_node->matchNodePair(abcd);
+            MatchingResult mr = new_node->matchNodePair(abcd, false);
 
             if (mr.edge.id1 >= 0){
 				//if((new_node->id_== 2) || (abcd->id_ == 2))
@@ -696,11 +696,16 @@ void GraphManager::runRGBDICPOptimization()
 {
 	ROS_INFO_STREAM(" GraphManager::runRGBDICPOptimization");
 
-	//Calculate normals for all nodes
-    QString message;
+	//Calculate normals for all nodes ROSS-TODO:: multithread this like a boss
 	for (unsigned int i = 0; i < graph_.size(); ++i) {
-		Q_EMIT setGUIStatus(message.sprintf("Calculating normals for node %i",(int)i));
+		ROS_INFO("Calculating normals for node %i",(int)i);
 		graph_[i]->calculateNormals();
+	}
+
+	//Extract handle indices for all nodes ROSS-TODO:: multithread this like a boss
+	for (unsigned int i = 0; i < graph_.size(); ++i) {
+		ROS_INFO("Extracting handles for node %i",(int)i);
+		graph_[i]->extractHandlesIndices();
 	}
     for (unsigned int i = 0; i < graph_.size(); ++i) {
         g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(i));
@@ -724,20 +729,18 @@ void GraphManager::runRGBDICPOptimization()
         	graph_[i]->getRelativeTransformationTo(graph_[nodesToCompareIndices[id_of_id]],
         			&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches, 30); //ROSS-TODO: make 30 a parameter
 
-        	std::vector<int> sourceIndices, targetIndices;
-        	graph_[i]->getFeatureIndices(graph_[nodesToCompareIndices[id_of_id]], mr, sourceIndices, targetIndices);
-//			 pcl::PCDWriter writer;
-//			 std::stringstream filename;
-//			 filename << "node_" << id_of_id << "source.pcd";
-//			 writer.write (filename.str(), *(graph_[i]->pc_col), sourceIndices, true);
-//			 filename.str("");
-//			 filename << "node_" << id_of_id << "target.pcd";
-//			 writer.write (filename.str(), *(graph_[nodesToCompareIndices[id_of_id]]->pc_col), targetIndices, true);
-
-
+        	// source = current node, target = other node. Transform is from source to target
+        	std::vector<int> sourceSIFTIndices, targetSIFTIndices, sourceHandleIndices, targetHandleIndices;
+        	graph_[i]->getFeatureIndices(graph_[nodesToCompareIndices[id_of_id]], mr, sourceSIFTIndices, targetSIFTIndices);
+			 pcl::PCDWriter writer;
+			 std::stringstream filename;
+			 filename << "node_" << id_of_id << "source.pcd";
+			 writer.write (filename.str(), *(graph_[i]->pc_col), graph_[i]->handleIndices, true);
+			 filename.str("");
+			 filename << "node_" << id_of_id << "target.pcd";
+			 writer.write (filename.str(), *(graph_[nodesToCompareIndices[id_of_id]]->pc_col),
+					 graph_[nodesToCompareIndices[id_of_id]]->handleIndices, true);
         }
-
-
     }
 }
 

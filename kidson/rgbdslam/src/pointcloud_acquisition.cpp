@@ -48,11 +48,13 @@ public:
 
   	//Writing cloud to bagfile
   	sensor_msgs::PointCloud2 cloudMessage;
+  	node_->reloadPointCloudFromDisk();
   	pcl::toROSMsg(*(node_->pc_col),cloudMessage);
   	cloudMessage.header.frame_id = "/openni_rgb_optical_frame"; //?????
   	cloudMessage.header.stamp = now;
   	bag_.write(cloud_topic_, cloudMessage.header.stamp, cloudMessage);
   	ROS_INFO("Wrote cloud to %s", bag_name_.c_str());
+  	node_->clearPointCloud();
 
   	//Writing pointcloud transform to bag file
   	geometry_msgs::Transform transform_msg;

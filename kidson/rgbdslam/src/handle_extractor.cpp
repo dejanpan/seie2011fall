@@ -41,7 +41,7 @@ HandleExtractor::~HandleExtractor() {
 	// TODO Auto-generated destructor stub
 }
 
-void HandleExtractor::extractHandles(PointCloudNormal::Ptr& cloudInput, std::vector<int>& handles) {
+void HandleExtractor::extractHandles(const PointCloudNormal::Ptr& cloudInput, std::vector<int>& handles) {
 	// PCL objects
 	//pcl::PassThrough<Point> vgrid_;                   // Filtering + downsampling object
 	pcl::VoxelGrid<Point> vgrid_; // Filtering + downsampling object
