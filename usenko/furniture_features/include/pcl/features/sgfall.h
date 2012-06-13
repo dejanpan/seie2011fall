@@ -93,7 +93,7 @@ template<typename PointInT, typename PointOutT>
       pcl::PointCloud<pcl::Histogram<pcl::SGF1_SIZE> >::Ptr
                                                             sgf1s(
                                                                   new pcl::PointCloud<pcl::Histogram<pcl::SGF1_SIZE> >());
-      pcl::SGF1Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF1_SIZE> > sgf1;
+      pcl::SGF1Estimation<PointInT, pcl::Histogram<pcl::SGF1_SIZE> > sgf1;
       sgf1.setInputCloud(input_);
       sgf1.setIndices(indices_);
       sgf1.setSearchMethod(tree_);
@@ -112,7 +112,7 @@ template<typename PointInT, typename PointOutT>
       pcl::PointCloud<pcl::Histogram<pcl::SGF2_SIZE> >::Ptr
                                                             sgf2s(
                                                                   new pcl::PointCloud<pcl::Histogram<pcl::SGF2_SIZE> >());
-      pcl::SGF2Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF2_SIZE> > sgf2;
+      pcl::SGF2Estimation<PointInT, pcl::Histogram<pcl::SGF2_SIZE> > sgf2;
       sgf2.setInputCloud(input_);
       sgf2.setIndices(indices_);
       sgf2.setKSearch(k_);
@@ -130,7 +130,7 @@ template<typename PointInT, typename PointOutT>
       pcl::PointCloud<pcl::Histogram<pcl::SGF3_SIZE> >::Ptr
                                                             sgf3s(
                                                                   new pcl::PointCloud<pcl::Histogram<pcl::SGF3_SIZE> >());
-      pcl::SGF3Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF3_SIZE> > sgf3;
+      pcl::SGF3Estimation<PointInT, pcl::Histogram<pcl::SGF3_SIZE> > sgf3;
       sgf3.setInputCloud(input_);
       sgf3.setIndices(indices_);
       sgf3.compute(*sgf3s);
@@ -147,7 +147,7 @@ template<typename PointInT, typename PointOutT>
       pcl::PointCloud<pcl::Histogram<pcl::SGF4_SIZE> >::Ptr
                                                             sgf4s(
                                                                   new pcl::PointCloud<pcl::Histogram<pcl::SGF4_SIZE> >());
-      pcl::SGF4Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF4_SIZE> > sgf4;
+      pcl::SGF4Estimation<PointInT, pcl::Histogram<pcl::SGF4_SIZE> > sgf4;
       sgf4.setInputCloud(input_);
       sgf4.setIndices(indices_);
       sgf4.compute(*sgf4s);
@@ -164,7 +164,7 @@ template<typename PointInT, typename PointOutT>
       pcl::PointCloud<pcl::Histogram<pcl::SGF5_SIZE> >::Ptr
                                                             sgf5s(
                                                                   new pcl::PointCloud<pcl::Histogram<pcl::SGF5_SIZE> >());
-      pcl::SGF5Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF5_SIZE> > sgf5;
+      pcl::SGF5Estimation<PointInT, pcl::Histogram<pcl::SGF5_SIZE> > sgf5;
       sgf5.setInputCloud(input_);
       sgf5.setIndices(indices_);
       sgf5.compute(*sgf5s);
@@ -181,7 +181,7 @@ template<typename PointInT, typename PointOutT>
       pcl::PointCloud<pcl::Histogram<pcl::SGF6_SIZE> >::Ptr
                                                             sgf6s(
                                                                   new pcl::PointCloud<pcl::Histogram<pcl::SGF6_SIZE> >());
-      pcl::SGF6Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF6_SIZE> > sgf6;
+      pcl::SGF6Estimation<PointInT, pcl::Histogram<pcl::SGF6_SIZE> > sgf6;
       sgf6.setInputCloud(input_);
       sgf6.setIndices(indices_);
       sgf6.compute(*sgf6s);
@@ -198,7 +198,7 @@ template<typename PointInT, typename PointOutT>
       pcl::PointCloud<pcl::Histogram<pcl::SGF7_SIZE> >::Ptr
                                                             sgf7s(
                                                                   new pcl::PointCloud<pcl::Histogram<pcl::SGF7_SIZE> >());
-      pcl::SGF7Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF7_SIZE> > sgf7;
+      pcl::SGF7Estimation<PointInT, pcl::Histogram<pcl::SGF7_SIZE> > sgf7;
       sgf7.setInputCloud(input_);
       sgf7.setIndices(indices_);
       sgf7.compute(*sgf7s);
@@ -215,7 +215,7 @@ template<typename PointInT, typename PointOutT>
       pcl::PointCloud<pcl::Histogram<pcl::SGF8_SIZE> >::Ptr
                                                             sgf8s(
                                                                   new pcl::PointCloud<pcl::Histogram<pcl::SGF8_SIZE> >());
-      pcl::SGF8Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF8_SIZE> > sgf8;
+      pcl::SGF8Estimation<PointInT, pcl::Histogram<pcl::SGF8_SIZE> > sgf8;
       sgf8.setInputCloud(input_);
       sgf8.setIndices(indices_);
       sgf8.compute(*sgf8s);
@@ -232,7 +232,7 @@ template<typename PointInT, typename PointOutT>
       pcl::PointCloud<pcl::Histogram<pcl::SGF9_SIZE> >::Ptr
                                                             sgf9s(
                                                                   new pcl::PointCloud<pcl::Histogram<pcl::SGF9_SIZE> >());
-      pcl::SGF9Estimation<pcl::PointXYZ, pcl::Histogram<pcl::SGF9_SIZE> > sgf9;
+      pcl::SGF9Estimation<PointInT, pcl::Histogram<pcl::SGF9_SIZE> > sgf9;
       sgf9.setInputCloud(input_);
       sgf9.setIndices(indices_);
       sgf9.compute(*sgf9s);

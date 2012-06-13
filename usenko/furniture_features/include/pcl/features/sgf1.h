@@ -83,14 +83,14 @@ namespace pcl
 
         // Estimate normals first
         PointCloud<Normal>::Ptr normals (new PointCloud<Normal> ());
-        NormalEstimation<PointXYZ, Normal> n;
+        NormalEstimation<PointInT, Normal> n;
         n.setInputCloud (input_);
         n.setIndices (indices_);
         n.setSearchMethod (tree_);
         n.setKSearch (k_);
         n.compute (*normals);
 
-        BoundaryEstimation<PointXYZ, Normal, Boundary> b;
+        BoundaryEstimation<PointInT, Normal, Boundary> b;
         b.setInputNormals (normals);
 
 

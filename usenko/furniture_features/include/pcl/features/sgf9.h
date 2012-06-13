@@ -88,7 +88,7 @@ namespace pcl
         // Compute feature 3
         const int sgf3_size = 1;
         pcl::PointCloud<pcl::Histogram<sgf3_size> >::Ptr sgf3s (new pcl::PointCloud<pcl::Histogram<sgf3_size> > ());
-        pcl::SGF3Estimation<pcl::PointXYZ, pcl::Histogram<sgf3_size> > sgf3;
+        pcl::SGF3Estimation<PointInT, pcl::Histogram<sgf3_size> > sgf3;
         sgf3.setInputCloud (cloud);
         sgf3.compute (*sgf3s);
 

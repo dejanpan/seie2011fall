@@ -70,7 +70,7 @@ public:
 	void computeFeature(PointCloudOut &output) {
 
 		PointCloud<Normal>::Ptr normals(new PointCloud<Normal> ());
-		NormalEstimation<PointXYZ, Normal> n;
+		NormalEstimation<PointInT, Normal> n;
 
 		std::vector<int> nn_indices;
 		std::vector<float> nn_sqr_dists;
