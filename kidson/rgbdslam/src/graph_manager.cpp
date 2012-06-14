@@ -44,6 +44,7 @@
 #include "pointcloud_acquisition.cpp"
 #include "rgbdslam/featureMatch.h"
 #include "transform_publisher.h"
+#include <pcl/features/normal_3d.h>
 
 #include <iostream>
 
@@ -692,21 +693,55 @@ void GraphManager::visualizeFeatureFlow3D(unsigned int marker_id,
     clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
 }
 
+void GraphManager::calculateNormals(const pointcloud_type::Ptr pc_col)
+{
+	pointcloud_type::Ptr pointCloudOut (new pointcloud_type);
+	pcl::NormalEstimation<point_type, point_type> ne;
+	ne.setInputCloud (pc_col);
+	pcl::search::KdTree<point_type>::Ptr tree (new pcl::search::KdTree<point_type> ());
+	ne.setSearchMethod (tree);
+	ne.setRadiusSearch (0.03);
+	ne.compute (*pc_col);
+}
+
+std::vector<int> GraphManager::extractHandles(const pointcloud_type::Ptr pc_col)
+{
+	std::vector<int> handleIndices;
+	handleExtractor_.extractHandles(pc_col, handleIndices);
+	return handleIndices;
+}
+
 void GraphManager::runRGBDICPOptimization()
 {
 	ROS_INFO_STREAM(" GraphManager::runRGBDICPOptimization");
 
-	//Calculate normals for all nodes ROSS-TODO:: multithread this like a boss
+	//Calculate normals for all nodes
+	QList<pointcloud_type::Ptr> pointcloudList;
 	for (unsigned int i = 0; i < graph_.size(); ++i) {
-		ROS_INFO("Calculating normals for node %i",(int)i);
-		graph_[i]->calculateNormals();
+		pointcloudList.push_back(graph_[i]->pc_col);
 	}
+    QThreadPool* qtp = QThreadPool::globalInstance();
+    ROS_INFO("Calculating point cloud normals in parallel in %i (of %i) available threads", qtp->maxThreadCount() - qtp->activeThreadCount(), qtp->maxThreadCount());
+    if (qtp->maxThreadCount() - qtp->activeThreadCount() == 1) {
+        ROS_WARN("Few Threads Remaining: Increasing maxThreadCount to %i", qtp->maxThreadCount()+1);
+        qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
+    }
+    QtConcurrent::blockingMap(pointcloudList, boost::bind(&GraphManager::calculateNormals, this, _1));
+	ROS_INFO("End of point cloud normal calculation");
 
 	//Extract handle indices for all nodes ROSS-TODO:: multithread this like a boss
 	for (unsigned int i = 0; i < graph_.size(); ++i) {
 		ROS_INFO("Extracting handles for node %i",(int)i);
 		graph_[i]->extractHandlesIndices();
 	}
+//    ROS_INFO("Extracting handles in parallel in %i (of %i) available threads", qtp->maxThreadCount() - qtp->activeThreadCount(), qtp->maxThreadCount());
+//    if (qtp->maxThreadCount() - qtp->activeThreadCount() == 1) {
+//        ROS_WARN("Few Threads Remaining: Increasing maxThreadCount to %i", qtp->maxThreadCount()+1);
+//        qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
+//    }
+//	QList<std::vector<int> > nodeHandleIndices = QtConcurrent::blockingMapped(pointcloudList, boost::bind(&GraphManager::extractHandles, this, _1));
+//	ROS_INFO("End of handle extraction multithreading");
+
     for (unsigned int i = 0; i < graph_.size(); ++i) {
         g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(i));
         if(!v){

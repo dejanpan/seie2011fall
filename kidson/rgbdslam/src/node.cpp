@@ -1127,22 +1127,14 @@ void Node::calculateNormals()
 {
 	pointcloud_type::Ptr pointCloudOut (new pointcloud_type);
 	// Create the normal estimation class, and pass the input dataset to it
-	//pcl::NormalEstimation<point_type, point_type> ne;
-	ROS_INFO("about to crash 1");
-	pcl::NormalEstimationOMP<point_type, point_type> ne;
-	ROS_INFO("about to crash 2");
-	ne.setNumberOfThreads (4);
-	ROS_INFO("about to crash 3");
+	pcl::NormalEstimation<point_type, point_type> ne;
+	//pcl::NormalEstimationOMP<point_type, point_type> ne;
+	//ne.setNumberOfThreads (4);
 	ne.setInputCloud (pc_col);
-	ROS_INFO("about to crash 4");
 	pcl::search::KdTree<point_type>::Ptr tree (new pcl::search::KdTree<point_type> ());
-	ROS_INFO("about to crash 5");
 	ne.setSearchMethod (tree);
-	ROS_INFO("about to crash 6");
 	ne.setRadiusSearch (0.03);
-	ROS_INFO("about to crash 7");
 	ne.compute (*pc_col);
-	//pcl::copyPointCloud (*pointCloudIn, *pointCloudOut);
 }
 
 // calcuate the normals of the node's pointcloud

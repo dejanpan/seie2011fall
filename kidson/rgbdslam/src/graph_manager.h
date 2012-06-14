@@ -50,6 +50,7 @@
 #include "g2o/core/graph_optimizer_sparse.h"
 
 #include "g2o/core/hyper_dijkstra.h"
+#include "handle_extractor.h"
 
 //#define ROSCONSOLE_SEVERITY_INFO
 
@@ -89,6 +90,8 @@ class GraphManager : public QObject {
     void pruneEdgesWithErrorAbove(float);
     void sanityCheck(float);
     void runRGBDICPOptimization();
+    void calculateNormals(const pointcloud_type::Ptr pc_col);
+    std::vector<int> extractHandles(const pointcloud_type::Ptr pc_col);
 
     public:
     GraphManager(ros::NodeHandle);
@@ -195,6 +198,8 @@ protected:
     QMutex optimizer_mutex;
     //cv::FlannBasedMatcher global_flann_matcher;
     
+    HandleExtractor handleExtractor_;
+
 };
 
 
