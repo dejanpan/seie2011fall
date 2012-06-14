@@ -17,6 +17,14 @@
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
+
+#include "ros/ros.h"
+
+#include "std_msgs/String.h"
+
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
 
 
 
@@ -47,7 +55,11 @@ IplConvKernel* line0;
 IplConvKernel* line45;
 IplConvKernel* line90;
 IplConvKernel* line135;
-
+float maxDistance;
+int minTransitions;
+int maxTransitions;
+int minROIlength;
+ros::Publisher publisher;
 
 
 void switch_callback_h( int position ){
@@ -430,56 +442,11 @@ int blobMain(char *arg) {
   return 0;
 }
 
-/*int main(int argc, char **argv) {
-
-    Mat testImg = imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
-    if(testImg.empty())
-    {
-        printf("Could not load image file: %s\n",argv[1]);
-        return 0;
-    }
-    searchForROI(testImg);
-    //Mat img = rotateImg(testImg,67);
-    //test(img);
-
-    //imshow("hi",testImg);
-    //cvWaitKey(0);
-}*/
-
-/*int main(int argc, char **argv) {
-  Mat img = imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
-  if(img.empty())
-  {
-      printf("Could not load image file: %s\n",argv[1]);
-      return 0;
-  }
-
-
-  for(int i = atoi(argv[2])+1; i <=atoi(argv[3]);i++)
-  {
-    uint* line1 = utils::getInterval(i-1,145,160,img);//150,145,250
-      uint* line2 = utils::getInterval(i,145,160,img); //70 ,145,250
-      int size = 160 - 145;
-      //std::cout << "length of line: " << size << "\n\n";
-      std::cout << "\ncomparison of line "<< (i-1) <<" and line " << i << "\n\n";
-      //std::cout << "hamming distance: " << ((utils::hammingDistance(line1,line2,size)))<< "\n";
-      //std::cout << "independent distance: " << ((utils::indenpendentDistance(line1,line2,size)))<< "\n";
-      //std::cout << "euclidean distance: " << ((utils::euclidianDistance(line1,line2,size)))<< "\n";
-      //std::cout << "manhattan distance: " << ((utils::manhattanDistance(line1,line2,size)))<< "\n";
-      std::cout << "Jeffries distance: " << ((utils::jeffriesDistance(line1,line2,size)))<< "\n";
-      //std::cout << "bhattacharyya distance: " << ((utils::bhattacharyyaDistance(line1,line2,size)))<< "\n";
-      //std::cout << "Chisquare distance: " << ((utils::chiSquareDistance(line1,line2,size)))<< "\n";
-      //std::cout << "klDivergence distance: " << ((utils::klDivergenceDistance(line1,line2,size)))<< "\n";
-
-      delete [] line1;
-      delete [] line2;
-  }
-
-}*/
-
-void findSquare(double**  data,int iSize, int jSize,int windowSize,float maxDistance,Mat img,int minROILength)
+vector<Point> findSquare(double**  data,int iSize, int jSize,int windowSize,float maxDistance,cv_bridge::CvImagePtr cv_bridge_ptr,int minROILength)
 {
     Square* roi = new Square;
+    Mat img = cv_bridge_ptr->image;
+    cv::imwrite("result.jpg", img);
     vector<Square> list;
     double** duplicate = utils::copy2dimArray(data,iSize,jSize);
     roi->x = -1;
@@ -514,7 +481,7 @@ void findSquare(double**  data,int iSize, int jSize,int windowSize,float maxDist
     }
 
     double* avgList = new double[list.size()];
-    int min;
+    int min = -1;
     for(int i = 0;i < list.size(); i++)
     {
         double count  = 0;
@@ -535,43 +502,78 @@ void findSquare(double**  data,int iSize, int jSize,int windowSize,float maxDist
               min = i;
         }
     }
-    for(int i = 0;i < list.size(); i++)
+    /*for(int i = 0;i < list.size(); i++)
     {
         std::cout << "\nroi "<< i <<":\n\n";
         std::cout << "start y = " << list.at(i).yStart << ", x = " << list.at(i).x << "->" << (list.at(i).x + windowSize) << "\n";
         std::cout << "End   y = " << list.at(i).yEnd   << ", x = " << list.at(i).x << "->" << (list.at(i).x + windowSize) << "\n";
         std::cout << "avg Distance = " << avgList[i] << "\n";
-    }
+    }*/
+    vector<Point> square;
+    std::cout << "hey 11\n";
+    if(!list.empty())
+    {
 
-    if(list.at(min).yEnd - list.at(min).yStart < 30)
-      std::cout << "\n\nCAUTION! cannot find good ROI\n";
+		if((list.at(min).yEnd - list.at(min).yStart < 30))
+		{
+		  std::cout << "hey 22\n";
+		  std::cout << "\n\nCAUTION! cannot find good ROI\n";
+		  cv_bridge::CvImage out_msg;
+		  //out_msg.header   = img.header; // Same timestamp and tf frame as input image
+		  out_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1; // Or whatever
+		  out_msg.image    = img; // Your cv::Mat
+
+		  publisher.publish(out_msg.toImageMsg());
+
+		  vector<Point> p;
+		  return p;
+		}
+		else
+		{
+			std::cout << "hey 33\n";
+			//std:: cout <<"\nthe best roi\n\n";
+			//std::cout << "start y = " << list.at(min).yStart << ", x = " << list.at(min).x << "->" << (list.at(min).x + windowSize) << "\n";
+			//std::cout << "End   y = " << list.at(min).yEnd   << ", x = " << list.at(min).x << "->" << (list.at(min).x + windowSize) << "\n";
+			std::cout << "BARCODE FOUND!\n";
+			Point p1(list.at(min).x,list.at(min).yStart);
+			Point p2(list.at(min).x + windowSize,list.at(min).yStart);
+			Point p3(list.at(min).x,list.at(min).yEnd);
+			Point p4(list.at(min).x + windowSize,list.at(min).yEnd);
+
+
+			square.push_back(p1);
+			square.push_back(p2);
+			square.push_back(p4);
+			square.push_back(p3);
+
+			Mat myimg;
+			cv::cvtColor(img,myimg,CV_GRAY2BGR,3);
+			drawSquare(img,square);
+
+			cv_bridge::CvImage out_msg;
+			//out_msg.header   = img.header; // Same timestamp and tf frame as input image
+			out_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1; // Or whatever
+			out_msg.image    = img; // Your cv::Mat
+
+			publisher.publish(out_msg.toImageMsg());
+			return square;
+		}
+    }
     else
     {
-        std:: cout <<"\nthe best roi\n\n";
-        std::cout << "start y = " << list.at(min).yStart << ", x = " << list.at(min).x << "->" << (list.at(min).x + windowSize) << "\n";
-        std::cout << "End   y = " << list.at(min).yEnd   << ", x = " << list.at(min).x << "->" << (list.at(min).x + windowSize) << "\n";
+    	std::cout << "hey 44\n";
+    	publisher.publish(cv_bridge_ptr->toImageMsg());
 
-        Point p1(list.at(min).x,list.at(min).yStart);
-        Point p2(list.at(min).x + windowSize,list.at(min).yStart);
-        Point p3(list.at(min).x,list.at(min).yEnd);
-        Point p4(list.at(min).x + windowSize,list.at(min).yEnd);
-
-        vector<Point> square;
-        square.push_back(p1);
-        square.push_back(p2);
-        square.push_back(p4);
-        square.push_back(p3);
-
-        Mat myimg;
-        cv::cvtColor(img,myimg,CV_GRAY2BGR,3);
-        drawSquare(img,square);
-
+		vector<Point> p;
+		return p;
     }
+
+
 }
 
-
-void SlidingwindowDetection(Mat img,float maxDistance, int minTransitions, int maxTransitions, int minROILength)
+vector<Point> SlidingwindowDetection(cv_bridge::CvImagePtr cv_bridge_ptr,float maxDistance, int minTransitions, int maxTransitions, int minROILength)
 {
+	Mat img  = cv_bridge_ptr->image;
     int windowSize = 100;
     uint* interval1;
     uint* interval2;
@@ -613,48 +615,48 @@ void SlidingwindowDetection(Mat img,float maxDistance, int minTransitions, int m
 
         delete [] interval1;
     }
+    vector<Point> roi = findSquare(distanceValue,img.rows - 1,img.cols - windowSize + 1,windowSize,maxDistance,cv_bridge_ptr,minROILength);
+    std::cout << "image analyzed\n";
+    return roi;
+}
 
-    /*ofstream myfile;
-    ofstream myfile2;
-    myfile.open ("output.txt");
-    myfile2.open ("transitions.txt");
-    for(int i = 0; i < img.rows - 1; i++)
-    {
+void ImageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
+{
+	cv_bridge::CvImagePtr cv_bridge_ptr;
+	try
+	{
+		cv_bridge_ptr = cv_bridge::toCvCopy(msg_ptr, "mono8");
+	}
+	catch (cv_bridge::Exception& e)
+	{
+		ROS_ERROR("Error converting ROS Image");
+		return;
+	}
 
-      for(int j = 0; j < img.cols - windowSize; j++)
-      {
-          if(j != (img.cols - windowSize - 1))
-          {
-              myfile << distanceValue[i][j] << ",";
-              myfile2 << transValue[i][j] << ",";
-          }
-          else
-          {
-              myfile << distanceValue[i][j];
-              myfile2 << transValue[i][j];
-          }
-      }
-      myfile << "\n";
-      myfile2 << "\n";
-
-    }*/
-    std::cout << "You are here\n";
-    findSquare(distanceValue,img.rows - 1,img.cols - windowSize + 1,windowSize,maxDistance,img,minROILength);
+	vector<Point> roi = SlidingwindowDetection(cv_bridge_ptr,maxDistance,minTransitions,maxTransitions,minROIlength);
 }
 
 int main(int argc, char **argv) {
 
-    Mat img = imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
+    /*Mat img = imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
     if(img.empty())
     {
         printf("Could not load image file: %s\n",argv[1]);
         return 0;
     }
+	*/
+    maxDistance = atof(argv[1]);
+    minTransitions = atoi(argv[2]);
+    maxTransitions = atoi(argv[3]);
+    minROIlength = atoi(argv[4]);
 
-    SlidingwindowDetection(img,atof(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]));
-    std::cout << "bye\n";
+    ros::init(argc, argv, "barcode_detection_node");
+    ros::NodeHandle n("~");
+    ros::AsyncSpinner spinner(1); // Use 4 threads
+    spinner.start();
 
-
-    //blobMain(argv[1]);
+    publisher = n.advertise<sensor_msgs::Image>("detected_barcode", 1000);
+    ros::Subscriber sub = n.subscribe("/image_raw", 50, ImageCallback);
+    ros::spin();
 }
 
