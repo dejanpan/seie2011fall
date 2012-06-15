@@ -32,5 +32,5 @@ include_directories(/usr/include/opencv-2.3.1/opencv2/)
 include_directories(/usr/include/opencv-2.3.1/opencv/)
 include_directories(/usr/include/eigen3/Eigen)
 
-rosbuild_add_executable(detection_node src/detector.cpp src/Line.cpp src/utils.cpp)
+rosbuild_add_executable(detection_node src/Detector.cpp src/Line.cpp src/utils.cpp)
 #target_link_libraries(example ${PROJECT_NAME})

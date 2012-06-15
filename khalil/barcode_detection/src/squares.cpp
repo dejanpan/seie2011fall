@@ -49,7 +49,6 @@ double angle( Point pt1, Point pt2, Point pt0 )
 void findSquares( const Mat& image, vector<vector<Point> >& squares )
 {
     int thresh = 50, N = 11;
-    const char* wndname = "Square Detection Demo";
     squares.clear();
     
     Mat pyr, timg, gray0(image.size(), CV_8U), gray;
@@ -157,5 +156,16 @@ void drawSquare(Mat& image, const vector<Point>& square)
 
     polylines(img, &p, &n, 1, true, Scalar(0,255,0), 3, CV_AA);
 
-    imwrite("selected.png",img);
+    //imwrite("selected.png",img);
+}
+
+void drawSquare(Mat& image,Mat& dst, const vector<Point>& square)
+{
+    const Point* p = &square[0];
+    int n = (int) square.size();
+    cv::cvtColor(image,dst,CV_GRAY2BGR,3);
+
+    polylines(dst, &p, &n, 1, true, Scalar(0,255,0), 3, CV_AA);
+
+    //imwrite("selected.png",img);
 }
