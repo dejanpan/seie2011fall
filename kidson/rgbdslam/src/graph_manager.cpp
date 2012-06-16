@@ -404,7 +404,7 @@ bool GraphManager::addNode(Node* new_node) {
     //First check if trafo to last frame is not too small
     Node* prev_frame = graph_[graph_.size()-1];
     ROS_INFO("Comparing new node (%i) with previous node %i", new_node->id_, prev_frame->id_);
-    MatchingResult mr = new_node->matchNodePair(prev_frame, false);
+    MatchingResult mr = new_node->matchNodePair(prev_frame, false, (unsigned int) ParameterServer::instance()->get<int>("min_matches"));
 
     if(mr.edge.id1 >= 0 && !isBigTrafo(mr.edge.mean)){
         ROS_WARN("Transformation not relevant. Did not add as Node");
@@ -444,14 +444,9 @@ bool GraphManager::addNode(Node* new_node) {
             //collecting a qlist of the results (using the blocking version of mapped).
             nodes_to_comp.push_back(graph_[vertices_to_comp[id_of_id]]);
         }
-        QThreadPool* qtp = QThreadPool::globalInstance();
-        ROS_INFO("Running node comparisons in parallel in %i (of %i) available threads", qtp->maxThreadCount() - qtp->activeThreadCount(), qtp->maxThreadCount());
-        if (qtp->maxThreadCount() - qtp->activeThreadCount() == 1) {
-            ROS_WARN("Few Threads Remaining: Increasing maxThreadCount to %i", qtp->maxThreadCount()+1);
-            qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
-        }
+        printMultiThreadInfo("node comparison");
         QList<MatchingResult> results = QtConcurrent::blockingMapped(
-                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1, false));
+                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1, false, (unsigned int) ParameterServer::instance()->get<int>("min_matches")));
 
         for (int i = 0; i < results.size(); i++) {
             MatchingResult& mr = results[i];
@@ -476,7 +471,7 @@ bool GraphManager::addNode(Node* new_node) {
         for (int id_of_id = (int) vertices_to_comp.size() - 1; id_of_id >= 0; id_of_id--) {
             Node* abcd = graph_[vertices_to_comp[id_of_id]];
             ROS_INFO("Comparing new node (%i) with node %i / %i", new_node->id_, vertices_to_comp[id_of_id], abcd->id_);
-            MatchingResult mr = new_node->matchNodePair(abcd, false);
+            MatchingResult mr = new_node->matchNodePair(abcd, false, (unsigned int) ParameterServer::instance()->get<int>("min_matches"));
 
             if (mr.edge.id1 >= 0){
 				//if((new_node->id_== 2) || (abcd->id_ == 2))
@@ -604,6 +599,17 @@ bool GraphManager::addNode(Node* new_node) {
     return (optimizer_->edges().size() > num_edges_before);
 }
 
+void GraphManager::printMultiThreadInfo(std::string task)
+{
+	QThreadPool* qtp = QThreadPool::globalInstance();
+	ROS_INFO_STREAM("Running " << task << " in parallel in "
+			<< qtp->maxThreadCount()- qtp->activeThreadCount() << " (of " << qtp->maxThreadCount() << ") available threads");
+	if (qtp->maxThreadCount() - qtp->activeThreadCount() == 1) {
+		ROS_WARN("Few Threads Remaining: Increasing maxThreadCount to %i", qtp->maxThreadCount()+1);
+		qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
+	}
+}
+
 ///Get the norm of the translational part of an affine matrix (Helper for isBigTrafo)
 void GraphManager::visualizeFeatureFlow3D(unsigned int marker_id,
                                           bool draw_outlier) const{
@@ -720,13 +726,8 @@ void GraphManager::runRGBDICPOptimization()
 	for (unsigned int i = 0; i < graph_.size(); ++i) {
 		pointcloudList.push_back(graph_[i]->pc_col);
 	}
-    QThreadPool* qtp = QThreadPool::globalInstance();
-    ROS_INFO("Calculating point cloud normals in parallel in %i (of %i) available threads", qtp->maxThreadCount() - qtp->activeThreadCount(), qtp->maxThreadCount());
-    if (qtp->maxThreadCount() - qtp->activeThreadCount() == 1) {
-        ROS_WARN("Few Threads Remaining: Increasing maxThreadCount to %i", qtp->maxThreadCount()+1);
-        qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
-    }
-    QtConcurrent::blockingMap(pointcloudList, boost::bind(&GraphManager::calculateNormals, this, _1));
+	printMultiThreadInfo("point cloud normals");
+	QtConcurrent::blockingMap(pointcloudList, boost::bind(&GraphManager::calculateNormals, this, _1));
 	ROS_INFO("End of point cloud normal calculation");
 
 	//Extract handle indices for all nodes ROSS-TODO:: multithread this like a boss
@@ -734,11 +735,6 @@ void GraphManager::runRGBDICPOptimization()
 		ROS_INFO("Extracting handles for node %i",(int)i);
 		graph_[i]->extractHandlesIndices();
 	}
-//    ROS_INFO("Extracting handles in parallel in %i (of %i) available threads", qtp->maxThreadCount() - qtp->activeThreadCount(), qtp->maxThreadCount());
-//    if (qtp->maxThreadCount() - qtp->activeThreadCount() == 1) {
-//        ROS_WARN("Few Threads Remaining: Increasing maxThreadCount to %i", qtp->maxThreadCount()+1);
-//        qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
-//    }
 //	QList<std::vector<int> > nodeHandleIndices = QtConcurrent::blockingMapped(pointcloudList, boost::bind(&GraphManager::extractHandles, this, _1));
 //	ROS_INFO("End of handle extraction multithreading");
 
@@ -753,28 +749,38 @@ void GraphManager::runRGBDICPOptimization()
             continue;
         }
         QList<int> nodesToCompareIndices = getUnconnectedNodes(graph_[i], 1000);
+        QList<const Node* > nodes_to_comp;// for parallel computation
 
-        // iterate through list.  (multithreading could also be implemented here)
+        // put nodes into a list for multithreading
         for (int id_of_id = (int) nodesToCompareIndices.size() - 1; id_of_id >= 0; id_of_id--) {
+        	nodes_to_comp.push_back(graph_[nodesToCompareIndices[id_of_id]]);
+        }
+        for(size_t k = 0; k < nodes_to_comp.size(); k++)
+        	ROS_INFO_STREAM("node to comp[" << k << "] " << nodes_to_comp[k]->id_ );
+        printMultiThreadInfo("node comparison for rgbdicp");
+        QList<MatchingResult> results = QtConcurrent::blockingMapped(
+        		nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, false, 30));	//ROSS-TODO:: 30 a parameter
 
-        	MatchingResult mr;
-        	graph_[i]->findPairsFlann(graph_[nodesToCompareIndices[id_of_id]], &mr.all_matches);
-        	//ROS_INFO_STREAM("node[" << i << "] and node[" << nodesToCompareIndices[id_of_id] << "] mr.all_matches " << mr.all_matches.size());
+        for (int j = 0; j < results.size(); j++) {
+                    MatchingResult& mr = results[j];
 
-        	graph_[i]->getRelativeTransformationTo(graph_[nodesToCompareIndices[id_of_id]],
-        			&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches, 30); //ROSS-TODO: make 30 a parameter
+            if (mr.edge.id1 >= 0) {
+				// source = current node, target = other node. Transform is from source to target
+				std::vector<int> sourceSIFTIndices, targetSIFTIndices, sourceHandleIndices, targetHandleIndices;
+				graph_[i]->getFeatureIndices(graph_[results[j].edge.id1], mr, sourceSIFTIndices, targetSIFTIndices);
 
-        	// source = current node, target = other node. Transform is from source to target
-        	std::vector<int> sourceSIFTIndices, targetSIFTIndices, sourceHandleIndices, targetHandleIndices;
-        	graph_[i]->getFeatureIndices(graph_[nodesToCompareIndices[id_of_id]], mr, sourceSIFTIndices, targetSIFTIndices);
-			 pcl::PCDWriter writer;
-			 std::stringstream filename;
-			 filename << "node_" << id_of_id << "source.pcd";
-			 writer.write (filename.str(), *(graph_[i]->pc_col), graph_[i]->handleIndices, true);
-			 filename.str("");
-			 filename << "node_" << id_of_id << "target.pcd";
-			 writer.write (filename.str(), *(graph_[nodesToCompareIndices[id_of_id]]->pc_col),
-					 graph_[nodesToCompareIndices[id_of_id]]->handleIndices, true);
+				if(i == (graph_.size()-1))
+				{
+					 pcl::PCDWriter writer;
+					 std::stringstream filename;
+					 filename << "node_" << graph_[i]->id_ << "source.pcd";
+					 writer.write (filename.str(), *(graph_[i]->pc_col), graph_[i]->handleIndices, true);
+					 filename.str("");
+					 filename << "node_" << graph_[results[j].edge.id1]->id_ << "target.pcd";
+					 writer.write (filename.str(), *(graph_[results[j].edge.id1]->pc_col),
+							 graph_[results[j].edge.id1]->handleIndices, true);
+				}
+            }
         }
     }
 }

@@ -167,6 +167,7 @@ protected:
 
     void mergeAllClouds(pointcloud_type & merge);
     double geodesicDiscount(g2o::HyperDijkstra& hypdij, const MatchingResult& mr);
+    void printMultiThreadInfo(std::string task);
     
     g2o::SparseOptimizer* optimizer_;
 
