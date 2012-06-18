@@ -246,7 +246,11 @@ void adjustIndicesFromRemovedPoints(std::vector<int>& indicesInput, const std::v
 	{
 		std::vector<int>::iterator j = std::find(indicesInput.begin(), indicesInput.end(), removedPoints[i]);
 		if(j != indicesInput.end())	//check if search successful
+		{
+//			ROS_INFO_STREAM("found handle indice that was removed handle[" << (int)(j - indicesInput.begin())
+//					<< "] = " << *j << " removedPoints[" << i << "] = " << removedPoints[i] );
 			j = indicesInput.erase(j);
+		}
 	}
 	// adjust indexes for indices that have been removed
 	std::vector<int> indicesReference = indicesInput;
@@ -273,8 +277,8 @@ int main(int argc, char** argv) {
 	PointCloud::Ptr cloudTargetFiltered(new PointCloud);
 	PointCloudNormal::Ptr cloudSourceNormal(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudTargetNormal(new PointCloudNormal);
-	PointCloudNormal::Ptr cloudSourceNormalFiltered(new PointCloudNormal);
-	PointCloudNormal::Ptr cloudTargetNormalFiltered(new PointCloudNormal);
+	PointCloudNormal::Ptr cloudHandlesSource(new PointCloudNormal);
+	PointCloudNormal::Ptr cloudHandlesTarget(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudSourceNormalNoNaNs(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudTargetNormalNoNaNs(new PointCloudNormal);
 	pcl::PCDWriter writer;
@@ -304,52 +308,38 @@ int main(int argc, char** argv) {
 	removeNaNs(cloudTargetNormal, cloudTargetNormalNoNaNs, removedPoints);
 	adjustIndicesFromRemovedPoints(targetHandleClusters,  removedPoints);
 
-//	normalEstimation(cloudSourceFiltered, cloudSourceNormalFiltered, 0.035);//0.05
-//	normalEstimation(cloudTargetFiltered, cloudTargetNormalFiltered, 0.035);//0.05
-
-//	for(size_t i=0; i < cloudSourceNormalFiltered->points.size(); i++)
-//	{
-//		if((cloudSourceNormalFiltered->points[i].normal_x != cloudSourceNormalFiltered->points[i].normal_x) ||
-//				(cloudSourceNormalFiltered->points[i].normal_y != cloudSourceNormalFiltered->points[i].normal_y) ||
-//				(cloudSourceNormalFiltered->points[i].normal_z != cloudSourceNormalFiltered->points[i].normal_z))
-//		{
-//			std::cerr << "NAN IN SOURCE NORMAL. Specify larger K or search radius to calculate normals " << i << "\n";
-//			cloudSourceNormalFiltered->points.erase(cloudSourceNormalFiltered->points.begin() + i);
-//			for(size_t j=0; j < sourceHandleClusters.size(); j++)
-//			{
-//				if(sourceHandleClusters[j] > (int)i)
-//				{
-//					sourceHandleClusters[j]--;
-//					std::cerr << "source handle indice " << j << " was decremented to " << sourceHandleClusters[j] << "\n";
-//				}
-//			}
-//			i--;
-//			//exit(0);
-//		}
-//	}
-//	for(size_t i=0; i < cloudTargetNormalFiltered->points.size(); i++)
-//	{
-//		if((cloudTargetNormalFiltered->points[i].normal_x != cloudTargetNormalFiltered->points[i].normal_x) ||
-//				(cloudTargetNormalFiltered->points[i].normal_y != cloudTargetNormalFiltered->points[i].normal_y) ||
-//				(cloudTargetNormalFiltered->points[i].normal_z != cloudTargetNormalFiltered->points[i].normal_z))
-//		{
-//			std::cerr << "NAN IN TARGET NORMAL. Specify larger K or search radius to calculate normals " << i << "\n";
-//			cloudTargetNormalFiltered->points.erase(cloudTargetNormalFiltered->points.begin() + i);
-//			for(size_t j=0; j < targetHandleClusters.size(); j++)
-//			{
-//				if(targetHandleClusters[j] > (int)i)
-//				{
-//					targetHandleClusters[j]--;
-//					std::cerr << "target handle indice " << j << " was decremented to " << targetHandleClusters[j] << "\n";
-//				}
-//			}
-//			i--;
-//			//exit(0);
-//		}
-//	}
-
 	writer.write("handlesSource.pcd", *cloudSourceNormalNoNaNs, sourceHandleClusters, true);
 	writer.write("handlesTarget.pcd", *cloudTargetNormalNoNaNs, targetHandleClusters, true);
+
+	ROS_INFO("Calculating inital transformation from ICP SVD on handles....");
+	Eigen::Matrix4f guess;
+	guess << 1,   0,  0,  0.0,
+		   0,	1,	0,	0.5,
+		   0,	0,	1,	0.33,
+		   0,	0,	0,	1;
+
+	pcl::IterativeClosestPoint<PointNormal, PointNormal> icp;
+	// set source and target clouds from indices of pointclouds
+	pcl::ExtractIndices<PointNormal> handlefilter;
+	pcl::PointIndices::Ptr sourceHandleIndices (new pcl::PointIndices);
+	sourceHandleIndices->indices = sourceHandleClusters;
+	handlefilter.setIndices(sourceHandleIndices);
+	handlefilter.setInputCloud(cloudSourceNormalNoNaNs);
+	handlefilter.filter(*cloudHandlesSource);
+	icp.setInputCloud(cloudHandlesSource);
+
+	pcl::PointIndices::Ptr targetHandleIndices (new pcl::PointIndices);
+	targetHandleIndices->indices = targetHandleClusters;
+	handlefilter.setIndices(targetHandleIndices);
+	handlefilter.setInputCloud(cloudTargetNormalNoNaNs);
+	handlefilter.filter(*cloudHandlesTarget);
+	icp.setInputTarget(cloudHandlesTarget);
+
+	PointCloudNormal Final;
+	icp.align(Final, guess);
+	std::cout << "has converged:" << icp.hasConverged() << " score: " <<
+	icp.getFitnessScore() << std::endl;
+	std::cout << icp.getFinalTransformation() << std::endl;
 
 	ROS_INFO("Initialize transformation estimation object....");
 	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
@@ -361,7 +351,7 @@ int main(int argc, char** argv) {
 	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
 	transformationEstimation_->setCorrespondecesDFP(indicesSource, indicesTarget);
 
-	 Eigen::Matrix4f guess;
+//	 Eigen::Matrix4f guess;
 	//  guess << 0.999203,   0.0337772,  -0.0213298,   0.0110106,
 	//		  -0.0349403,     0.99778,  -0.0567293, -0.00746282,
 	//		  0.0193665,   0.0574294,    0.998162,   0.0141431,
@@ -376,14 +366,16 @@ int main(int argc, char** argv) {
 //			   0,	0,	1,	0.33,
 //			   0,	0,	0,	1;
 
-	 guess <<   0.993523,  0.0152363,  -0.112636,   0.138385,
-	 	-0.0264756,   0.994739, -0.0989777,   0.615225,
-	 	  0.110535,   0.101318,   0.988696,   0.347863,
-	 	         0,          0,          0,          1;
+//	 icp svd for handles node_1/node_91
+//	 guess <<   0.993523,  0.0152363,  -0.112636,   0.138385,
+//	 	-0.0264756,   0.994739, -0.0989777,   0.615225,
+//	 	  0.110535,   0.101318,   0.988696,   0.347863,
+//	 	         0,          0,          0,          1;
+
 	// custom icp
 	ROS_INFO("Initialize icp object....");
 	pcl::IterativeClosestPointJointOptimize<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
-	icpJointOptimize.setMaximumIterations (40);
+	icpJointOptimize.setMaximumIterations (20);
 	icpJointOptimize.setTransformationEpsilon (0);
 	icpJointOptimize.setMaxCorrespondenceDistance(0.1);
 	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
@@ -396,7 +388,7 @@ int main(int argc, char** argv) {
 
 	ROS_INFO("Running ICP....");
 	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
-	icpJointOptimize.align ( *cloud_transformed, guess); //init_tr );
+	icpJointOptimize.align ( *cloud_transformed, icp.getFinalTransformation()); //init_tr );
 	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icpJointOptimize.hasConverged() << std::endl <<
 				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl
 				<<	icpJointOptimize.getFinalTransformation () << "\n";
