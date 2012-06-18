@@ -54,10 +54,15 @@ main (int argc, char** argv)
 	icp.setEuclideanFitnessEpsilon (0);
 
 	  Eigen::Matrix4f guess;
-	  guess << 1,   0,  0,  0.1,
-			   0,	1,	0,	0.6,
-			   0,	0,	1,	0.3,
-			   0,	0,	0,	1;
+//	  guess << 1,   0,  0,  0.0,
+//			   0,	1,	0,	0.5,
+//			   0,	0,	1,	0.33,
+//			   0,	0,	0,	1;
+
+	  guess <<   0.993523,  0.0152363,  -0.112636,   0.138385,
+	-0.0264756,   0.994739, -0.0989777,   0.615225,
+	  0.110535,   0.101318,   0.988696,   0.347863,
+	         0,          0,          0,          1;
 	//  guess <<	0.998083, -0.0236136,  -0.057204, 0.068627,
 	//			0.017266,    0.99389,   -0.10902, 0.627856,
 	//			0.0594288,   0.107824,   0.992392,   0.370651,
@@ -78,7 +83,7 @@ main (int argc, char** argv)
 	std::cout << icp.getFinalTransformation() << std::endl;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_out( new pcl::PointCloud<pcl::PointXYZRGB>);
 	transformPointCloud (*cloudSource, *cloud_out,  icp.getFinalTransformation());
-	//transformPointCloud (*cloudSource, *cloud_out,  guess);
+//	transformPointCloud (*cloudSource, *cloud_out,  guess);
 
 	pcl::PCDWriter writer;
 	writer.write ("output.pcd", *cloud_out, false);

@@ -58,9 +58,9 @@ int
   std::cout << "PointCloud target has: " << cloud_out->points.size () << " data points." << std::endl;
 
   Eigen::Matrix4f guess;
-  guess << 1,   0,  0,  0.1,
-		   0,	1,	0,	0.6,
-		   0,	0,	1,	0.2,
+  guess << 1,   0,  0,  0.0,
+		   0,	1,	0,	0.5,
+		   0,	0,	1,	0.33,
 		   0,	0,	0,	1;
 
   pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;

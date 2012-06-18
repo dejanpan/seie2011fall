@@ -714,6 +714,7 @@ std::vector<int> GraphManager::extractHandles(const pointcloud_type::Ptr pc_col)
 {
 	std::vector<int> handleIndices;
 	handleExtractor_.extractHandles(pc_col, handleIndices);
+	// THIS FUNCTION IS MISSING CHECKING FOR NORMALS WITH NANS IF IT IS TO BE USED
 	return handleIndices;
 }
 
@@ -755,8 +756,6 @@ void GraphManager::runRGBDICPOptimization()
         for (int id_of_id = (int) nodesToCompareIndices.size() - 1; id_of_id >= 0; id_of_id--) {
         	nodes_to_comp.push_back(graph_[nodesToCompareIndices[id_of_id]]);
         }
-        for(size_t k = 0; k < nodes_to_comp.size(); k++)
-        	ROS_INFO_STREAM("node to comp[" << k << "] " << nodes_to_comp[k]->id_ );
         printMultiThreadInfo("node comparison for rgbdicp");
         QList<MatchingResult> results = QtConcurrent::blockingMapped(
         		nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, false, 30));	//ROSS-TODO:: 30 a parameter

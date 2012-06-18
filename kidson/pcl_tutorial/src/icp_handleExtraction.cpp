@@ -193,19 +193,78 @@ void extractHandles(PointCloud::Ptr& cloudInput, PointCloud::Ptr& cloudOutput, P
 		sor.setMeanK (50);
 		sor.setStddevMulThresh (1.0);
 		sor.filter (*cloud_filtered);
+		PointCloudNormal::Ptr cloud_filtered_hack (new PointCloudNormal);
+		pcl::copyPointCloud(*cloud_filtered, *cloud_filtered_hack);
 
 		// Our handle is in cloud_filtered.  We want indices of a cloud (also filtered for NaNs)
-		pcl::KdTreeFLANN<Point> kdtreeNN;
+		pcl::KdTreeFLANN<PointNormal> kdtreeNN;
 		std::vector<int> pointIdxNKNSearch(1);
 		std::vector<float> pointNKNSquaredDistance(1);
-		kdtreeNN.setInputCloud(cloudOutput);
-		for(size_t j = 0; j < cloud_filtered->points.size(); j++)
+		kdtreeNN.setInputCloud(pointCloudNormals);
+		for(size_t j = 0; j < cloud_filtered_hack->points.size(); j++)
 		{
-			kdtreeNN.nearestKSearch(cloud_filtered->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+			kdtreeNN.nearestKSearch(cloud_filtered_hack->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance);
 			handles.push_back(pointIdxNKNSearch[0]);
 		}
 	}
 }
+
+void removeNaNs(const PointCloudNormal::Ptr& cloudInput, PointCloudNormal::Ptr& cloudOutput, std::vector<int>& removedPoints)
+{
+	removedPoints.clear();
+	cloudOutput->header   = cloudInput->header;
+
+	for(size_t i=0; i < cloudInput->points.size(); i++)
+	{
+		if(!pcl_isfinite(cloudInput->points[i].x) ||
+				!pcl_isfinite(cloudInput->points[i].y) ||
+				!pcl_isfinite(cloudInput->points[i].z))
+		{
+//			ROS_INFO_STREAM("NAN FOUND IN POINT COORDINATE. " << i);
+			removedPoints.push_back((int)i);
+		}
+		else if(!pcl_isfinite(cloudInput->points[i].normal_x) ||
+				!pcl_isfinite(cloudInput->points[i].normal_y) ||
+				!pcl_isfinite(cloudInput->points[i].normal_z))
+		{
+			ROS_INFO_STREAM("NAN FOUND IN NORMAL. Specify larger K or search radius to calculate normals " << i);
+			removedPoints.push_back(int(i));
+		}
+
+		else
+			cloudOutput->points.push_back(cloudInput->points[i]);
+	}
+	cloudOutput->height = 1;
+	cloudOutput->width  = static_cast<uint32_t>(cloudOutput->points.size());
+	ROS_INFO_STREAM("Size of removed indices" << removedPoints.size());
+}
+
+void adjustIndicesFromRemovedPoints(std::vector<int>& indicesInput, std::vector<int>& indicesOutput, const std::vector<int>& removedPoints)
+{
+	// look for indices that were removed and remove them from the vector
+	indicesOutput = indicesInput;
+	for(size_t i=0; i < removedPoints.size(); i++)
+	{
+		std::vector<int>::iterator j = std::find(indicesOutput.begin(), indicesOutput.end(), removedPoints[i]);
+		if(*j == removedPoints[i])	//check if search successful
+		{
+			indicesOutput.erase(j);
+		}
+	}
+	for(size_t i=0; i < removedPoints.size(); i++)
+	{
+//		ROS_INFO_STREAM("removed points[" << i << "] = " << removedPoints[i] << "######################################################################");
+		for(size_t j=0; j < indicesInput.size(); j++)
+		{
+			if(indicesInput[j] > removedPoints[i])
+			{
+				indicesOutput[j]--;
+//				ROS_INFO_STREAM("indice " << j << " was decremented to " << indicesInput[j]);
+			}
+		}
+	}
+}
+
 
 int main(int argc, char** argv) {
 	if (argc != 3) {
@@ -221,6 +280,8 @@ int main(int argc, char** argv) {
 	PointCloudNormal::Ptr cloudTargetNormal(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudSourceNormalFiltered(new PointCloudNormal);
 	PointCloudNormal::Ptr cloudTargetNormalFiltered(new PointCloudNormal);
+	PointCloudNormal::Ptr cloudSourceNormalNoNaNs(new PointCloudNormal);
+	PointCloudNormal::Ptr cloudTargetNormalNoNaNs(new PointCloudNormal);
 	pcl::PCDWriter writer;
 	std::vector<int> indicesSource, indicesTarget;
 
@@ -237,57 +298,65 @@ int main(int argc, char** argv) {
 
 	std::vector<int> sourceHandleClusters;
 	std::vector<int> targetHandleClusters;
+	std::vector<int> sourceHandleClustersNoNaNs;
+	std::vector<int> targetHandleClustersNoNaNs;
 
 	ROS_INFO("Extracting handles....");
 	extractHandles(cloudSource, cloudSourceFiltered, cloudSourceNormal, sourceHandleClusters);
 	extractHandles(cloudTarget, cloudTargetFiltered, cloudTargetNormal, targetHandleClusters);
 
-	normalEstimation(cloudSourceFiltered, cloudSourceNormalFiltered, 0.05);
-	normalEstimation(cloudTargetFiltered, cloudTargetNormalFiltered, 0.05);
+	std::vector<int> removedPoints;
+	removeNaNs(cloudSourceNormal, cloudSourceNormalNoNaNs, removedPoints);
+	adjustIndicesFromRemovedPoints(sourceHandleClusters, sourceHandleClustersNoNaNs, removedPoints);
+	removeNaNs(cloudTargetNormal, cloudTargetNormalNoNaNs, removedPoints);
+	adjustIndicesFromRemovedPoints(targetHandleClusters, targetHandleClustersNoNaNs, removedPoints);
 
-	for(size_t i=0; i < cloudSourceNormalFiltered->points.size(); i++)
-	{
-		if((cloudSourceNormalFiltered->points[i].normal_x != cloudSourceNormalFiltered->points[i].normal_x) ||
-				(cloudSourceNormalFiltered->points[i].normal_y != cloudSourceNormalFiltered->points[i].normal_y) ||
-				(cloudSourceNormalFiltered->points[i].normal_z != cloudSourceNormalFiltered->points[i].normal_z))
-		{
-			std::cerr << "NAN IN SOURCE NORMAL. Specify larger K or search radius to calculate normals " << i << "\n";
-			cloudSourceNormalFiltered->points.erase(cloudSourceNormalFiltered->points.begin() + i);
-			for(size_t j=0; j < sourceHandleClusters.size(); j++)
-			{
-				if(sourceHandleClusters[j] > (int)i)
-				{
-					sourceHandleClusters[j]--;
-					std::cerr << "source handle indice " << j << " was decremented to " << sourceHandleClusters[j] << "\n";
-				}
-			}
-			i--;
-			//exit(0);
-		}
-	}
-	for(size_t i=0; i < cloudTargetNormalFiltered->points.size(); i++)
-	{
-		if((cloudTargetNormalFiltered->points[i].normal_x != cloudTargetNormalFiltered->points[i].normal_x) ||
-				(cloudTargetNormalFiltered->points[i].normal_y != cloudTargetNormalFiltered->points[i].normal_y) ||
-				(cloudTargetNormalFiltered->points[i].normal_z != cloudTargetNormalFiltered->points[i].normal_z))
-		{
-			std::cerr << "NAN IN TARGET NORMAL. Specify larger K or search radius to calculate normals " << i << "\n";
-			cloudTargetNormalFiltered->points.erase(cloudTargetNormalFiltered->points.begin() + i);
-			for(size_t j=0; j < targetHandleClusters.size(); j++)
-			{
-				if(targetHandleClusters[j] > (int)i)
-				{
-					targetHandleClusters[j]--;
-					std::cerr << "target handle indice " << j << " was decremented to " << targetHandleClusters[j] << "\n";
-				}
-			}
-			i--;
-			//exit(0);
-		}
-	}
+//	normalEstimation(cloudSourceFiltered, cloudSourceNormalFiltered, 0.035);//0.05
+//	normalEstimation(cloudTargetFiltered, cloudTargetNormalFiltered, 0.035);//0.05
 
-	writer.write("handlesSource.pcd", *cloudSourceNormalFiltered, sourceHandleClusters, true);
-	writer.write("handlesTarget.pcd", *cloudTargetNormalFiltered, targetHandleClusters, true);
+//	for(size_t i=0; i < cloudSourceNormalFiltered->points.size(); i++)
+//	{
+//		if((cloudSourceNormalFiltered->points[i].normal_x != cloudSourceNormalFiltered->points[i].normal_x) ||
+//				(cloudSourceNormalFiltered->points[i].normal_y != cloudSourceNormalFiltered->points[i].normal_y) ||
+//				(cloudSourceNormalFiltered->points[i].normal_z != cloudSourceNormalFiltered->points[i].normal_z))
+//		{
+//			std::cerr << "NAN IN SOURCE NORMAL. Specify larger K or search radius to calculate normals " << i << "\n";
+//			cloudSourceNormalFiltered->points.erase(cloudSourceNormalFiltered->points.begin() + i);
+//			for(size_t j=0; j < sourceHandleClusters.size(); j++)
+//			{
+//				if(sourceHandleClusters[j] > (int)i)
+//				{
+//					sourceHandleClusters[j]--;
+//					std::cerr << "source handle indice " << j << " was decremented to " << sourceHandleClusters[j] << "\n";
+//				}
+//			}
+//			i--;
+//			//exit(0);
+//		}
+//	}
+//	for(size_t i=0; i < cloudTargetNormalFiltered->points.size(); i++)
+//	{
+//		if((cloudTargetNormalFiltered->points[i].normal_x != cloudTargetNormalFiltered->points[i].normal_x) ||
+//				(cloudTargetNormalFiltered->points[i].normal_y != cloudTargetNormalFiltered->points[i].normal_y) ||
+//				(cloudTargetNormalFiltered->points[i].normal_z != cloudTargetNormalFiltered->points[i].normal_z))
+//		{
+//			std::cerr << "NAN IN TARGET NORMAL. Specify larger K or search radius to calculate normals " << i << "\n";
+//			cloudTargetNormalFiltered->points.erase(cloudTargetNormalFiltered->points.begin() + i);
+//			for(size_t j=0; j < targetHandleClusters.size(); j++)
+//			{
+//				if(targetHandleClusters[j] > (int)i)
+//				{
+//					targetHandleClusters[j]--;
+//					std::cerr << "target handle indice " << j << " was decremented to " << targetHandleClusters[j] << "\n";
+//				}
+//			}
+//			i--;
+//			//exit(0);
+//		}
+//	}
+
+	writer.write("handlesSource.pcd", *cloudSourceNormalNoNaNs, sourceHandleClustersNoNaNs, true);
+	writer.write("handlesTarget.pcd", *cloudTargetNormalNoNaNs, targetHandleClustersNoNaNs, true);
 
 	ROS_INFO("Initialize transformation estimation object....");
 	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
@@ -295,7 +364,7 @@ int main(int argc, char** argv) {
 
 	float denseCloudWeight = 1.0;
 	float visualFeatureWeight = 0.0;
-	float handleFeatureWeight = 1.0;
+	float handleFeatureWeight = 0.25;
 	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
 	transformationEstimation_->setCorrespondecesDFP(indicesSource, indicesTarget);
 
@@ -309,11 +378,15 @@ int main(int argc, char** argv) {
 //			   -0.3,	0.2,	1,	0.4,
 //			   0,	0,	0,	1;
 
-	 guess << 1,   0,  0,  0.1,
-	 	      0,    1,    0,    0.6,
-	 	      0,    0,    1,    0.3,
-	 	      0,    0,    0,    1;
+//	  guess << 1,   0,  0,  0.0,
+//			   0,	1,	0,	0.5,
+//			   0,	0,	1,	0.33,
+//			   0,	0,	0,	1;
 
+	 guess <<   0.993523,  0.0152363,  -0.112636,   0.138385,
+	 	-0.0264756,   0.994739, -0.0989777,   0.615225,
+	 	  0.110535,   0.101318,   0.988696,   0.347863,
+	 	         0,          0,          0,          1;
 	// custom icp
 	ROS_INFO("Initialize icp object....");
 	pcl::IterativeClosestPointJointOptimize<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
@@ -323,10 +396,10 @@ int main(int argc, char** argv) {
 	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
 	icpJointOptimize.setEuclideanFitnessEpsilon (0);
 	icpJointOptimize.setTransformationEstimation (transformationEstimation_);
-	icpJointOptimize.setHandleSourceIndices(sourceHandleClusters);
-	icpJointOptimize.setHandleTargetIndices(targetHandleClusters);
-	icpJointOptimize.setInputCloud(cloudSourceNormalFiltered);
-	icpJointOptimize.setInputTarget(cloudTargetNormalFiltered);
+	icpJointOptimize.setHandleSourceIndices(sourceHandleClustersNoNaNs);
+	icpJointOptimize.setHandleTargetIndices(targetHandleClustersNoNaNs);
+	icpJointOptimize.setInputCloud(cloudSourceNormalNoNaNs);
+	icpJointOptimize.setInputTarget(cloudTargetNormalNoNaNs);
 
 	ROS_INFO("Running ICP....");
 	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
