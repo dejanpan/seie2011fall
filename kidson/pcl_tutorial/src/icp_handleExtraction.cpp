@@ -239,22 +239,23 @@ void removeNaNs(const PointCloudNormal::Ptr& cloudInput, PointCloudNormal::Ptr& 
 	ROS_INFO_STREAM("Size of removed indices" << removedPoints.size());
 }
 
-void adjustIndicesFromRemovedPoints(std::vector<int>& indicesInput, std::vector<int>& indicesOutput, const std::vector<int>& removedPoints)
+void adjustIndicesFromRemovedPoints(std::vector<int>& indicesInput, const std::vector<int>& removedPoints)
 {
 	// look for indices that were removed and remove them from the vector
-	indicesOutput = indicesInput;
 	for(size_t i=0; i < removedPoints.size(); i++)
 	{
-		std::vector<int>::iterator j = std::find(indicesOutput.begin(), indicesOutput.end(), removedPoints[i]);
-		if(*j == removedPoints[i])	//check if search successful
-			indicesOutput.erase(j);
+		std::vector<int>::iterator j = std::find(indicesInput.begin(), indicesInput.end(), removedPoints[i]);
+		if(j != indicesInput.end())	//check if search successful
+			j = indicesInput.erase(j);
 	}
+	// adjust indexes for indices that have been removed
+	std::vector<int> indicesReference = indicesInput;
 	for(size_t i=0; i < removedPoints.size(); i++)
 	{
-		for(size_t j=0; j < indicesInput.size(); j++)
+		for(size_t j=0; j < indicesReference.size(); j++)
 		{
-			if(indicesInput[j] > removedPoints[i])
-				indicesOutput[j]--;
+			if(indicesReference[j] > removedPoints[i])
+				indicesInput[j]--;
 		}
 	}
 }
@@ -292,8 +293,6 @@ int main(int argc, char** argv) {
 
 	std::vector<int> sourceHandleClusters;
 	std::vector<int> targetHandleClusters;
-	std::vector<int> sourceHandleClustersNoNaNs;
-	std::vector<int> targetHandleClustersNoNaNs;
 
 	ROS_INFO("Extracting handles....");
 	extractHandles(cloudSource, cloudSourceFiltered, cloudSourceNormal, sourceHandleClusters);
@@ -301,9 +300,9 @@ int main(int argc, char** argv) {
 
 	std::vector<int> removedPoints;
 	removeNaNs(cloudSourceNormal, cloudSourceNormalNoNaNs, removedPoints);
-	adjustIndicesFromRemovedPoints(sourceHandleClusters, sourceHandleClustersNoNaNs, removedPoints);
+	adjustIndicesFromRemovedPoints(sourceHandleClusters,  removedPoints);
 	removeNaNs(cloudTargetNormal, cloudTargetNormalNoNaNs, removedPoints);
-	adjustIndicesFromRemovedPoints(targetHandleClusters, targetHandleClustersNoNaNs, removedPoints);
+	adjustIndicesFromRemovedPoints(targetHandleClusters,  removedPoints);
 
 //	normalEstimation(cloudSourceFiltered, cloudSourceNormalFiltered, 0.035);//0.05
 //	normalEstimation(cloudTargetFiltered, cloudTargetNormalFiltered, 0.035);//0.05
@@ -349,8 +348,8 @@ int main(int argc, char** argv) {
 //		}
 //	}
 
-	writer.write("handlesSource.pcd", *cloudSourceNormalNoNaNs, sourceHandleClustersNoNaNs, true);
-	writer.write("handlesTarget.pcd", *cloudTargetNormalNoNaNs, targetHandleClustersNoNaNs, true);
+	writer.write("handlesSource.pcd", *cloudSourceNormalNoNaNs, sourceHandleClusters, true);
+	writer.write("handlesTarget.pcd", *cloudTargetNormalNoNaNs, targetHandleClusters, true);
 
 	ROS_INFO("Initialize transformation estimation object....");
 	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
@@ -390,8 +389,8 @@ int main(int argc, char** argv) {
 	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
 	icpJointOptimize.setEuclideanFitnessEpsilon (0);
 	icpJointOptimize.setTransformationEstimation (transformationEstimation_);
-	icpJointOptimize.setHandleSourceIndices(sourceHandleClustersNoNaNs);
-	icpJointOptimize.setHandleTargetIndices(targetHandleClustersNoNaNs);
+	icpJointOptimize.setHandleSourceIndices(sourceHandleClusters);
+	icpJointOptimize.setHandleTargetIndices(targetHandleClusters);
 	icpJointOptimize.setInputCloud(cloudSourceNormalNoNaNs);
 	icpJointOptimize.setInputTarget(cloudTargetNormalNoNaNs);
 
