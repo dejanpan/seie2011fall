@@ -227,7 +227,7 @@ void removeNaNs(const PointCloudNormal::Ptr& cloudInput, PointCloudNormal::Ptr& 
 				!pcl_isfinite(cloudInput->points[i].normal_y) ||
 				!pcl_isfinite(cloudInput->points[i].normal_z))
 		{
-			ROS_INFO_STREAM("NAN FOUND IN NORMAL. Specify larger K or search radius to calculate normals " << i);
+//			ROS_INFO_STREAM("NAN FOUND IN NORMAL. Specify larger K or search radius to calculate normals " << i);
 			removedPoints.push_back(int(i));
 		}
 
@@ -247,20 +247,14 @@ void adjustIndicesFromRemovedPoints(std::vector<int>& indicesInput, std::vector<
 	{
 		std::vector<int>::iterator j = std::find(indicesOutput.begin(), indicesOutput.end(), removedPoints[i]);
 		if(*j == removedPoints[i])	//check if search successful
-		{
 			indicesOutput.erase(j);
-		}
 	}
 	for(size_t i=0; i < removedPoints.size(); i++)
 	{
-//		ROS_INFO_STREAM("removed points[" << i << "] = " << removedPoints[i] << "######################################################################");
 		for(size_t j=0; j < indicesInput.size(); j++)
 		{
 			if(indicesInput[j] > removedPoints[i])
-			{
 				indicesOutput[j]--;
-//				ROS_INFO_STREAM("indice " << j << " was decremented to " << indicesInput[j]);
-			}
 		}
 	}
 }
