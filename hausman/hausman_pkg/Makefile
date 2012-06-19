@@ -99,6 +99,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named PCDextract
+
+# Build rule for target.
+PCDextract: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 PCDextract
+.PHONY : PCDextract
+
+# fast build rule for target.
+PCDextract/fast:
+	$(MAKE) -f CMakeFiles/PCDextract.dir/build.make CMakeFiles/PCDextract.dir/build
+.PHONY : PCDextract/fast
+
+#=============================================================================
 # Target rules for targets named ROSBUILD_genmsg_cpp
 
 # Build rule for target.
@@ -307,6 +320,21 @@ tests/fast:
 .PHONY : tests/fast
 
 # target to build an object file
+src/extractPCDFromBag.o:
+	$(MAKE) -f CMakeFiles/PCDextract.dir/build.make CMakeFiles/PCDextract.dir/src/extractPCDFromBag.o
+.PHONY : src/extractPCDFromBag.o
+
+# target to preprocess a source file
+src/extractPCDFromBag.i:
+	$(MAKE) -f CMakeFiles/PCDextract.dir/build.make CMakeFiles/PCDextract.dir/src/extractPCDFromBag.i
+.PHONY : src/extractPCDFromBag.i
+
+# target to generate assembly for a file
+src/extractPCDFromBag.s:
+	$(MAKE) -f CMakeFiles/PCDextract.dir/build.make CMakeFiles/PCDextract.dir/src/extractPCDFromBag.s
+.PHONY : src/extractPCDFromBag.s
+
+# target to build an object file
 src/testing.o:
 	$(MAKE) -f CMakeFiles/testing.dir/build.make CMakeFiles/testing.dir/src/testing.o
 .PHONY : src/testing.o
@@ -327,6 +355,7 @@ help:
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
+	@echo "... PCDextract"
 	@echo "... ROSBUILD_genmsg_cpp"
 	@echo "... ROSBUILD_genmsg_lisp"
 	@echo "... ROSBUILD_gensrv_cpp"
@@ -345,6 +374,9 @@ help:
 	@echo "... test-results-run"
 	@echo "... testing"
 	@echo "... tests"
+	@echo "... src/extractPCDFromBag.o"
+	@echo "... src/extractPCDFromBag.i"
+	@echo "... src/extractPCDFromBag.s"
 	@echo "... src/testing.o"
 	@echo "... src/testing.i"
 	@echo "... src/testing.s"

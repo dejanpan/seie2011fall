@@ -5,7 +5,7 @@
  *      Author: Karol Hausman
  */
 
-#include "PrimitivesExtract.h"
+#include "textureless_objects_tracking/PrimitivesExtract.h"
 
 inline bool comparison_intens(const pcl::PointXYZI& i,
 		const pcl::PointXYZI& j) {

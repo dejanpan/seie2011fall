@@ -1,0 +1,24 @@
+<package>
+  <description brief="textureless_objects_tracking">
+
+     textureless_objects_tracking
+
+  </description>
+  <author>Karol</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/textureless_objects_tracking</url>
+  <depend package="std_msgs"/>
+  <depend package="rospy"/>
+  <depend package="roscpp"/>
+  <depend package="cv_bridge"/>
+  <depend package="eigen_conversions"/>
+  <depend package="pcl"/>
+  <depend package="pcl_ros"/>
+  <depend package="image_geometry"/>
+  <depend package="eigen"/>
+  <depend package="geometry_msgs"/>
+
+</package>
+
+

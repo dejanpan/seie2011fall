@@ -13,6 +13,15 @@ write the one page abstract for the project
 prepare demonstration with one kinect(without the robot)
 https://ias.cs.tum.edu/events/spmk-icra2012
 
+Self-development:
+gdb tutorials or debugging in eclipse
+udacity courses about programming
+checking the code with someone else- check the groups in the web
+learn gtest
+udacity
+learn CUDA programming
+learn OPENMP
+
 More fun:
 go to Tangelmann and make the pictures of the objects there, push them and try it out- Try in the lab first
 
@@ -36,6 +45,8 @@ improve corners and lines-> check number of planes in the neighborhood
 make a patch for checkout from pcl
 improve the code
 estimate convex corners in the Chris' way
+
+combine work with Ferenc
 
 To try out maybe:
 idea with the planes tracking until they are not separated

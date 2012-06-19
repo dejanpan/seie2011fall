@@ -713,7 +713,7 @@ public:
 					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector;
 					std::vector<Eigen::Vector3f> directions_vector;
 
-					std::string what = "rectangular";
+					std::string what = "circular";
 
 					if (what == "circular") {
 						prim_ex.extractCylinderVector(nonzero_ref,

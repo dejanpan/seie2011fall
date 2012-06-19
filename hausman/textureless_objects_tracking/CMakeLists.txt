@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.4.6)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
-
+include_directories("/usr/include/openni/")
+#link_directories("/usr/lib/libvtkCommon.so.5.6")
 # Set the build type.  Options are:
 #  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
 #  Debug          : w/ debug symbols, w/o optimization
@@ -27,6 +28,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
+rosbuild_add_executable(main_multiple_tracking src/main_multiple_tracking.cpp src/3d_tracking_lines.cpp src/PrimitivesExtract.cpp)
+target_link_libraries(main_multiple_tracking libvtkCommon.so libvtkFiltering.so libvtkRendering.so pcl_tracking)
 #target_link_libraries(example ${PROJECT_NAME})
-rosbuild_add_executable(testing src/testing.cpp)
-rosbuild_add_executable(PCDextract src/extractPCDFromBag.cpp)
+#target_link_libraries(main_multiple_tracking ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} pcl_common pcl_io pcl_surface pcl_visualization pcl_filters pcl_features pcl_segmentation pcl_tracking pcl_search pcl_kdtree pcl_sample_consensus)

@@ -12,6 +12,8 @@
   <depend package="rospy"/>
   <depend package="roscpp"/>
   <depend package="simple_robot_control"/>
+  <depend package="pcl"/>
+  <depend package="pcl_ros"/>
 
 </package>
 
