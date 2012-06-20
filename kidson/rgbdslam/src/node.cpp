@@ -29,6 +29,11 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/normal_3d_omp.h>
 
+// joint optimizer
+#include <pcl/filters/extract_indices.h>
+#include <pcl/registration/transformation_estimation_joint_optimize.h>
+#include <pcl/registration/icp_joint_optimize.h>
+
 #ifdef USE_SIFT_GPU
 #include "sift_gpu_wrapper.h"
 #endif
@@ -988,7 +993,7 @@ void Node::gicpSetIdentity(dgc_transform_t m){
 #endif
 
 
-MatchingResult Node::matchNodePair(const Node* older_node, bool isNewNode, unsigned int min_matches){
+MatchingResult Node::matchNodePair(const Node* older_node, bool runJointOptimize, unsigned int min_matches){
   MatchingResult mr;
   if(initial_node_matches_ > ParameterServer::instance()->get<int>("max_connections")) return mr; //enough is enough
   //const unsigned int min_matches = (unsigned int) ParameterServer::instance()->get<int>("min_matches");// minimal number of feature correspondences to be a valid candidate for a link
@@ -997,19 +1002,15 @@ MatchingResult Node::matchNodePair(const Node* older_node, bool isNewNode, unsig
   this->findPairsFlann(older_node, &mr.all_matches); 
 
   ROS_DEBUG("found %i inital matches",(int) mr.all_matches.size());
-  if(isNewNode)		// don't check number of inliers for new nodes
-  {
-	  getRelativeTransformationTo(older_node,&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches, 40);
-  }
-  else if ((mr.all_matches.size() < min_matches)){
+  if ((mr.all_matches.size() < min_matches)){
     ROS_INFO("Too few inliers: Adding no Edge between %i and %i. Only %i correspondences to begin with.",
         older_node->id_,this->id_,(int)mr.all_matches.size());
   } 
   else if (!getRelativeTransformationTo(older_node,&mr.all_matches, mr.ransac_trafo, mr.rmse, mr.inlier_matches, min_matches) ){ // mr.all_matches.size()/3
       ROS_INFO("Found no valid trafo, but had initially %d feature matches",(int) mr.all_matches.size());
   } else  {
-      ++initial_node_matches_; //trafo is accepted
-      mr.final_trafo = mr.ransac_trafo;
+	  ++initial_node_matches_; //trafo is accepted
+	  mr.final_trafo = mr.ransac_trafo;
       
 #ifdef USE_ICP_CODE
       getRelativeTransformationTo_ICP_code(older_node,mr.icp_trafo, &mr.ransac_trafo);
@@ -1078,6 +1079,9 @@ MatchingResult Node::matchNodePair(const Node* older_node, bool isNewNode, unsig
 #endif
 #endif
 
+      if(runJointOptimize)
+    	  performJointOptimization(older_node, mr);
+
       mr.edge.id1 = older_node->id_;//and we have a valid transformation
       mr.edge.id2 = this->id_; //since there are enough matching features,
       mr.edge.mean = eigen2G2O(mr.final_trafo.cast<double>());//we insert an edge between the frames
@@ -1092,6 +1096,73 @@ MatchingResult Node::matchNodePair(const Node* older_node, bool isNewNode, unsig
   }
   // Paper
   return mr;
+}
+
+void Node::performJointOptimization(const Node* oldNode, MatchingResult& mr)
+{
+    // RGBD ICP
+    ROS_INFO("Performing RGBDICP");
+
+    pcl::IterativeClosestPoint<PointNormal, PointNormal> icp;
+    // set source and target clouds from indices of pointclouds
+	pcl::ExtractIndices<PointNormal> handlefilter;
+	pcl::PointIndices::Ptr sourceHandleIndices (new pcl::PointIndices);
+	pointcloud_type::Ptr cloudHandlesSource (new pointcloud_type);
+	sourceHandleIndices->indices = this->handleIndices;
+	handlefilter.setIndices(sourceHandleIndices);
+	handlefilter.setInputCloud(this->pc_col);
+	handlefilter.filter(*cloudHandlesSource);
+	icp.setInputCloud(cloudHandlesSource);
+
+	pcl::PointIndices::Ptr targetHandleIndices (new pcl::PointIndices);
+	pointcloud_type::Ptr cloudHandlesTarget (new pointcloud_type);
+	targetHandleIndices->indices = oldNode->handleIndices;
+	handlefilter.setIndices(targetHandleIndices);
+	handlefilter.setInputCloud(oldNode->pc_col);
+	handlefilter.filter(*cloudHandlesTarget);
+	icp.setInputTarget(cloudHandlesTarget);
+
+	PointCloudNormal Final;
+	icp.align(Final, mr.ransac_trafo);
+	std::cout << "has converged:" << icp.hasConverged() << " score: " <<
+	icp.getFitnessScore() << std::endl;
+	std::cout << icp.getFinalTransformation() << std::endl;
+
+	ROS_INFO("Initialize transformation estimation object....");
+	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
+		transformationEstimation_(new TransformationEstimationJointOptimize<PointNormal, PointNormal>());
+
+	float denseCloudWeight = 1.0;
+	float visualFeatureWeight = 0.5;
+	float handleFeatureWeight = 0.25;
+	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
+
+	std::vector<int> sourceSIFTIndices, targetSIFTIndices;
+	getFeatureIndices(oldNode,mr,sourceSIFTIndices,targetSIFTIndices);
+	transformationEstimation_->setCorrespondecesDFP(sourceSIFTIndices, targetSIFTIndices);
+
+	// custom icp
+	ROS_INFO("Initialize icp object....");
+	pcl::IterativeClosestPointJointOptimize<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
+	icpJointOptimize.setMaximumIterations (20);
+	icpJointOptimize.setTransformationEpsilon (0);
+	icpJointOptimize.setMaxCorrespondenceDistance(0.1);
+	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
+	icpJointOptimize.setEuclideanFitnessEpsilon (0);
+	icpJointOptimize.setTransformationEstimation (transformationEstimation_);
+	icpJointOptimize.setHandleSourceIndices(sourceHandleIndices->indices);
+	icpJointOptimize.setHandleTargetIndices(targetHandleIndices->indices);
+	icpJointOptimize.setInputCloud(this->pc_col);
+	icpJointOptimize.setInputTarget(oldNode->pc_col);
+
+	ROS_INFO("Running ICP....");
+	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
+	icpJointOptimize.align ( *cloud_transformed, icp.getFinalTransformation()); //init_tr );
+	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icpJointOptimize.hasConverged() << std::endl <<
+				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl
+				<<	icpJointOptimize.getFinalTransformation () << "\n";
+
+	mr.final_trafo = icpJointOptimize.getFinalTransformation();
 }
 
 void Node::clearFeatureInformation(){
@@ -1177,5 +1248,3 @@ void Node::reloadPointCloudFromDisk()
 	pcl::PCDReader nodeFetcher;
 	nodeFetcher.read(nodeName.str(), *pc_col);
 }
-
-//void Node::runJointOptimization()

@@ -735,6 +735,12 @@ void GraphManager::runRGBDICPOptimization()
 	for (unsigned int i = 0; i < graph_.size(); ++i) {
 		ROS_INFO("Extracting handles for node %i",(int)i);
 		graph_[i]->extractHandlesIndices();
+
+		std::vector<int> removedPoints;
+		pointcloud_type::Ptr tempCloud (new pointcloud_type);
+		removeNaNs(graph_[i]->pc_col, tempCloud, removedPoints);
+		pcl::copyPointCloud(*tempCloud, *(graph_[i]->pc_col));
+		adjustIndicesFromRemovedPoints(graph_[i]->handleIndices,  removedPoints);
 	}
 //	QList<std::vector<int> > nodeHandleIndices = QtConcurrent::blockingMapped(pointcloudList, boost::bind(&GraphManager::extractHandles, this, _1));
 //	ROS_INFO("End of handle extraction multithreading");
@@ -751,34 +757,57 @@ void GraphManager::runRGBDICPOptimization()
         }
         QList<int> nodesToCompareIndices = getUnconnectedNodes(graph_[i], 1000);
         QList<const Node* > nodes_to_comp;// for parallel computation
+        QList<MatchingResult> results;
 
         // put nodes into a list for multithreading
         for (int id_of_id = (int) nodesToCompareIndices.size() - 1; id_of_id >= 0; id_of_id--) {
         	nodes_to_comp.push_back(graph_[nodesToCompareIndices[id_of_id]]);
         }
-        printMultiThreadInfo("node comparison for rgbdicp");
-        QList<MatchingResult> results = QtConcurrent::blockingMapped(
-        		nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, false, 30));	//ROSS-TODO:: 30 a parameter
+        bool multithread = false;  //ROSS-TODO:: make a parameter
+        if(multithread)
+        {
+        	printMultiThreadInfo("node comparison for rgbdicp");
+			results = QtConcurrent::blockingMapped(
+					nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, true, 30));	//ROSS-TODO:: 30 a parameter
+        }
+        else
+        {
+			for(size_t k = 0; k < nodes_to_comp.size(); k++)
+			{
+				results.push_back(graph_[i]->matchNodePair(nodes_to_comp[k], true, 30));
+			}
+        }
+
 
         for (int j = 0; j < results.size(); j++) {
-                    MatchingResult& mr = results[j];
+			MatchingResult& mr = results[j];
 
             if (mr.edge.id1 >= 0) {
 				// source = current node, target = other node. Transform is from source to target
-				std::vector<int> sourceSIFTIndices, targetSIFTIndices, sourceHandleIndices, targetHandleIndices;
-				graph_[i]->getFeatureIndices(graph_[results[j].edge.id1], mr, sourceSIFTIndices, targetSIFTIndices);
+				ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
 
-				if(i == (graph_.size()-1))
-				{
-					 pcl::PCDWriter writer;
-					 std::stringstream filename;
-					 filename << "node_" << graph_[i]->id_ << "source.pcd";
-					 writer.write (filename.str(), *(graph_[i]->pc_col), graph_[i]->handleIndices, true);
-					 filename.str("");
-					 filename << "node_" << graph_[results[j].edge.id1]->id_ << "target.pcd";
-					 writer.write (filename.str(), *(graph_[results[j].edge.id1]->pc_col),
-							 graph_[results[j].edge.id1]->handleIndices, true);
+				if (addEdgeToG2O(mr.edge, isBigTrafo(mr.edge.mean),
+						mr.inlier_matches.size() > last_inlier_matches_.size())) { //TODO: result isBigTrafo is not considered
+					ROS_INFO("Added Edge between %i and %i. Inliers: %i",mr.edge.id1,mr.edge.id2,(int) mr.inlier_matches.size());
+					if (mr.inlier_matches.size() > last_inlier_matches_.size()) {
+						last_matching_node_ = mr.edge.id1;
+						last_inlier_matches_ = mr.inlier_matches;
+						last_matches_ = mr.all_matches;
+						//last_edge_ = mr.edge.mean;
+					}
 				}
+
+//				if(i == (graph_.size()-1))
+//				{
+//					 pcl::PCDWriter writer;
+//					 std::stringstream filename;
+//					 filename << "node_" << graph_[i]->id_ << "source.pcd";
+//					 writer.write (filename.str(), *(graph_[i]->pc_col), graph_[i]->handleIndices, true);
+//					 filename.str("");
+//					 filename << "node_" << graph_[results[j].edge.id1]->id_ << "target.pcd";
+//					 writer.write (filename.str(), *(graph_[results[j].edge.id1]->pc_col),
+//							 graph_[results[j].edge.id1]->handleIndices, true);
+//				}
             }
         }
     }

@@ -67,6 +67,10 @@ void printMatrixInfo(cv::Mat& image, std::string name = std::string(""));
 bool asyncFrameDrop(ros::Time depth, ros::Time rgb);
 
 //!Creates a pointcloud from rgb8 or mono8 coded images + float depth
-pointcloud_type* createXYZRGBPointCloud (const sensor_msgs::ImageConstPtr& depth_msg, const sensor_msgs::ImageConstPtr& rgb_msg, const sensor_msgs::CameraInfoConstPtr& cam_info); 
+pointcloud_type* createXYZRGBPointCloud (const sensor_msgs::ImageConstPtr& depth_msg, const sensor_msgs::ImageConstPtr& rgb_msg, const sensor_msgs::CameraInfoConstPtr& cam_info);
+
+void adjustIndicesFromRemovedPoints(std::vector<int>& indicesInput, const std::vector<int>& removedPoints);
+
+void removeNaNs(const PointCloudNormal::ConstPtr& cloudInput, PointCloudNormal::Ptr& cloudOutput, std::vector<int>& removedPoints);
 
 #endif

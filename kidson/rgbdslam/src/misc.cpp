@@ -468,3 +468,58 @@ pointcloud_type* createXYZRGBPointCloud (const sensor_msgs::ImageConstPtr& depth
   clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
   return cloud;
 }
+
+void removeNaNs(const pointcloud_type::ConstPtr& cloudInput, pointcloud_type::Ptr& cloudOutput, std::vector<int>& removedPoints)
+{
+	removedPoints.clear();
+	cloudOutput->header   = cloudInput->header;
+
+	for(size_t i=0; i < cloudInput->points.size(); i++)
+	{
+		if(!pcl_isfinite(cloudInput->points[i].x) ||
+				!pcl_isfinite(cloudInput->points[i].y) ||
+				!pcl_isfinite(cloudInput->points[i].z))
+		{
+//			ROS_INFO_STREAM("NAN FOUND IN POINT COORDINATE. " << i);
+			removedPoints.push_back((int)i);
+		}
+		else if(!pcl_isfinite(cloudInput->points[i].normal_x) ||
+				!pcl_isfinite(cloudInput->points[i].normal_y) ||
+				!pcl_isfinite(cloudInput->points[i].normal_z))
+		{
+//			ROS_INFO_STREAM("NAN FOUND IN NORMAL. Specify larger K or search radius to calculate normals " << i);
+			removedPoints.push_back(int(i));
+		}
+
+		else
+			cloudOutput->points.push_back(cloudInput->points[i]);
+	}
+	cloudOutput->height = 1;
+	cloudOutput->width  = static_cast<uint32_t>(cloudOutput->points.size());
+	ROS_INFO_STREAM("Size of removed indices" << removedPoints.size());
+}
+
+void adjustIndicesFromRemovedPoints(std::vector<int>& indicesInput, const std::vector<int>& removedPoints)
+{
+	// look for indices that were removed and remove them from the vector
+	for(size_t i=0; i < removedPoints.size(); i++)
+	{
+		std::vector<int>::iterator j = std::find(indicesInput.begin(), indicesInput.end(), removedPoints[i]);
+		if(j != indicesInput.end())	//check if search successful
+		{
+//			ROS_INFO_STREAM("found handle indice that was removed handle[" << (int)(j - indicesInput.begin())
+//					<< "] = " << *j << " removedPoints[" << i << "] = " << removedPoints[i] );
+			j = indicesInput.erase(j);
+		}
+	}
+	// adjust indexes for indices that have been removed
+	std::vector<int> indicesReference = indicesInput;
+	for(size_t i=0; i < removedPoints.size(); i++)
+	{
+		for(size_t j=0; j < indicesReference.size(); j++)
+		{
+			if(indicesReference[j] > removedPoints[i])
+				indicesInput[j]--;
+		}
+	}
+}

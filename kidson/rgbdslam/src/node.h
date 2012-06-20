@@ -232,6 +232,8 @@ protected:
                                 double& mean_error, std::vector<double>& errors,
                                 double squaredMaxInlierDistInM = 0.0009) const; //output var;
 
+	void performJointOptimization(const Node* oldNode, MatchingResult& mr);
+
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
