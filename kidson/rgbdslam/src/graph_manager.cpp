@@ -305,16 +305,41 @@ QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_t
 // This function retrieves node ids that are not connected to the given node (for 2nd stage optimization)
 
 QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targets){
+//typedef std::set<g2o::HyperGraph::Edge*> EdgeSet;
+//typedef std::vector<Vertex*>                      VertexVector;
+
+	std::vector<int> connectedNodes;
+	EdgeSet nodeEdges = optimizer_->vertex(new_node->id_)->edges();
+	for(EdgeSet::iterator iterator = nodeEdges.begin(); iterator != nodeEdges.end(); iterator++)
+	{
+		g2o::HyperGraph::VertexVector edgeVertices = (**iterator).vertices();
+		if(edgeVertices[0]->id() != new_node->id_)
+			connectedNodes.push_back(edgeVertices[0]->id());
+		else if(edgeVertices[1]->id() != new_node->id_)
+			connectedNodes.push_back(edgeVertices[1]->id());
+	}
+	for(size_t i = 0; i < connectedNodes.size(); i++)
+		ROS_INFO_STREAM("node[" << new_node->id_ << "] connectedNode[" << i << "] : " << connectedNodes[i]);
     QList<int> ids_to_link_to;
-    for(size_t i=0; i < graph_.size(); i++)
+    for(size_t i=(new_node->id_+1); i < graph_.size(); i++)  // don't check previous nodes to avoid overlap
     {
-    	if(new_node->id_ == (int)i)
-			continue;
-    	//add check here if new_node->id_ is connected to graph_[i]
+    	//check if new_node->id_ is connected to graph_[i]
+    	bool alreadyConnected = false;
+        for(size_t j=0; j < connectedNodes.size(); j++)
+        {
+        	if(graph_[i]->id_ == connectedNodes[j])
+        		alreadyConnected = true;
+        }
+        if(alreadyConnected)
+        	continue;
+
+        // add node to check
     	ids_to_link_to.push_back(i);
     	if(ids_to_link_to.size() >= max_targets)	//if limit is reached
     		return ids_to_link_to;
     }
+	for(size_t i = 0; i < ids_to_link_to.size(); i++)
+		ROS_INFO_STREAM("node[" << new_node->id_ << "] ids_to_link_to[" << i << "] : " << ids_to_link_to[i]);
 
     return ids_to_link_to;
 }
@@ -732,6 +757,7 @@ void GraphManager::runRGBDICPOptimization()
 	ROS_INFO("End of point cloud normal calculation");
 
 	//Extract handle indices for all nodes ROSS-TODO:: multithread this like a boss
+	pcl::PCDWriter writer;
 	for (unsigned int i = 0; i < graph_.size(); ++i) {
 		ROS_INFO("Extracting handles for node %i",(int)i);
 		graph_[i]->extractHandlesIndices();
@@ -741,6 +767,10 @@ void GraphManager::runRGBDICPOptimization()
 		removeNaNs(graph_[i]->pc_col, tempCloud, removedPoints);
 		pcl::copyPointCloud(*tempCloud, *(graph_[i]->pc_col));
 		adjustIndicesFromRemovedPoints(graph_[i]->handleIndices,  removedPoints);
+
+		std::stringstream filename;
+		filename << "node_" << graph_[i]->id_ << "_handles.pcd";
+		writer.write (filename.str(), *(graph_[i]->pc_col), graph_[i]->handleIndices, true);
 	}
 //	QList<std::vector<int> > nodeHandleIndices = QtConcurrent::blockingMapped(pointcloudList, boost::bind(&GraphManager::extractHandles, this, _1));
 //	ROS_INFO("End of handle extraction multithreading");
@@ -778,12 +808,12 @@ void GraphManager::runRGBDICPOptimization()
 			}
         }
 
-
         for (int j = 0; j < results.size(); j++) {
 			MatchingResult& mr = results[j];
 
             if (mr.edge.id1 >= 0) {
 				// source = current node, target = other node. Transform is from source to target
+            	// mr.edge.id2 = source mr.edge.id1 = target
 				ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
 
 				if (addEdgeToG2O(mr.edge, isBigTrafo(mr.edge.mean),
@@ -793,24 +823,18 @@ void GraphManager::runRGBDICPOptimization()
 						last_matching_node_ = mr.edge.id1;
 						last_inlier_matches_ = mr.inlier_matches;
 						last_matches_ = mr.all_matches;
-						//last_edge_ = mr.edge.mean;
 					}
 				}
 
-//				if(i == (graph_.size()-1))
-//				{
-//					 pcl::PCDWriter writer;
-//					 std::stringstream filename;
-//					 filename << "node_" << graph_[i]->id_ << "source.pcd";
-//					 writer.write (filename.str(), *(graph_[i]->pc_col), graph_[i]->handleIndices, true);
-//					 filename.str("");
-//					 filename << "node_" << graph_[results[j].edge.id1]->id_ << "target.pcd";
-//					 writer.write (filename.str(), *(graph_[results[j].edge.id1]->pc_col),
-//							 graph_[results[j].edge.id1]->handleIndices, true);
-//				}
-            }
+				std::stringstream filename;
+				pointcloud_type tempConverged;
+				transformPointCloud (*(graph_[i]->pc_col), tempConverged,  mr.final_trafo);
+				filename << "node_" << graph_[i]->id_ << "_converged_to_node_" << results[j].edge.id1 << ".pcd";
+				writer.write (filename.str(), tempConverged, true);
+			}
         }
     }
+    optimizeGraph();
 }
 
 

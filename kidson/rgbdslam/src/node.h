@@ -83,7 +83,8 @@ public:
 	~Node();
 
 	///Compare the features of two nodes and compute the transformation
-  MatchingResult matchNodePair(const Node* older_node, bool isNewNode, unsigned int min_matches);
+  MatchingResult matchNodePair(const Node* older_node, bool runJointOptimize, unsigned int min_matches,
+		  Eigen::Matrix4f jointOptimizeInit = Eigen::Matrix<double,4,4>::Identity());
 
   ///Transform, e.g., from MoCap
   void setGroundTruthTransform(tf::StampedTransform gt);
