@@ -16,6 +16,18 @@ inline bool comparison_curvature(pcl::Normal i, pcl::Normal j) {
 	return (i.curvature > j.curvature);
 }
 
+template<typename PointType> bool PrimitivesExtract<PointType>::getCornersToPush(cv::Mat& topview, textureless_objects_tracking::cornerFind::Response& res){
+	textureless_objects_tracking::cornerFind::Request req;
+	IplImage temp(topview);
+	sensor_msgs::ImagePtr imgptr  = sensor_msgs::CvBridge::cvToImgMsg(&temp);
+    req.image = *imgptr;
+	_corner_finder.call(req, res);
+
+
+	return true;
+}
+
+
 template<typename PointType> void PrimitivesExtract<PointType>::computeNormals(
 		const CloudConstPtr cloud,
 		pcl::PointCloud<pcl::Normal>::Ptr normals_cloud) {

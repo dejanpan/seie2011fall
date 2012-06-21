@@ -38,6 +38,14 @@
 #include <pcl/segmentation/extract_clusters.h>
 
 #include <pcl/keypoints/harris_keypoint3D.h>
+//
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+#include "cv_bridge/CvBridge.h"
+
+#include <textureless_objects_tracking/cornerFind.h>
+#include <ros/ros.h>
+
 
 #ifndef PRIMITIVESEXTRACT_H_
 #define PRIMITIVESEXTRACT_H_
@@ -88,6 +96,11 @@ public:
 
 	PrimitivesExtract(CloudPtr cloud) {
 
+		_corner_finder = _nh.serviceClient<textureless_objects_tracking::cornerFind>("find_corners");
+		if (!_corner_finder.waitForExistence(ros::Duration(5.0))){
+			ROS_ERROR("find_corners service not found");
+			exit(1);
+		}
 		//parameters for lines extraction
 		best_curv_percent_ = 0.17;
 		line_distance_tresh_ = 0.002;
@@ -144,6 +157,7 @@ public:
 	bool extractCircleVector(
 			const CloudConstPtr &cloud, std::vector<CloudPtr> &result,
 			int cylinders_number=0);
+	bool getCornersToPush(cv::Mat& topview, textureless_objects_tracking::cornerFind::Response& res);
 
 private:
 	void computeNormals(const CloudConstPtr cloud,
@@ -199,6 +213,8 @@ private:
 	bool convex_corners_only_;
 	bool euclidian_clustering_after_line_projection_;
 	bool euclidian_clustering_after_circular_extraction_;
+	ros::ServiceClient _corner_finder;
+	ros::NodeHandle _nh;
 	CloudPtr cloud_;
 };
 

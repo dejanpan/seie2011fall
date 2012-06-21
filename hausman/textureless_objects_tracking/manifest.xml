@@ -18,6 +18,8 @@
   <depend package="image_geometry"/>
   <depend package="eigen"/>
   <depend package="geometry_msgs"/>
+  <depend package="camera_self_filter"/>
+  <depend package="opencv2"/>
 
 </package>
 
