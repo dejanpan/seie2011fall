@@ -93,8 +93,9 @@ int main(int argc, char **argv)
         cvimage = cvimage.t();
         cvimage_depth = cvimage_depth.t();
         textureless_objects_tracking::cornerFind::Response res_corner;
-
-        prim_ex.getCornersToPush(cvimage,res_corner);
+        cv::Mat bw_image(cvimage.rows,cvimage.cols,CV_8U);
+        cv::cvtColor(cvimage,bw_image ,CV_BGR2GRAY);
+        prim_ex.getCornersToPush(bw_image,res_corner);
         std::cout<<"res_corner: "<<res_corner.corner.size()<<std::endl;
         std::cout<<"res_corner convex: "<<res_corner.corner_convex.size()<<std::endl;
 //    cv::namedWindow( "Display window image", CV_WINDOW_AUTOSIZE );// Create a window for display.
