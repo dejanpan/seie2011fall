@@ -304,8 +304,7 @@ QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_t
 
 // This function retrieves node ids that are not connected to the given node (for 2nd stage optimization)
 
-QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targets,
-		std::vector<Eigen::Matrix4f> & initialTransforms){
+QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targets){
 //typedef std::set<g2o::HyperGraph::Edge*> EdgeSet;
 //typedef std::vector<Vertex*>                      VertexVector;
 
@@ -337,19 +336,8 @@ QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targe
         	continue;
 
         //check the transformation difference between nodes.  Reject if too high
-        g2o::VertexSE3* sourceVertex = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(new_node->id_));
-        g2o::VertexSE3* targetVertex = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(i));
-		if(!sourceVertex || !targetVertex)
-			ROS_ERROR("Nullpointer in graph at position!");
-
-		Eigen::Matrix4f source = g2o2EigenMat(sourceVertex->estimate());
-		Eigen::Matrix4f target = g2o2EigenMat(targetVertex->estimate());
-		Eigen::Matrix4f graphTransform = target - source;
-
-		if (!isTrafoSmall(graphTransform))	// nodes are too far away to do rgbdicp
+		if (!isTrafoSmall(getGraphTransformBetweenNodes(new_node->id_, i)))	// nodes are too far away to do rgbdicp
 			continue;
-
-		initialTransforms.push_back(graphTransform);
 
         // add node to check
     	ids_to_link_to.push_back(i);
@@ -360,6 +348,18 @@ QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targe
 		ROS_INFO_STREAM("node[" << new_node->id_ << "] ids_to_link_to[" << i << "] : " << ids_to_link_to[i]);
 
     return ids_to_link_to;
+}
+
+Eigen::Matrix4f GraphManager::getGraphTransformBetweenNodes(const int sourceId, const int targetId)
+{
+	g2o::VertexSE3* sourceVertex = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(sourceId));
+	g2o::VertexSE3* targetVertex = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(targetId));
+	if(!sourceVertex || !targetVertex)
+		ROS_ERROR("Nullpointer in graph at position!");
+
+	Eigen::Matrix4f source = g2o2EigenMat(sourceVertex->estimate());
+	Eigen::Matrix4f target = g2o2EigenMat(targetVertex->estimate());
+	return (target - source);
 }
 
 void GraphManager::resetGraph(){
@@ -803,8 +803,7 @@ void GraphManager::runRGBDICPOptimization()
             ROS_INFO("Skipping Node %i, point cloud data is empty!", i);
             continue;
         }
-        std::vector<Eigen::Matrix4f> initialTransforms;
-        QList<int> nodesToCompareIndices = getUnconnectedNodes(graph_[i], 1000, initialTransforms);
+        QList<int> nodesToCompareIndices = getUnconnectedNodes(graph_[i], 1000);
         QList<const Node* > nodes_to_comp;// for parallel computation
         QList<MatchingResult> results;
 
@@ -812,25 +811,29 @@ void GraphManager::runRGBDICPOptimization()
         for (int id_of_id = (int) nodesToCompareIndices.size() - 1; id_of_id >= 0; id_of_id--) {
         	nodes_to_comp.push_back(graph_[nodesToCompareIndices[id_of_id]]);
         }
-        bool multithread = false;  //ROSS-TODO:: make a parameter
+        bool multithread = (ParameterServer::instance()->get<bool>("concurrent_edge_construction"));
         if(multithread)
         {
         	printMultiThreadInfo("node comparison for rgbdicp");
 			results = QtConcurrent::blockingMapped(
-					nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, 30));	//ROSS-TODO:: 30 a parameter
+					nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, 10));	//ROSS-TODO:: 30 a parameter
         }
         else
         {
 			for(size_t k = 0; k < nodes_to_comp.size(); k++)
 			{
-				results.push_back(graph_[i]->matchNodePair(nodes_to_comp[k], 30));
+				results.push_back(graph_[i]->matchNodePair(nodes_to_comp[k], 10));
 			}
         }
 
         for (int j = 0; j < results.size(); j++) {
 			MatchingResult& mr = results[j];
+			if(!(mr.edge.id1 >= 0))		// bad ransac
+					continue;
+			mr.icp_trafo = getGraphTransformBetweenNodes(mr.edge.id2, mr.edge.id1);
+			graph_[i]->performJointOptimization(graph_[mr.edge.id1], mr);
 
-            if (mr.edge.id1 >= 0) {
+//            if (mr.edge.id1 >= 0) {
 				// source = current node, target = other node. Transform is from source to target
             	// mr.edge.id2 = source mr.edge.id1 = target
 				ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
@@ -850,7 +853,7 @@ void GraphManager::runRGBDICPOptimization()
 				transformPointCloud (*(graph_[i]->pc_col), tempConverged,  mr.final_trafo);
 				filename << "node_" << graph_[i]->id_ << "_converged_to_node_" << results[j].edge.id1 << ".pcd";
 				writer.write (filename.str(), tempConverged, true);
-			}
+//			}
         }
     }
     optimizeGraph();

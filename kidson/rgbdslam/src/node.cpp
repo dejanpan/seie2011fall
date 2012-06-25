@@ -1120,7 +1120,7 @@ void Node::performJointOptimization(const Node* oldNode, MatchingResult& mr)
 	icp.setInputTarget(cloudHandlesTarget);
 
 	PointCloudNormal Final;
-	icp.align(Final, mr.ransac_trafo);
+	icp.align(Final, mr.icp_trafo);
 	std::cout << "has converged:" << icp.hasConverged() << " score: " <<
 	icp.getFitnessScore() << std::endl;
 	std::cout << icp.getFinalTransformation() << std::endl;

@@ -92,6 +92,7 @@ class GraphManager : public QObject {
     void runRGBDICPOptimization();
     void calculateNormals(const pointcloud_type::Ptr pc_col);
     std::vector<int> extractHandles(const pointcloud_type::Ptr pc_col);
+    Eigen::Matrix4f getGraphTransformBetweenNodes(const int sourceId, const int targetId);
 
     public:
     GraphManager(ros::NodeHandle);
@@ -145,7 +146,7 @@ protected:
     ///Send markers to visualize the graph ids in rviz (if somebody subscribed)
     void visualizeGraphIds() const;
     
-    QList<int> getUnconnectedNodes(const Node* new_node, int max_targets, std::vector<Eigen::Matrix4f> & initialTransforms);
+    QList<int> getUnconnectedNodes(const Node* new_node, int max_targets);
 
     ///Send markers to visualize the last matched features in rviz (if somebody subscribed)
     void visualizeFeatureFlow3D(unsigned int marker_id = 0,

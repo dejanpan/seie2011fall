@@ -85,6 +85,8 @@ public:
 	///Compare the features of two nodes and compute the transformation
   MatchingResult matchNodePair(const Node* older_node, unsigned int min_matches);
 
+  void performJointOptimization(const Node* oldNode, MatchingResult& mr);
+
   ///Transform, e.g., from MoCap
   void setGroundTruthTransform(tf::StampedTransform gt);
   ///Transform, e.g., from kinematics
@@ -232,7 +234,6 @@ protected:
                                 double& mean_error, std::vector<double>& errors,
                                 double squaredMaxInlierDistInM = 0.0009) const; //output var;
 
-	void performJointOptimization(const Node* oldNode, MatchingResult& mr);
 
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
