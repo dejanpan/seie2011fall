@@ -145,7 +145,7 @@ protected:
     ///Send markers to visualize the graph ids in rviz (if somebody subscribed)
     void visualizeGraphIds() const;
     
-    QList<int> getUnconnectedNodes(const Node* new_node, int max_targets);
+    QList<int> getUnconnectedNodes(const Node* new_node, int max_targets, std::vector<Eigen::Matrix4f> & initialTransforms);
 
     ///Send markers to visualize the last matched features in rviz (if somebody subscribed)
     void visualizeFeatureFlow3D(unsigned int marker_id = 0,

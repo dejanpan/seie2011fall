@@ -35,6 +35,7 @@ geometry_msgs::Point pointInWorldFrame(const Eigen::Vector4f& point3d, g2o::SE3Q
 // true if translation > 10cm or largest euler-angle>5 deg
 // used to decide if the camera has moved far enough to generate a new nodes
 bool isBigTrafo(const Eigen::Matrix4f& t);
+bool isTrafoSmall(const Eigen::Matrix4f& t);
 bool isBigTrafo(const g2o::SE3Quat& t);
 
 /// get euler angles from 4x4 homogenous
@@ -46,6 +47,7 @@ void mat2dist(const Eigen::Matrix4f& t, double &dist);
 //bool triangleRayIntersection(Eigen::Vector3d triangle1,Eigen::Vector3d triangle2, Eigen::Vector3d ray_origin, Eigen::Vector3d ray);
 
 g2o::SE3Quat eigen2G2O(const Eigen::Matrix4d eigen_mat);
+Eigen::Matrix4f g2o2EigenMat(const g2o::SE3Quat se3);
 void mat2components(const Eigen::Matrix4f& t, double& roll, double& pitch, double& yaw, double& dist);
 
 /// Creates Feature Detector Objects accordingt to the type.

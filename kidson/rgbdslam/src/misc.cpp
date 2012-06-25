@@ -16,6 +16,7 @@
 #include <ros/ros.h>
 #include <tf/transform_datatypes.h>
 #include <Eigen/Core>
+
 #include <QString>
 #include <QMatrix4x4>
 #include <ctime>
@@ -74,6 +75,15 @@ tf::Transform g2o2TF(const g2o::SE3Quat se3) {
     result.setRotation(rotation);
     //printTransform("from conversion", result);
     return result;
+}
+
+Eigen::Matrix4f g2o2EigenMat(const g2o::SE3Quat se3)
+{
+	Eigen::Matrix4f resultf;
+	Eigen::Matrix4f result;
+	result.block(0,0,3,3) = se3.rotation().toRotationMatrix().cast<float>();
+	result.col(3).head(3) = se3.translation().cast<float>();
+	return result;
 }
 //From: /opt/ros/unstable/stacks/perception_pcl/pcl/src/pcl/registration/transforms.hpp
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -203,6 +213,22 @@ bool isBigTrafo(const g2o::SE3Quat& t){
     		|| angle_around_axis > ParameterServer::instance()->get<int>("min_rotation_degree"));
 }
 
+bool isTrafoSmall(const Eigen::Matrix4f& t){
+    double roll, pitch, yaw, dist;
+
+    mat2RPY(t, roll,pitch,yaw);
+    mat2dist(t, dist);
+
+    roll = roll/M_PI*180;
+    pitch = pitch/M_PI*180;
+    yaw = yaw/M_PI*180;
+
+    double max_angle = std::max(roll,std::max(pitch,yaw));
+
+    // within certain range for joint optimization
+    // ROSS-TODO make paramter
+    return ((dist < 1.0) || (max_angle < 60.0));
+}
 
 /*
 bool overlappingViews(LoadedEdge3D edge){

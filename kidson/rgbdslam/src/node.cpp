@@ -993,7 +993,7 @@ void Node::gicpSetIdentity(dgc_transform_t m){
 #endif
 
 
-MatchingResult Node::matchNodePair(const Node* older_node, bool runJointOptimize, unsigned int min_matches, Eigen::Matrix4f jointOptimizeInit){
+MatchingResult Node::matchNodePair(const Node* older_node, unsigned int min_matches){
   MatchingResult mr;
   if(initial_node_matches_ > ParameterServer::instance()->get<int>("max_connections")) return mr; //enough is enough
   //const unsigned int min_matches = (unsigned int) ParameterServer::instance()->get<int>("min_matches");// minimal number of feature correspondences to be a valid candidate for a link
@@ -1079,10 +1079,6 @@ MatchingResult Node::matchNodePair(const Node* older_node, bool runJointOptimize
 #endif
 #endif
 
-      mr.icp_trafo = jointOptimizeInit;
-      if(runJointOptimize)
-    	  performJointOptimization(older_node, mr);
-
       mr.edge.id1 = older_node->id_;//and we have a valid transformation
       mr.edge.id2 = this->id_; //since there are enough matching features,
       mr.edge.mean = eigen2G2O(mr.final_trafo.cast<double>());//we insert an edge between the frames
@@ -1092,10 +1088,7 @@ MatchingResult Node::matchNodePair(const Node* older_node, bool runJointOptimize
       double timeline_weight = lowest_id > 0 ? (double)lowest_id : 1.0;
       */
 
-      if(!runJointOptimize)
-    	  double w = (double)mr.inlier_matches.size();///(double)mr.all_matches.size();
-      else
-    	  double w = 80; // this needs to reflect quality of rgbdicp. e.g. #iterations, icp score, # inlies, # handle points, convergence rates etc. etc.
+      double w = (double)mr.inlier_matches.size();///(double)mr.all_matches.size();
       mr.edge.informationMatrix =   Eigen::Matrix<double,6,6>::Identity()*(w*w); //TODO: What do we do about the information matrix? Scale with inlier_count. Should rmse be integrated?)
   }
   // Paper
@@ -1105,7 +1098,7 @@ MatchingResult Node::matchNodePair(const Node* older_node, bool runJointOptimize
 void Node::performJointOptimization(const Node* oldNode, MatchingResult& mr)
 {
     // RGBD ICP
-    ROS_INFO("Performing RGBDICP with source node(" << this->id_ << ") and target node (" << oldNode->id_ << ")");
+    ROS_INFO_STREAM("Performing RGBDICP with source node(" << this->id_ << ") and target node (" << oldNode->id_ << ")");
 
     pcl::IterativeClosestPoint<PointNormal, PointNormal> icp;
     // set source and target clouds from indices of pointclouds

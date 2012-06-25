@@ -304,12 +304,14 @@ QList<int> GraphManager::getPotentialEdgeTargets(const Node* new_node, int max_t
 
 // This function retrieves node ids that are not connected to the given node (for 2nd stage optimization)
 
-QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targets){
+QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targets,
+		std::vector<Eigen::Matrix4f> & initialTransforms){
 //typedef std::set<g2o::HyperGraph::Edge*> EdgeSet;
 //typedef std::vector<Vertex*>                      VertexVector;
 
 	std::vector<int> connectedNodes;
 	EdgeSet nodeEdges = optimizer_->vertex(new_node->id_)->edges();
+	// for a given node, find all connected nodes
 	for(EdgeSet::iterator iterator = nodeEdges.begin(); iterator != nodeEdges.end(); iterator++)
 	{
 		g2o::HyperGraph::VertexVector edgeVertices = (**iterator).vertices();
@@ -321,6 +323,7 @@ QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targe
 	for(size_t i = 0; i < connectedNodes.size(); i++)
 		ROS_INFO_STREAM("node[" << new_node->id_ << "] connectedNode[" << i << "] : " << connectedNodes[i]);
     QList<int> ids_to_link_to;
+    // iterate through the graph, rejecting nodes already connected.
     for(size_t i=(new_node->id_+1); i < graph_.size(); i++)  // don't check previous nodes to avoid overlap
     {
     	//check if new_node->id_ is connected to graph_[i]
@@ -332,6 +335,21 @@ QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targe
         }
         if(alreadyConnected)
         	continue;
+
+        //check the transformation difference between nodes.  Reject if too high
+        g2o::VertexSE3* sourceVertex = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(new_node->id_));
+        g2o::VertexSE3* targetVertex = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(i));
+		if(!sourceVertex || !targetVertex)
+			ROS_ERROR("Nullpointer in graph at position!");
+
+		Eigen::Matrix4f source = g2o2EigenMat(sourceVertex->estimate());
+		Eigen::Matrix4f target = g2o2EigenMat(targetVertex->estimate());
+		Eigen::Matrix4f graphTransform = target - source;
+
+		if (!isTrafoSmall(graphTransform))	// nodes are too far away to do rgbdicp
+			continue;
+
+		initialTransforms.push_back(graphTransform);
 
         // add node to check
     	ids_to_link_to.push_back(i);
@@ -429,7 +447,7 @@ bool GraphManager::addNode(Node* new_node) {
     //First check if trafo to last frame is not too small
     Node* prev_frame = graph_[graph_.size()-1];
     ROS_INFO("Comparing new node (%i) with previous node %i", new_node->id_, prev_frame->id_);
-    MatchingResult mr = new_node->matchNodePair(prev_frame, false, (unsigned int) ParameterServer::instance()->get<int>("min_matches"));
+    MatchingResult mr = new_node->matchNodePair(prev_frame, (unsigned int) ParameterServer::instance()->get<int>("min_matches"));
 
     if(mr.edge.id1 >= 0 && !isBigTrafo(mr.edge.mean)){
         ROS_WARN("Transformation not relevant. Did not add as Node");
@@ -471,7 +489,7 @@ bool GraphManager::addNode(Node* new_node) {
         }
         printMultiThreadInfo("node comparison");
         QList<MatchingResult> results = QtConcurrent::blockingMapped(
-                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1, false, (unsigned int) ParameterServer::instance()->get<int>("min_matches")));
+                nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1, (unsigned int) ParameterServer::instance()->get<int>("min_matches")));
 
         for (int i = 0; i < results.size(); i++) {
             MatchingResult& mr = results[i];
@@ -496,7 +514,7 @@ bool GraphManager::addNode(Node* new_node) {
         for (int id_of_id = (int) vertices_to_comp.size() - 1; id_of_id >= 0; id_of_id--) {
             Node* abcd = graph_[vertices_to_comp[id_of_id]];
             ROS_INFO("Comparing new node (%i) with node %i / %i", new_node->id_, vertices_to_comp[id_of_id], abcd->id_);
-            MatchingResult mr = new_node->matchNodePair(abcd, false, (unsigned int) ParameterServer::instance()->get<int>("min_matches"));
+            MatchingResult mr = new_node->matchNodePair(abcd, (unsigned int) ParameterServer::instance()->get<int>("min_matches"));
 
             if (mr.edge.id1 >= 0){
 				//if((new_node->id_== 2) || (abcd->id_ == 2))
@@ -785,7 +803,8 @@ void GraphManager::runRGBDICPOptimization()
             ROS_INFO("Skipping Node %i, point cloud data is empty!", i);
             continue;
         }
-        QList<int> nodesToCompareIndices = getUnconnectedNodes(graph_[i], 1000);
+        std::vector<Eigen::Matrix4f> initialTransforms;
+        QList<int> nodesToCompareIndices = getUnconnectedNodes(graph_[i], 1000, initialTransforms);
         QList<const Node* > nodes_to_comp;// for parallel computation
         QList<MatchingResult> results;
 
@@ -798,13 +817,13 @@ void GraphManager::runRGBDICPOptimization()
         {
         	printMultiThreadInfo("node comparison for rgbdicp");
 			results = QtConcurrent::blockingMapped(
-					nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, true, 30));	//ROSS-TODO:: 30 a parameter
+					nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, 30));	//ROSS-TODO:: 30 a parameter
         }
         else
         {
 			for(size_t k = 0; k < nodes_to_comp.size(); k++)
 			{
-				results.push_back(graph_[i]->matchNodePair(nodes_to_comp[k], true, 30));
+				results.push_back(graph_[i]->matchNodePair(nodes_to_comp[k], 30));
 			}
         }
 
@@ -1308,6 +1327,7 @@ void GraphManager::saveAllCloudsToFile(QString filename){
             ROS_ERROR("Nullpointer in graph at position %i!", i);
             continue;
         }
+
         tf::Transform transform = g2o2TF(v->estimate());
         world2cam = cam2rgb*transform;
         //recall cached clouds on the hdd
