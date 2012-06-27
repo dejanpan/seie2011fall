@@ -78,7 +78,7 @@ void ParameterServer::defaultConfig() {
     config["use_gui"]                       = static_cast<bool> (true);
     config["use_wide"]                      = static_cast<bool> (true);
     config["concurrent_node_construction"]  = static_cast<bool> (true);
-    config["concurrent_edge_construction"]  = static_cast<bool> (true);		// turn this off to broadcast nodes.  concurrent broadcasting of nodes not supported
+    config["concurrent_edge_construction"]  = static_cast<bool> (false);		// turn this off to broadcast nodes.  concurrent broadcasting of nodes not supported
     config["voxelfilter_size"]              = static_cast<double> (-0.1); //in meters. Values <= 0 deactivate
     config["wide_queue_size"]               = static_cast<int> (2);
     config["visualization_skip_step"]       = static_cast<int> (1);
