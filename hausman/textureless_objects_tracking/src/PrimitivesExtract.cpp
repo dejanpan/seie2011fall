@@ -16,6 +16,32 @@ inline bool comparison_curvature(pcl::Normal i, pcl::Normal j) {
 	return (i.curvature > j.curvature);
 }
 
+template<typename PointType> bool PrimitivesExtract<PointType>::getSegments(const CloudConstPtr cloud,  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr &cloud_out){
+
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in(new pcl::PointCloud<pcl::PointXYZRGB>());
+	pcl::copyPointCloud(*cloud,*cloud_in);
+	sensor_msgs::PointCloud2 in_cloud_blob, out_cloud_blob;
+	pcl::toROSMsg(*cloud_in, in_cloud_blob);
+	object_part_decomposition::ClassifyScene srv;
+	  srv.request.in_cloud = in_cloud_blob;
+	  srv.request.ID=0;
+	  srv.request.params="-n 3 -s 1";
+	  if (_segmentation_srv.call(srv))
+	  {
+	    ROS_INFO("Calling classify scene service");
+	    out_cloud_blob = srv.response.out_cloud;
+	    pcl::fromROSMsg(out_cloud_blob,*cloud_out);
+	    ROS_INFO("Response Clouds Size: %d", cloud_out->points.size());
+	    pcl::io::savePCDFile("/tmp/result.pcd",*cloud_out);
+	    return true;
+	  }
+	  else
+	  {
+	    ROS_ERROR("Failed to call service classify_scene");
+	    return false;
+	  }
+}
+
 template<typename PointType> bool PrimitivesExtract<PointType>::getCornersToPush(cv::Mat& topview, textureless_objects_tracking::cornerFind::Response& res){
 	textureless_objects_tracking::cornerFind::Request req;
 	IplImage temp(topview);

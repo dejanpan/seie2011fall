@@ -44,6 +44,9 @@
 #include "cv_bridge/CvBridge.h"
 
 #include <textureless_objects_tracking/cornerFind.h>
+#include <object_part_decomposition/ClassifyScene.h>
+#include <object_part_decomposition/point_type.h>
+
 #include <ros/ros.h>
 
 
@@ -96,6 +99,7 @@ public:
 
 	PrimitivesExtract(CloudPtr cloud) {
 
+		_segmentation_srv =_nh.serviceClient<object_part_decomposition::ClassifyScene>("/classify_scene/classify_scene");
 		_corner_finder = _nh.serviceClient<textureless_objects_tracking::cornerFind>("find_corners");
 		if (!_corner_finder.waitForExistence(ros::Duration(5.0))){
 			ROS_ERROR("find_corners service not found");
@@ -158,6 +162,7 @@ public:
 			const CloudConstPtr &cloud, std::vector<CloudPtr> &result,
 			int cylinders_number=0);
 	bool getCornersToPush(cv::Mat& topview, textureless_objects_tracking::cornerFind::Response& res);
+	bool getSegments(const CloudConstPtr cloud,  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr &cloud_out);
 
 private:
 	void computeNormals(const CloudConstPtr cloud,
@@ -214,6 +219,7 @@ private:
 	bool euclidian_clustering_after_line_projection_;
 	bool euclidian_clustering_after_circular_extraction_;
 	ros::ServiceClient _corner_finder;
+	ros::ServiceClient _segmentation_srv;
 	ros::NodeHandle _nh;
 	CloudPtr cloud_;
 };

@@ -3,6 +3,7 @@
 #include <pcl/tracking/kld_adaptive_particle_filter_omp.h>
 #include <pcl/tracking/particle_filter_omp.h>
 
+
 #include <pcl/tracking/coherence.h>
 #include <pcl/tracking/distance_coherence.h>
 #include <pcl/tracking/hsv_color_coherence.h>
@@ -57,6 +58,8 @@
 
 #include <math.h>
 #include "PrimitivesExtract.cpp"
+
+#include <ros/ros.h>
 
 #define FPS_CALC_BEGIN                          \
     static double duration = 0;                 \
@@ -436,7 +439,8 @@ public:
 
 		ec.setMinClusterSize(50);
 
-		ec.setMaxClusterSize(25000);
+		//25000
+		ec.setMaxClusterSize(50000);
 		ec.setSearchMethod(tree);
 		ec.setInputCloud(cloud);
 		ec.extract(cluster_indices);
@@ -601,9 +605,38 @@ public:
 		FPS_CALC_BEGIN;
 		bool online = true;
 
-//		std::cerr<<"cloud height: "<<cloud->height<<std::endl;
-//		std::cerr<<"cloud width: "<<cloud->width<<std::endl;
+		if(counter_==0){
 
+	    cv::Mat cvimage(cloud->width,cloud->height, CV_8UC3);
+        for (uint h = 0; h < cloud->height; h++) {
+                for (uint w = 0; w < cloud->width; w++) {
+            //Get colour data for our cvimage
+                        cvimage.at<cv::Vec3b>(w, h)[0] = cloud->at(h * cloud->width + w).b;
+                        cvimage.at<cv::Vec3b>(w, h)[1] = cloud->at(h * cloud->width + w).g;
+                        cvimage.at<cv::Vec3b>(w, h)[2] = cloud->at(h * cloud->width + w).r;
+
+                }
+        }
+    //Transpose
+        cvimage = cvimage.t();
+//        textureless_objects_tracking::cornerFind::Response res_corner;
+        cv::Mat bw_image(cvimage.rows,cvimage.cols,CV_8U);
+        cv::cvtColor(cvimage,bw_image ,CV_BGR2GRAY);
+        bw_image_=bw_image;
+//            cv::namedWindow( "Display window image", CV_WINDOW_AUTOSIZE );
+//            cv::imshow( "Display window image", bw_image );
+//            cv::waitKey(0);
+//		PrimitivesExtract<pcl::PointXYZRGBA> prim_ex_for_concave;
+////
+////
+//		prim_ex_for_concave.getCornersToPush(bw_image,res_corner);
+//		ros::Duration(2.0);
+//        std::cout<<"res_corner: "<<res_corner.corner.size()<<std::endl;
+//        std::cout<<"res_corner convex: "<<res_corner.corner_convex.size()<<std::endl;
+		std::cerr<<"cloud height: "<<cloud->height<<std::endl;
+		std::cerr<<"cloud width: "<<cloud->width<<std::endl;
+
+		}
 		if (online)
 			cloud_pass_.reset(new Cloud);
 
@@ -713,13 +746,69 @@ public:
 					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector;
 					std::vector<Eigen::Vector3f> directions_vector;
 
-					std::string what = "circular";
+					std::string what = "rectangular";
 
-					if (what == "circular") {
-						prim_ex.extractCylinderVector(nonzero_ref,
-								result_vector_cylinders, 2);
-						prim_ex.extractCircleVector(nonzero_ref,
-								result_vector_circles, 2);
+
+					pcl::PointCloud<pcl::PointXYZLRegion>::Ptr cloud_out(new pcl::PointCloud<pcl::PointXYZLRegion>);
+					prim_ex.getSegments(nonzero_ref,cloud_out);
+				    pcl::io::savePCDFile("result.pcd",*cloud_out);
+
+
+				    pcl::PointCloud<pcl::PointXYZLRegion>::Ptr label_rectangular(new pcl::PointCloud<pcl::PointXYZLRegion>);
+				    pcl::PointCloud<pcl::PointXYZLRegion>::Ptr label_circular(new pcl::PointCloud<pcl::PointXYZLRegion>);
+				    pcl::PointCloud<pcl::PointXYZLRegion>::Ptr label_other(new pcl::PointCloud<pcl::PointXYZLRegion>);
+
+					RefCloudPtr nonzero_ref_rectangular(new RefCloud);
+					RefCloudPtr nonzero_ref_circular(new RefCloud);
+					RefCloudPtr nonzero_ref_other(new RefCloud);
+
+					std::vector<uint32_t> vec;
+
+					for (size_t i = 0; i < cloud_out->points.size(); i++) {
+						uint32_t label=cloud_out->points[i].label;
+
+						if((label==1)||(label==4)){
+							label_circular->push_back(cloud_out->points[i]);
+						}else if ((label==2)||(label==3)||(label==5)){
+							label_rectangular->push_back(cloud_out->points[i]);
+						}else{
+							label_other->push_back(cloud_out->points[i]);
+						}
+						vec.push_back(label);
+					}
+					sort( vec.begin(), vec.end() );
+					vec.erase( unique( vec.begin(), vec.end() ), vec.end() );
+
+					for(int i=0;i<vec.size();i++)
+				    std::cout<<"label vector: "<<vec[i]<<std::endl;
+
+
+
+					pcl::copyPointCloud(*label_circular,*nonzero_ref_circular);
+					pcl::copyPointCloud(*label_rectangular,*nonzero_ref_rectangular);
+					pcl::copyPointCloud(*label_other,*nonzero_ref_other);
+					if(nonzero_ref_circular->size()!=0)
+				    pcl::io::savePCDFile("circular.pcd",*nonzero_ref_circular);
+					if(nonzero_ref_rectangular->size()!=0)
+				    pcl::io::savePCDFile("rectangular.pcd",*nonzero_ref_rectangular);
+					if(nonzero_ref_other->size()!=0)
+				    pcl::io::savePCDFile("other.pcd",*nonzero_ref_other);
+
+//			        textureless_objects_tracking::cornerFind::Response res_corner;
+
+//					prim_ex.getCornersToPush(bw_image_,res_corner);
+//							ros::Duration(2.0);
+//					        std::cout<<"res_corner: "<<res_corner.corner.size()<<std::endl;
+//					        std::cout<<"res_corner convex: "<<res_corner.corner_convex.size()<<std::endl;
+
+//					if (what == "circular") {
+
+					if(nonzero_ref_circular->size()!=0){
+
+						prim_ex.extractCylinderVector(nonzero_ref_circular,
+								result_vector_cylinders, 3);
+						prim_ex.extractCircleVector(nonzero_ref_circular,
+								result_vector_circles, 3);
 						PCL_INFO(
 								"number of cylinders: %d \n", result_vector_cylinders.size());
 						PCL_INFO(
@@ -729,21 +818,29 @@ public:
 						result_vector.insert(result_vector.end(),
 								result_vector_circles.begin(),
 								result_vector_circles.end());
-					} else {
-						prim_ex.extractLineVector(nonzero_ref,
+				}
+					if(nonzero_ref_rectangular->size()!=0)
+					{
+//					} else {
+						prim_ex.extractLineVector(nonzero_ref_rectangular,
 								result_vector_lines, directions_vector);
-						prim_ex.extractCornerVector(nonzero_ref,
+						prim_ex.extractCornerVector(nonzero_ref_rectangular,
 								result_vector_corners);
 						PCL_INFO(
 								"number of lines: %d \n", result_vector_lines.size());
 						PCL_INFO(
 								"number of corners: %d \n", result_vector_corners.size());
 
-						result_vector = result_vector_lines;
+//						result_vector = result_vector_lines;
+						result_vector.insert(result_vector.end(),
+								result_vector_lines.begin(),
+								result_vector_lines.end());
 						result_vector.insert(result_vector.end(),
 								result_vector_corners.begin(),
 								result_vector_corners.end());
-					}PCL_INFO(
+					}
+//					}
+				PCL_INFO(
 							"number of features: %d \n", result_vector.size());
 
 					tracker_vector_.resize(result_vector.size());
@@ -756,19 +853,19 @@ public:
 						pcl::copyPointCloud(*result_vector[track],
 								*nonzero_ref_final_cloud);
 
-						if (track < directions_vector.size()) {
-							directions_vector[track].normalize();
-
-							step_covariance_[0] *= fabs(
-									directions_vector[track][0]);
-							step_covariance_[1] *= fabs(
-									directions_vector[track][1]);
-							step_covariance_[2] *= fabs(
-									directions_vector[track][2]);
-
-							tracker_vector_[track]->setStepNoiseCovariance(
-									step_covariance_);
-						}
+//						if (track < directions_vector.size()) {
+//							directions_vector[track].normalize();
+//
+//							step_covariance_[0] *= fabs(
+//									directions_vector[track][0]);
+//							step_covariance_[1] *= fabs(
+//									directions_vector[track][1]);
+//							step_covariance_[2] *= fabs(
+//									directions_vector[track][2]);
+//
+//							tracker_vector_[track]->setStepNoiseCovariance(
+//									step_covariance_);
+//						}
 
 						std::stringstream ss;
 						ss << track;
@@ -880,6 +977,7 @@ public:
 	double downsampling_time_;
 	double downsampling_grid_size_;
 	std::ofstream a_file_;
+	cv::Mat bw_image_;
 
 };
 
