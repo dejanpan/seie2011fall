@@ -88,6 +88,17 @@ Eigen::Matrix4f g2o2EigenMat(const g2o::SE3Quat se3)
 //	ROS_INFO_STREAM("eigen mat: " << result);
 	return result;
 }
+
+bool checkEigenMatrixhasNaNs(Eigen::Matrix4f mat)
+{
+	bool hasNaN=false;
+	for(uint i = 0; i < 4; i++)
+	{
+		for(uint j = 0; j < 4; j++)
+			hasNaN = hasNaN || ((mat(i,j) != mat(i,j)));
+	}
+	return hasNaN;
+}
 //From: /opt/ros/unstable/stacks/perception_pcl/pcl/src/pcl/registration/transforms.hpp
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /** \brief Apply an affine transform defined by an Eigen Transform

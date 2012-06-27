@@ -27,6 +27,8 @@ tf::Transform g2o2TF(const g2o::SE3Quat se3) ;
 
 void logTransform(QTextStream& out, const tf::Transform& t, double timestamp, const char* label = NULL);
 
+bool checkEigenMatrixhasNaNs(Eigen::Matrix4f mat);
+
 void transformAndAppendPointCloud (const pointcloud_type &cloud_in, pointcloud_type &cloud_to_append_to,
                                    const tf::Transform transformation, float Max_Depth);
 

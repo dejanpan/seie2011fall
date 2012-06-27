@@ -360,6 +360,8 @@ QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targe
 
 Eigen::Matrix4f GraphManager::getGraphTransformBetweenNodes(const int sourceId, const int targetId)
 {
+	if(sourceId < 0 || targetId < 0)
+		ROS_ERROR("Invalid node id!");
 	g2o::VertexSE3* sourceVertex = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(sourceId));
 	g2o::VertexSE3* targetVertex = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(targetId));
 	if(!sourceVertex || !targetVertex)
@@ -773,6 +775,9 @@ void GraphManager::runRGBDICPOptimization()
 {
 	ROS_INFO_STREAM(" GraphManager::runRGBDICPOptimization");
 
+	//make sure the graph is optimized before starting
+	optimizeGraph();
+
 	//Calculate normals for all nodes
 	QList<pointcloud_type::Ptr> pointcloudList;
 	for (unsigned int i = 0; i < graph_.size(); ++i) {
@@ -839,10 +844,15 @@ void GraphManager::runRGBDICPOptimization()
         QList<MatchingResult> rgbdicpList;
         for (uint j = 0; j < results.size(); j++) {
 			MatchingResult& mr = results[j];
-			if(!(mr.edge.id1 >= 0))		// bad ransac
+			if(mr.edge.id1 < 0)		// bad ransac
 					continue;
 
 			mr.icp_trafo = getGraphTransformBetweenNodes(mr.edge.id2, mr.edge.id1);
+			if (checkEigenMatrixhasNaNs(mr.icp_trafo))
+			{
+				ROS_ERROR_STREAM("transformation from graph has NaNs. Trafo:\n" << mr.icp_trafo);
+				continue;
+			}
 			rgbdicpList.push_back(mr);
 
 			pointcloud_type tempConverged;
@@ -871,13 +881,13 @@ void GraphManager::runRGBDICPOptimization()
 //			QtConcurrent::blockingMap(rgbdicpList, boost::bind(&GraphManager::performJointOptimization, this, _1));
 //		}
 
-        for(uint j=0; j< rgbdicpList.size(); j++)
+        for(uint j=0; j < rgbdicpList.size(); j++)
         {
         	MatchingResult & mr = rgbdicpList[j];
 
     		performJointOptimization(mr);
 			filename.str("");
-			filename << "node_" << graph_[i]->id_ << "_converged_to_node_" << results[j].edge.id1 << ".txt";
+			filename << "node_" << graph_[i]->id_ << "_converged_to_node_" << mr.edge.id1 << ".txt";
 			myfile.open (filename.str().c_str());
 			myfile << mr.final_trafo;
 			myfile.close();
@@ -897,7 +907,6 @@ void GraphManager::runRGBDICPOptimization()
 					last_matches_ = mr.all_matches;
 				}
 			}
-			optimizeGraph();
         }
     }
     optimizeGraph();
@@ -980,7 +989,7 @@ void GraphManager::performJointOptimization(MatchingResult& mr)
 				<<	icpJointOptimize.getFinalTransformation () << "\n";
 
 	mr.final_trafo = icpJointOptimize.getFinalTransformation();
-    mr.edge.mean = eigen2G2O(mr.final_trafo.inverse().cast<double>());//we insert an edge between the frames
+    mr.edge.mean = eigen2G2O(mr.final_trafo.cast<double>());//we insert an edge between the frames
     double w = 80;
     mr.edge.informationMatrix = Eigen::Matrix<double,6,6>::Identity()*(w*w); //TODO: What
 }
