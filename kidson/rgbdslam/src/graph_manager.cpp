@@ -14,7 +14,7 @@
  * along with RGBDSLAM.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include <iostream>
 #include <sys/time.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Point.h>
@@ -40,6 +40,11 @@
 #include "g2o/solvers/csparse/linear_solver_csparse.h"
 #include "g2o/solvers/cholmod/linear_solver_cholmod.h"
 //#include "g2o/solvers/pcg/linear_solver_pcg.h"
+
+// joint optimizer
+#include <pcl/filters/extract_indices.h>
+#include <pcl/registration/transformation_estimation_joint_optimize.h>
+#include <pcl/registration/icp_joint_optimize.h>
 
 #include "pointcloud_acquisition.cpp"
 #include "rgbdslam/featureMatch.h"
@@ -337,7 +342,10 @@ QList<int> GraphManager::getUnconnectedNodes(const Node* new_node, int max_targe
 
         //check the transformation difference between nodes.  Reject if too high
 		if (!isTrafoSmall(getGraphTransformBetweenNodes(new_node->id_, i)))	// nodes are too far away to do rgbdicp
+		{
+			ROS_INFO_STREAM("trafo too small. trafo: " << getGraphTransformBetweenNodes(new_node->id_, i));
 			continue;
+		}
 
         // add node to check
     	ids_to_link_to.push_back(i);
@@ -359,7 +367,7 @@ Eigen::Matrix4f GraphManager::getGraphTransformBetweenNodes(const int sourceId, 
 
 	Eigen::Matrix4f source = g2o2EigenMat(sourceVertex->estimate());
 	Eigen::Matrix4f target = g2o2EigenMat(targetVertex->estimate());
-	return (target - source);
+	return (target.inverse() * source);
 }
 
 void GraphManager::resetGraph(){
@@ -816,49 +824,166 @@ void GraphManager::runRGBDICPOptimization()
         {
         	printMultiThreadInfo("node comparison for rgbdicp");
 			results = QtConcurrent::blockingMapped(
-					nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, 10));	//ROSS-TODO:: 30 a parameter
+					nodes_to_comp, boost::bind(&Node::matchNodePair, graph_[i], _1, 20));	//ROSS-TODO:: 30 a parameter
         }
         else
         {
 			for(size_t k = 0; k < nodes_to_comp.size(); k++)
 			{
-				results.push_back(graph_[i]->matchNodePair(nodes_to_comp[k], 10));
+				results.push_back(graph_[i]->matchNodePair(nodes_to_comp[k], 20));
 			}
         }
 
-        for (int j = 0; j < results.size(); j++) {
+		std::ofstream myfile;
+		std::stringstream filename;
+        QList<MatchingResult> rgbdicpList;
+        for (uint j = 0; j < results.size(); j++) {
 			MatchingResult& mr = results[j];
 			if(!(mr.edge.id1 >= 0))		// bad ransac
 					continue;
+
 			mr.icp_trafo = getGraphTransformBetweenNodes(mr.edge.id2, mr.edge.id1);
-			graph_[i]->performJointOptimization(graph_[mr.edge.id1], mr);
+			rgbdicpList.push_back(mr);
 
-//            if (mr.edge.id1 >= 0) {
-				// source = current node, target = other node. Transform is from source to target
-            	// mr.edge.id2 = source mr.edge.id1 = target
-				ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
+			pointcloud_type tempConverged;
+			filename.str("");
+			filename << "node_" << mr.edge.id2 << "_graph_transformed_to_node_" << mr.edge.id1 << ".txt";
+		    myfile.open (filename.str().c_str());
+		    myfile << mr.icp_trafo;
+		    myfile.close();
+//		    filename << ".pcd";
+//			transformPointCloud (*(graph_[mr.edge.id2]->pc_col), tempConverged,  mr.icp_trafo);
+//			writer.write (filename.str(), tempConverged, true);
+        }
 
-				if (addEdgeToG2O(mr.edge, isBigTrafo(mr.edge.mean),
-						mr.inlier_matches.size() > last_inlier_matches_.size())) { //TODO: result isBigTrafo is not considered
-					ROS_INFO("Added Edge between %i and %i. Inliers: %i",mr.edge.id1,mr.edge.id2,(int) mr.inlier_matches.size());
-					if (mr.inlier_matches.size() > last_inlier_matches_.size()) {
-						last_matching_node_ = mr.edge.id1;
-						last_inlier_matches_ = mr.inlier_matches;
-						last_matches_ = mr.all_matches;
-					}
+        // this is how to multithread the joint optimization (not stable)
+//        bool icpMultithread = false;
+//        if(!icpMultithread)
+//        {
+//        	for(uint j=0; j< rgbdicpList.size(); j++)
+//        	{
+//        		performJointOptimization(rgbdicpList[j]);
+//        	}
+//        }
+//		else
+//		{
+//			printMultiThreadInfo("joint optimization");
+//			QtConcurrent::blockingMap(rgbdicpList, boost::bind(&GraphManager::performJointOptimization, this, _1));
+//		}
+
+        for(uint j=0; j< rgbdicpList.size(); j++)
+        {
+        	MatchingResult & mr = rgbdicpList[j];
+
+    		performJointOptimization(mr);
+			filename.str("");
+			filename << "node_" << graph_[i]->id_ << "_converged_to_node_" << results[j].edge.id1 << ".txt";
+			myfile.open (filename.str().c_str());
+			myfile << mr.final_trafo;
+			myfile.close();
+//			transformPointCloud (*(graph_[i]->pc_col), tempConverged,  mr.final_trafo);
+//			writer.write (filename.str(), tempConverged, true);
+
+			// source = current node, target = other node. Transform is from source to target
+			// mr.edge.id2 = source mr.edge.id1 = target
+			ROS_INFO_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << "\n" << mr.edge.informationMatrix);
+
+			if (addEdgeToG2O(mr.edge, isBigTrafo(mr.edge.mean),
+					mr.inlier_matches.size() > last_inlier_matches_.size())) { //TODO: result isBigTrafo is not considered
+				ROS_INFO("Added Edge between %i and %i. Inliers: %i",mr.edge.id1,mr.edge.id2,(int) mr.inlier_matches.size());
+				if (mr.inlier_matches.size() > last_inlier_matches_.size()) {
+					last_matching_node_ = mr.edge.id1;
+					last_inlier_matches_ = mr.inlier_matches;
+					last_matches_ = mr.all_matches;
 				}
-
-				std::stringstream filename;
-				pointcloud_type tempConverged;
-				transformPointCloud (*(graph_[i]->pc_col), tempConverged,  mr.final_trafo);
-				filename << "node_" << graph_[i]->id_ << "_converged_to_node_" << results[j].edge.id1 << ".pcd";
-				writer.write (filename.str(), tempConverged, true);
-//			}
+			}
+			optimizeGraph();
         }
     }
     optimizeGraph();
 }
 
+void GraphManager::performJointOptimization(MatchingResult& mr)
+{
+	uint sourceId = mr.edge.id2;
+	uint targetId = mr.edge.id1;
+    // RGBD ICP
+    ROS_INFO_STREAM("Performing RGBDICP with source node(" << sourceId << ") and target node (" << targetId << ")");
+
+    pcl::IterativeClosestPoint<PointNormal, PointNormal> icp;
+    // set source and target clouds from indices of pointclouds
+	pcl::ExtractIndices<PointNormal> handlefilter;
+	pcl::PointIndices::Ptr sourceHandleIndices (new pcl::PointIndices);
+	pointcloud_type::Ptr cloudHandlesSource (new pointcloud_type);
+	sourceHandleIndices->indices = graph_[sourceId]->handleIndices;
+	handlefilter.setIndices(sourceHandleIndices);
+	handlefilter.setInputCloud(graph_[sourceId]->pc_col);
+	handlefilter.filter(*cloudHandlesSource);
+	icp.setInputCloud(cloudHandlesSource);
+
+	pcl::PointIndices::Ptr targetHandleIndices (new pcl::PointIndices);
+	pointcloud_type::Ptr cloudHandlesTarget (new pointcloud_type);
+	targetHandleIndices->indices = graph_[targetId]->handleIndices;
+	handlefilter.setIndices(targetHandleIndices);
+	handlefilter.setInputCloud(graph_[targetId]->pc_col);
+	handlefilter.filter(*cloudHandlesTarget);
+	icp.setInputTarget(cloudHandlesTarget);
+
+	PointCloudNormal Final;
+	icp.align(Final, mr.icp_trafo);
+	std::cout << "has converged:" << icp.hasConverged() << " score: " <<
+	icp.getFitnessScore() << std::endl;
+	std::cout << icp.getFinalTransformation() << std::endl;
+
+	std::ofstream myfile;
+	std::stringstream filename;
+	pointcloud_type tempConverged;
+	filename << "node_" << sourceId << "_handle_transformed_to_node_" << targetId << ".txt";
+	myfile.open (filename.str().c_str());
+	myfile << icp.getFinalTransformation();
+	myfile.close();
+//	transformPointCloud (*(this->pc_col), tempConverged,  icp.getFinalTransformation());
+//	writer.write (filename.str(), tempConverged, true);
+
+	ROS_INFO("Initialize transformation estimation object....");
+	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
+		transformationEstimation_(new TransformationEstimationJointOptimize<PointNormal, PointNormal>());
+
+	float denseCloudWeight = 1.0;
+	float visualFeatureWeight = 0.0;
+	float handleFeatureWeight = 0.25;
+	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
+
+	std::vector<int> sourceSIFTIndices, targetSIFTIndices;
+	graph_[sourceId]->getFeatureIndices(graph_[targetId],mr,sourceSIFTIndices,targetSIFTIndices);
+	transformationEstimation_->setCorrespondecesDFP(sourceSIFTIndices, targetSIFTIndices);
+
+	// custom icp
+	ROS_INFO("Initialize icp object....");
+	pcl::IterativeClosestPointJointOptimize<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
+	icpJointOptimize.setMaximumIterations (20);
+	icpJointOptimize.setTransformationEpsilon (0);
+	icpJointOptimize.setMaxCorrespondenceDistance(0.1);
+	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
+	icpJointOptimize.setEuclideanFitnessEpsilon (0);
+	icpJointOptimize.setTransformationEstimation (transformationEstimation_);
+	icpJointOptimize.setHandleSourceIndices(sourceHandleIndices->indices);
+	icpJointOptimize.setHandleTargetIndices(targetHandleIndices->indices);
+	icpJointOptimize.setInputCloud(graph_[sourceId]->pc_col);
+	icpJointOptimize.setInputTarget(graph_[targetId]->pc_col);
+
+	ROS_INFO("Running ICP....");
+	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
+	icpJointOptimize.align ( *cloud_transformed, icp.getFinalTransformation()); //init_tr );
+	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icpJointOptimize.hasConverged() << std::endl <<
+				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl
+				<<	icpJointOptimize.getFinalTransformation () << "\n";
+
+	mr.final_trafo = icpJointOptimize.getFinalTransformation();
+    mr.edge.mean = eigen2G2O(mr.final_trafo.inverse().cast<double>());//we insert an edge between the frames
+    double w = 80;
+    mr.edge.informationMatrix = Eigen::Matrix<double,6,6>::Identity()*(w*w); //TODO: What
+}
 
 void GraphManager::visualizeGraphEdges() const {
     struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);

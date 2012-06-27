@@ -83,6 +83,9 @@ Eigen::Matrix4f g2o2EigenMat(const g2o::SE3Quat se3)
 	Eigen::Matrix4f result;
 	result.block(0,0,3,3) = se3.rotation().toRotationMatrix().cast<float>();
 	result.col(3).head(3) = se3.translation().cast<float>();
+	result(3,3) = 1.0;
+//	ROS_INFO_STREAM("se3: " << se3);
+//	ROS_INFO_STREAM("eigen mat: " << result);
 	return result;
 }
 //From: /opt/ros/unstable/stacks/perception_pcl/pcl/src/pcl/registration/transforms.hpp
@@ -225,9 +228,10 @@ bool isTrafoSmall(const Eigen::Matrix4f& t){
 
     double max_angle = std::max(roll,std::max(pitch,yaw));
 
+//    ROS_INFO_STREAM("dist: " << dist << " rot " << max_angle);
     // within certain range for joint optimization
     // ROSS-TODO make paramter
-    return ((dist < 1.0) || (max_angle < 60.0));
+    return ((dist < 1.0) || (max_angle < 45.0));
 }
 
 /*

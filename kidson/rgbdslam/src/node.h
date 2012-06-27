@@ -85,8 +85,6 @@ public:
 	///Compare the features of two nodes and compute the transformation
   MatchingResult matchNodePair(const Node* older_node, unsigned int min_matches);
 
-  void performJointOptimization(const Node* oldNode, MatchingResult& mr);
-
   ///Transform, e.g., from MoCap
   void setGroundTruthTransform(tf::StampedTransform gt);
   ///Transform, e.g., from kinematics

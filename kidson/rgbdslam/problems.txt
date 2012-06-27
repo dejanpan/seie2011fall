@@ -1,0 +1,8 @@
+
+-lm doesn't converge handles
+-no check to see if there are overlapping handles
+    -icp on handles will diverge the clouds when no matching handles available
+-no metric to check if a transform is very bad and reject
+-slow/problems with multithreading
+
+-

@@ -14,7 +14,7 @@
  * along with RGBDSLAM.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include <iostream>
 #include "node.h"
 #include <cmath>
 #include <ctime>
@@ -28,11 +28,6 @@
 #include <pcl/point_types.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/normal_3d_omp.h>
-
-// joint optimizer
-#include <pcl/filters/extract_indices.h>
-#include <pcl/registration/transformation_estimation_joint_optimize.h>
-#include <pcl/registration/icp_joint_optimize.h>
 
 #ifdef USE_SIFT_GPU
 #include "sift_gpu_wrapper.h"
@@ -1093,73 +1088,6 @@ MatchingResult Node::matchNodePair(const Node* older_node, unsigned int min_matc
   }
   // Paper
   return mr;
-}
-
-void Node::performJointOptimization(const Node* oldNode, MatchingResult& mr)
-{
-    // RGBD ICP
-    ROS_INFO_STREAM("Performing RGBDICP with source node(" << this->id_ << ") and target node (" << oldNode->id_ << ")");
-
-    pcl::IterativeClosestPoint<PointNormal, PointNormal> icp;
-    // set source and target clouds from indices of pointclouds
-	pcl::ExtractIndices<PointNormal> handlefilter;
-	pcl::PointIndices::Ptr sourceHandleIndices (new pcl::PointIndices);
-	pointcloud_type::Ptr cloudHandlesSource (new pointcloud_type);
-	sourceHandleIndices->indices = this->handleIndices;
-	handlefilter.setIndices(sourceHandleIndices);
-	handlefilter.setInputCloud(this->pc_col);
-	handlefilter.filter(*cloudHandlesSource);
-	icp.setInputCloud(cloudHandlesSource);
-
-	pcl::PointIndices::Ptr targetHandleIndices (new pcl::PointIndices);
-	pointcloud_type::Ptr cloudHandlesTarget (new pointcloud_type);
-	targetHandleIndices->indices = oldNode->handleIndices;
-	handlefilter.setIndices(targetHandleIndices);
-	handlefilter.setInputCloud(oldNode->pc_col);
-	handlefilter.filter(*cloudHandlesTarget);
-	icp.setInputTarget(cloudHandlesTarget);
-
-	PointCloudNormal Final;
-	icp.align(Final, mr.icp_trafo);
-	std::cout << "has converged:" << icp.hasConverged() << " score: " <<
-	icp.getFitnessScore() << std::endl;
-	std::cout << icp.getFinalTransformation() << std::endl;
-
-	ROS_INFO("Initialize transformation estimation object....");
-	boost::shared_ptr< TransformationEstimationJointOptimize<PointNormal, PointNormal > >
-		transformationEstimation_(new TransformationEstimationJointOptimize<PointNormal, PointNormal>());
-
-	float denseCloudWeight = 1.0;
-	float visualFeatureWeight = 0.5;
-	float handleFeatureWeight = 0.25;
-	transformationEstimation_->setWeights(denseCloudWeight, visualFeatureWeight, handleFeatureWeight);
-
-	std::vector<int> sourceSIFTIndices, targetSIFTIndices;
-	getFeatureIndices(oldNode,mr,sourceSIFTIndices,targetSIFTIndices);
-	transformationEstimation_->setCorrespondecesDFP(sourceSIFTIndices, targetSIFTIndices);
-
-	// custom icp
-	ROS_INFO("Initialize icp object....");
-	pcl::IterativeClosestPointJointOptimize<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icpJointOptimize; //JointOptimize
-	icpJointOptimize.setMaximumIterations (20);
-	icpJointOptimize.setTransformationEpsilon (0);
-	icpJointOptimize.setMaxCorrespondenceDistance(0.1);
-	icpJointOptimize.setRANSACOutlierRejectionThreshold(0.03);
-	icpJointOptimize.setEuclideanFitnessEpsilon (0);
-	icpJointOptimize.setTransformationEstimation (transformationEstimation_);
-	icpJointOptimize.setHandleSourceIndices(sourceHandleIndices->indices);
-	icpJointOptimize.setHandleTargetIndices(targetHandleIndices->indices);
-	icpJointOptimize.setInputCloud(this->pc_col);
-	icpJointOptimize.setInputTarget(oldNode->pc_col);
-
-	ROS_INFO("Running ICP....");
-	PointCloudNormal::Ptr cloud_transformed( new PointCloudNormal);
-	icpJointOptimize.align ( *cloud_transformed, icp.getFinalTransformation()); //init_tr );
-	std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icpJointOptimize.hasConverged() << std::endl <<
-				"	fitness score (SSD): " << icpJointOptimize.getFitnessScore (1000) << std::endl
-				<<	icpJointOptimize.getFinalTransformation () << "\n";
-
-	mr.final_trafo = icpJointOptimize.getFinalTransformation();
 }
 
 void Node::clearFeatureInformation(){

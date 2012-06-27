@@ -93,6 +93,7 @@ class GraphManager : public QObject {
     void calculateNormals(const pointcloud_type::Ptr pc_col);
     std::vector<int> extractHandles(const pointcloud_type::Ptr pc_col);
     Eigen::Matrix4f getGraphTransformBetweenNodes(const int sourceId, const int targetId);
+    void performJointOptimization(MatchingResult& mr);
 
     public:
     GraphManager(ros::NodeHandle);
