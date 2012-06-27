@@ -1,0 +1,12 @@
+<launch>
+<include file="$(find ias_classifier_manager)/manager.launch"/>   
+<!--<include file="$(find object_part_decomposition)/script/init_classifier.sh"/> -->  
+<!--<node name="image_view" pkg="object_part_decomposition" type="init_classifier.sh" />-->
+<node name="classify_scene" pkg="object_part_decomposition" type="classify_scene_service" />
+<!--rosrun object_part_decomposition init_classifier.sh-->
+<!--rosrun object_part_decomposition classify_scene_service-->
+<node name="coner_finder_server" pkg="textureless_objects_tracking" type="find_corners.py" /> 
+
+
+
+</launch>
