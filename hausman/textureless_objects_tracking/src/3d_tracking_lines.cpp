@@ -58,6 +58,8 @@
 
 #include <math.h>
 #include "PrimitivesExtract.cpp"
+#include "textureless_objects_tracking/point_type.h"
+
 
 #include <ros/ros.h>
 
@@ -342,6 +344,7 @@ public:
 	void viz_cb(pcl::visualization::PCLVisualizer& viz) {
 		boost::mutex::scoped_lock lock(mtx_);
 
+		viz.setBackgroundColor(255,255,255);
 		if (!cloud_pass_) {
 			boost::this_thread::sleep(boost::posix_time::seconds(1));
 			return;
@@ -403,11 +406,11 @@ public:
 					ss << track;
 
 					viz.removeShape("particles" + ss.str());
-					viz.addText(
-							(boost::format("particles:     %d")
-									% (tracker_vector_[track]->getParticles()->points.size())).str(),
-							10, 120 * track, 20, 1.0, 1.0, 1.0,
-							"particles" + ss.str());
+//					viz.addText(
+//							(boost::format("particles:     %d")
+//									% (tracker_vector_[track]->getParticles()->points.size())).str(),
+//							10, 120 * track, 20, 1.0, 1.0, 1.0,
+//							"particles" + ss.str());
 				}
 
 //				viz.addText("Particle filtering-based tracking of 3D lines and corners. ",20,60,23,1.0,1.0,1.0,"title"+counter_);
@@ -753,6 +756,14 @@ public:
 					prim_ex.getSegments(nonzero_ref,cloud_out);
 				    pcl::io::savePCDFile("result.pcd",*cloud_out);
 
+				    pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr cloud_to_save(new pcl::PointCloud<pcl::PointXYZLRegionF>);
+
+				    pcl::copyPointCloud(*cloud_out,*cloud_to_save);
+					RefCloudPtr cloud_to_save_temp(new RefCloud);
+				    pcl::copyPointCloud(*cloud_out,*cloud_to_save_temp);
+
+
+
 
 				    pcl::PointCloud<pcl::PointXYZLRegion>::Ptr label_rectangular(new pcl::PointCloud<pcl::PointXYZLRegion>);
 				    pcl::PointCloud<pcl::PointXYZLRegion>::Ptr label_circular(new pcl::PointCloud<pcl::PointXYZLRegion>);
@@ -763,6 +774,7 @@ public:
 					RefCloudPtr nonzero_ref_other(new RefCloud);
 
 					std::vector<uint32_t> vec;
+
 
 					for (size_t i = 0; i < cloud_out->points.size(); i++) {
 						uint32_t label=cloud_out->points[i].label;
@@ -853,6 +865,34 @@ public:
 						pcl::copyPointCloud(*result_vector[track],
 								*nonzero_ref_final_cloud);
 
+						for(uint i=0;i<nonzero_ref_final_cloud->points.size();i++){
+
+							PointType searchPointTemp=nonzero_ref_final_cloud->points[i];
+
+//							RefPointType searchPoint;
+//							searchPoint.x=searchPointTemp.x;
+//							searchPoint.y=searchPointTemp.y;
+//							searchPoint.z=searchPointTemp.z;
+//							searchPoint.f=0;
+
+							pcl::KdTreeFLANN<PointType> kdtree;
+
+							kdtree.setInputCloud(cloud_to_save_temp);
+
+							std::vector<int> pointIdxRadiusSearch;
+							std::vector<float> pointRadiusSquaredDistance;
+							float radius=0.002;
+
+							if (kdtree.nearestKSearch(searchPointTemp, 1, pointIdxRadiusSearch,
+									pointRadiusSquaredDistance) > 0) {
+
+								cloud_to_save->points[pointIdxRadiusSearch[0]].f=track+1;
+
+							}
+
+
+						}
+
 //						if (track < directions_vector.size()) {
 //							directions_vector[track].normalize();
 //
@@ -896,6 +936,8 @@ public:
 						tracker_vector_[track]->setMinIndices(
 								ref_cloud->points.size() / 2);
 					}
+					pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr my_points(new pcl::PointCloud<pcl::PointXYZLRegionF>);
+				    pcl::io::savePCDFile("features.pcd",*cloud_to_save);
 				} else {
 					PCL_WARN("euclidean segmentation failed\n");
 				}

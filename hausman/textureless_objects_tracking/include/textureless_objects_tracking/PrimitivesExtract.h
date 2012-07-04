@@ -109,8 +109,8 @@ public:
 		best_curv_percent_ = 0.17;
 		line_distance_tresh_ = 0.002;
 		min_line_inliers_ = 50;
-		eliminate_line_neigh_radius_ = 0.01; //0.002
-		shrink_line_percent_ = 1;
+		eliminate_line_neigh_radius_ = 0.02; //0.01
+		shrink_line_percent_ = 0.95;
 		euclidian_clustering_after_line_projection_ = true;
 		if (euclidian_clustering_after_line_projection_) {
 			euclidian_line_cluster_tolerance_ = 0.005;
