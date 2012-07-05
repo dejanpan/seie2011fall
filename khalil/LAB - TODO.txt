@@ -6,4 +6,7 @@
 6- Annotate the final presentation video and upload it into the Cotesys youtube channel
 7- Create a tutorial for the whole pipeline
 8- Do the alignment between Barcoo classes and Knowrob classes
+9- Create a flowchart that describes the process from reading the image to creating an individual in knowrob
+10-Update tutorial
+
 
