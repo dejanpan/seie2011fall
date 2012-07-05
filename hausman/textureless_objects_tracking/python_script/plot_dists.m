@@ -5,17 +5,21 @@ function plot_dists(dist_matrix)
 			figure(1)
 			plot (dist_matrix(:,i), int2str(i), "linewidth", 3)
 			hold on
-			xlabel("time","fontsize", 14);
-			ylabel("relative distances","fontsize", 14);
-			axis([0,600, 0.1, 0.22]);
-			legend('green line - red cylinder(diff. object)')
+			
+			#legend('green line-red cylinder(diff.object)')
 			#legend('green cylinder - red cylinder(diff. object)', 'red cylinder - blue circle (same objects)', 'green cylinder - blue circle(diff. object)')
+			#axis([0,550, 0.0, 0.22]);
+			
 		elseif (i==6)
+			figure(1)
 			plot (dist_matrix(:,i), "y", "linewidth", 3)
 			#xlabel("time","fontsize", 14);
 			#ylabel("relative distances","fontsize", 14);
-			#axis([0,400, 0.0, 0.4]);
-			#legend('green line - red line(diff. object)', 'red line - blue corner (same objects)', 'red line - yellow corner(diff. object)', 'green line - blue corner (diff. objects)','green line - yellow corner (same objects)','yellow corner - blue corner (diff.object)')
+			set (gca,'fontsize',14) 
+			xlabel("#measurements","fontsize", 15);
+			ylabel("relative distances","fontsize", 15);
+			axis([0,400, 0.0, 0.4]);
+			legend('green line - red line(diff. object)', 'red line - blue corner (same objects)', 'red line - yellow corner(diff. object)', 'green line - blue corner (diff. objects)','green line - yellow corner (same objects)','yellow corner - blue corner (diff.object)')
 			#axis([0,400, 0.0, 0.5]);
 		elseif (i<11)&&(i>6)
 			figure(2)
