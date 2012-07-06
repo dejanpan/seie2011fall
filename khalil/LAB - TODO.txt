@@ -1,12 +1,19 @@
-1- Create a static barcoo-test.owl file that will contain instances of classes from barcoo.owl that will be used for querying Knowrob
-2- Create a package that will do automatic creation of instances and save them either into an owl file that will be queryed or through knowrob
-3- Modify the zbar_qt_ros package so that it gets rid of local paths and store the update into the new repository
-4- Modify the barcode detection so that it can give us meaningful information about where the barcode is located in the image exactly
-5- Think about what we can do next with the knowledge. Some interesting applications
+3- Modify the zbar_qt_ros package so that it gets rid of local paths and store the update into the new repository (P)
+4- Modify the barcode detection so that it can give us 3D points. solve this as an intersection between the plane corresponding to the object phase and 3D ray coming from the camera optical center and passing through the center of the barcode in the image plane. We do this on the 19-20 of july.
+5- Write the actual queries next to the questions and directly into the tutorial. (P)
 6- Annotate the final presentation video and upload it into the Cotesys youtube channel
 7- Create a tutorial for the whole pipeline
-8- Do the alignment between Barcoo classes and Knowrob classes
+8- Do the alignment between Barcoo classes and Knowrob classes (P)
 9- Create a flowchart that describes the process from reading the image to creating an individual in knowrob
-10-Update tutorial
+10- Update tutorial (P)
+11- Change the print of the args of barcooImporter.java  (P)
+12- Comment the functions: definition, parameters, return
+13- Where the object should be (probabilistic semantic map) package: comp_orgprinciples paper: earning Organizational Principles in Human Environments (Martin Schuster, Dominik Jain, Moritz Tenorth, Michael Beetz), In IEEE International Conference on Robotics and Automation (ICRA), 2012
+- If you have an object, where should you put it. Use the three packages: comp_orgprinciples, comp_germandeli, shopping demo: infer_object_location.cpp (client), query_comp_orgprinciples.cpp (server) ->to be moved to comp_barcoo and the commented code should be deleted (PP)
+
+(P) AND (PP) TO BE DONE BY THE END OF NEXT WEEK
+
+
+
 
 

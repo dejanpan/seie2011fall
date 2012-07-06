@@ -5,6 +5,4 @@
 5- Get a specific information about a class
 6- What class do they have as superclass
 7- At what time was the individual inserted
-8- Where the object should be (probabilistic semantic map) package: comp_orgprinciples paper: earning Organizational Principles in Human Environments (Martin Schuster, Dominik Jain, Moritz Tenorth, Michael Beetz), In IEEE International Conference on Robotics and Automation (ICRA), 2012
-9- If you have an object, where should you put it.
 10- 
