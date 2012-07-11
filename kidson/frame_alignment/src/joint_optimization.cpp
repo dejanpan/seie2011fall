@@ -39,34 +39,110 @@ void restoreCVMatFromPointCloud(PointCloudConstPtr cloud_in, cv::Mat & restored_
 	}
 }
 
+void projectFeaturesTo3D(std::vector<cv::KeyPoint>& feature_locations_2d, std::vector<Eigen::Vector4f> & feature_locations_3d, PointCloudConstPtr point_cloud)
+{
+	int index = -1;
+	for(unsigned int i = 0; i < feature_locations_2d.size(); /*increment at end of loop*/){
+		++index;
+
+		cv::Point2f p2d = feature_locations_2d[i].pt;
+		PointType p3d = point_cloud->at((int) p2d.x,(int) p2d.y);
+
+		// Check for invalid measurements
+		if ( isnan(p3d.x) || isnan(p3d.y) || isnan(p3d.z))
+		{
+			ROS_DEBUG("Feature %d has been extracted at NaN depth. Omitting", i);
+			feature_locations_2d.erase(feature_locations_2d.begin()+i);
+			continue;
+		}
+
+		feature_locations_3d.push_back(Eigen::Vector4f(p3d.x, p3d.y, p3d.z, 1.0));
+		//featuresUsed.push_back(index);  //save id for constructing the descriptor matrix
+		i++; //Only increment if no element is removed from vector
+	}
+}
+
 int
  main (int argc, char** argv)
 {
-//	const cv::Mat input = cv::imread(argv[1], 0); //Load as grayscale
-//
-//	cv::SiftFeatureDetector detector;
-//	std::vector<cv::KeyPoint> keypoints;
-//	detector.detect(input, keypoints);
-//
-//	// Add results to image and save.
-//	cv::Mat output;
-//	cv::drawKeypoints(input, keypoints, output);
-//	cv::imwrite("sift_result.jpg", output);
+	PointCloudPtr source_cloud (new PointCloud);
+	PointCloudPtr target_cloud (new PointCloud);
 
-
-	PointCloudPtr cloud_in (new PointCloud);
-	PointCloudPtr cloud_out (new PointCloud);
-
-	//Fill in the cloud data
 	pcl::PCDReader reader;
-	reader.read (argv[1], *cloud_in);
-	reader.read (argv[2], *cloud_out);
+	reader.read (argv[1], *source_cloud);
+	reader.read (argv[2], *target_cloud);
 
-	cv::Mat cloud_in_image;
-	restoreCVMatFromPointCloud(cloud_in, cloud_in_image);
-	cv::Mat cloud_in_greyscale;
-	cvtColor(cloud_in_image, cloud_in_greyscale, CV_RGB2GRAY);
-	cv::imwrite("pointcloud_out.jpg", cloud_in_greyscale);
+	cv::Mat source_image;
+	cv::Mat target_image;
+	cv::Mat source_image_greyscale;
+	cv::Mat target_image_greyscale;
+	// get image from pointcloud
+	restoreCVMatFromPointCloud(source_cloud, source_image);
+	restoreCVMatFromPointCloud(target_cloud, target_image);
+	// convert to black and white
+	cvtColor(source_image, source_image_greyscale, CV_RGB2GRAY);
+	cvtColor(target_image, target_image_greyscale, CV_RGB2GRAY);
 
+	//detect sift features
+	cv::SiftFeatureDetector detector;
+	std::vector<cv::KeyPoint> source_keypoints, target_keypoints;
+	detector.detect(source_image_greyscale, source_keypoints);
+	detector.detect(target_image_greyscale, target_keypoints);
+
+	cv::Mat output;
+	cv::drawKeypoints(source_image_greyscale, source_keypoints, output);
+	cv::imwrite("sift_result.jpg", output);
+
+	// get sift descriptors
+	cv::SiftDescriptorExtractor extractor;
+	cv::Mat source_descriptors, target_descriptors;
+	extractor.compute( source_image_greyscale, source_keypoints, source_descriptors );
+	extractor.compute( target_image_greyscale, target_keypoints, target_descriptors );
+
+	// project sift descriptors to 3d
+	std::vector<Eigen::Vector4f> source_features_3d, target_features_3d;
+	projectFeaturesTo3D(source_keypoints, source_features_3d, source_cloud);
+	projectFeaturesTo3D(target_keypoints, target_features_3d, target_cloud);
+
+	//-- Step 3: Matching descriptor vectors using FLANN matcher
+	cv::FlannBasedMatcher matcher;
+	std::vector< cv::DMatch > matches;
+	matcher.match( source_descriptors, target_descriptors, matches );
+
+	double max_dist = 0; double min_dist = 100;
+
+	//-- Quick calculation of max and min distances between keypoints
+	for( int i = 0; i < source_descriptors.rows; i++ )
+	{ double dist = matches[i].distance;
+	if( dist < min_dist ) min_dist = dist;
+	if( dist > max_dist ) max_dist = dist;
+	}
+
+	printf("-- Max dist : %f \n", max_dist );
+	printf("-- Min dist : %f \n", min_dist );
+
+	//-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist )
+	//-- PS.- radiusMatch can also be used here.
+	std::vector< cv::DMatch > good_matches;
+
+	for( int i = 0; i < source_descriptors.rows; i++ ){
+		if( matches[i].distance < 2*min_dist )
+			good_matches.push_back( matches[i]);
+	}
+
+	//-- Draw only "good" matches
+	cv::Mat img_matches;
+	drawMatches( source_image, source_keypoints, target_image, target_keypoints,
+			   matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
+			   std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+
+	//-- Show detected matches
+	imshow( "Good Matches", img_matches );
+
+	for( uint i = 0; i < good_matches.size(); i++ ){
+		printf( "-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, good_matches[i].queryIdx, good_matches[i].trainIdx );
+	}
+
+	cv::waitKey(0);
   return 0;
 }
