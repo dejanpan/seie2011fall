@@ -7,6 +7,9 @@
 
 #include "textureless_objects_tracking/PrimitivesExtract.h"
 
+
+const double PI = 3.141592;
+
 inline bool comparison_intens(const pcl::PointXYZI& i,
 		const pcl::PointXYZI& j) {
 	return (i.intensity > j.intensity);
@@ -343,6 +346,115 @@ template<typename PointType> int PrimitivesExtract<PointType>::countPlanes(
 	return number;
 
 }
+template<typename PointType> bool PrimitivesExtract<PointType>::getTopView(const CloudConstPtr cloud,cv::Mat& topview,CloudPtr & cloud_in_virt_cam){
+//	CloudPtr cloud_in_virt_cam(new Cloud);
+
+//	tf::Transform my_trans_;
+	btMatrix3x3 rot90z    (0, -1, 0,
+							1, 0, 0,
+							0, 0 , 1);
+	tf::Quaternion q1;
+	rot90z.getRotation(q1);
+	my_trans_.setRotation(q1);
+
+
+	btMatrix3x3 rotationMatrix;
+	rotationMatrix.setEulerYPR( 0,0,30*PI/180);
+//	tf::Transform my_trans2_;
+
+	tf::Quaternion q2;
+
+
+	rotationMatrix.getRotation(q2);
+		my_trans2_.setRotation(q2);
+
+
+	tf::Transform full_tf = tf_virtual_cam_transl*my_trans2_*my_trans_*tf_virtual_cam ;
+
+
+	Eigen::Affine3d transform_eigen;
+	tf::TransformTFToEigen(full_tf,transform_eigen );
+	Eigen::Matrix4d transform_eigen3(transform_eigen.matrix());
+	transform_eigen3f_ = transform_eigen3.cast<float>();
+	pcl::transformPointCloud(  *cloud, *cloud_in_virt_cam, transform_eigen3f_ );
+
+
+
+
+	cv::Mat mask = cv::Mat::zeros(cv::Size(_cam_info->width, _cam_info->height), CV_8U);
+	cv::Mat mask_cont = cv::Mat::zeros(cv::Size(_cam_info->width, _cam_info->height), CV_8U);
+
+	cv::Mat maskRGB = cv::Mat::zeros(cv::Size(_cam_info->width, _cam_info->height), CV_8UC3);
+//	ROS_INFO("picel_coords %f %f %f", cloud.points[0].x, cloud.points[0].y,cloud.points[0].z );
+	std::vector<pcl::PointXYZRGBA, Eigen::aligned_allocator<pcl::PointXYZRGBA> >::iterator iter;
+	for (iter = cloud_in_virt_cam->points.begin(); iter != cloud_in_virt_cam->points.end(); ++iter){
+		pcl::PointXYZRGBA& point = *iter;
+
+			if (isnan(point.x) || isnan(point.y) || isnan(point.z))
+				continue;
+		cv::Point3d p3d(point.x, point.y, point.z);
+		cv::Point2d p2d;
+		model_.project3dToPixel(p3d, p2d);
+		int x = round(p2d.x);
+		int y = round(p2d.y);
+		if((x>mask.cols-1) || (x<0) || (y>mask.rows-1) || (y<0))
+			  continue;
+		mask.at<unsigned char>(y, x) = 255;
+	}
+
+	cv::morphologyEx(mask,mask,CV_MOP_CLOSE , getStructuringElement(cv::MORPH_RECT, cv::Size(3,3)), cv::Point(-1,-1), 3);
+
+
+	topview=mask;
+
+}
+
+template<typename PointType> bool PrimitivesExtract<PointType>::get3dPoints(const textureless_objects_tracking::cornerFind::Response& res, pcl::PointCloud<PointType>& grasp_points){
+	Eigen::Vector3f table_normal(plane_coefficients_->values[0], plane_coefficients_->values[1], plane_coefficients_->values[2]);
+
+	//create Points
+	grasp_points.reserve(res.corner.size());
+	grasp_points.width = res.corner.size();
+	grasp_points.height = 1;
+	for (int i = 0; i< res.corner.size() ; ++i){
+		cv::Point2d p2d(res.corner[i].x, res.corner[i].y);
+		cv::Point3d p3d;
+
+//		get the ray of the pinhole camera
+		model_.projectPixelTo3dRay(p2d, p3d);
+		Eigen::Vector3f ray(p3d.x, p3d.y, p3d.z);
+
+//		distance to the corner to push from the virtual camera
+		float t = -1.0 * plane_coefficients_->values[3] / (table_normal.dot(ray));
+
+//		vector to the corner
+		Eigen::Vector3f intersec = t * ray;
+
+		PointType p;
+		p.getArray3fMap() = intersec;
+		grasp_points.push_back(p);
+	}
+
+//	Eigen::Matrix4f inversed=transform_eigen3f_.inverse();
+
+	Eigen::Affine3d transform_eigen;
+	tf::Transform tf_virtual_cam_translation;
+	tf_virtual_cam_translation.setIdentity();
+	tf_virtual_cam_translation.setOrigin(tf::Vector3(0, 0, 0));
+
+//	tf::Transform full_tf = tf_virtual_cam.inverse()*my_trans_.inverse()*my_trans2_.inverse()*tf_virtual_cam_transl.inverse;
+
+	tf::TransformTFToEigen(tf_virtual_cam_translation,transform_eigen );
+	Eigen::Matrix4d transform_eigen3(transform_eigen.matrix());
+	Eigen::Matrix4f transform_eigen3f = transform_eigen3.cast<float>();
+//	transform_eigen3f=transform_eigen3f.inverse().eval();
+
+	pcl::transformPointCloud(  grasp_points, grasp_points, transform_eigen3f );
+
+
+	return true;
+}
+
 
 template<typename PointType> bool PrimitivesExtract<PointType>::extractCorners(
 		const CloudConstPtr cloud, Cloud &result, Cloud &result_debug,

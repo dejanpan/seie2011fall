@@ -47,6 +47,13 @@
 #include <object_part_decomposition/ClassifyScene.h>
 #include <object_part_decomposition/point_type.h>
 
+#include <image_geometry/pinhole_camera_model.h>
+#include "sensor_msgs/CameraInfo.h"
+
+#include <pcl_ros/transforms.h>
+#include <tf_conversions/tf_eigen.h>
+
+
 #include <ros/ros.h>
 
 
@@ -105,6 +112,10 @@ public:
 			ROS_ERROR("find_corners service not found");
 			exit(1);
 		}
+
+		_cam_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>("/camera/rgb/camera_info",  ros::Duration(5.0));
+		model_.fromCameraInfo(_cam_info);
+
 		//parameters for lines extraction
 		best_curv_percent_ = 0.17;
 		line_distance_tresh_ = 0.002;
@@ -147,6 +158,29 @@ public:
 		radius_search_harris_ = 0.01;
 		convex_corners_only_ = true;
 
+
+//		virtual_cam_x=0.3;
+//		virtual_cam_z=0.1;
+		_nh.param("virtual_cam_x",virtual_cam_x,0.10);
+		_nh.param("virtual_cam_z",virtual_cam_z,0.01);
+
+
+		tf_virtual_cam.setIdentity();
+		tf_virtual_cam_transl.setIdentity();
+		tf_virtual_cam_transl.setOrigin(tf::Vector3(virtual_cam_x, -0.5, virtual_cam_z));
+		//optical frame is rotated by 180 degree around y-axis
+		btMatrix3x3 rot    (0, -1, 0,
+							-1, 0, 0,
+							0, 0 , -1);
+		tf::Quaternion q;
+		rot.getRotation(q);
+		tf_virtual_cam.setRotation(q);
+
+
+//		std::cout<<"tf_virtual_cam"<<std::endl<<tf_virtual_cam<<std::endl;
+//		std::cout<<"tf_virtual_cam_transl"<<std::endl<<tf_virtual_cam_transl<<std::endl;
+
+
 	}
 
 	bool extractCornerVector(CloudConstPtr input, std::vector<CloudPtr>& result,
@@ -163,6 +197,9 @@ public:
 			int cylinders_number=0);
 	bool getCornersToPush(cv::Mat& topview, textureless_objects_tracking::cornerFind::Response& res);
 	bool getSegments(const CloudConstPtr cloud,  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr &cloud_out);
+	void setPlaneCoefficients(pcl::ModelCoefficients::Ptr coefficients){plane_coefficients_=coefficients;};
+	bool get3dPoints(const textureless_objects_tracking::cornerFind::Response& res, pcl::PointCloud<PointType>& grasp_points);
+	bool getTopView(const CloudConstPtr cloud,cv::Mat& topview,CloudPtr & cloud_in_virt_cam);
 
 private:
 	void computeNormals(const CloudConstPtr cloud,
@@ -222,6 +259,18 @@ private:
 	ros::ServiceClient _segmentation_srv;
 	ros::NodeHandle _nh;
 	CloudPtr cloud_;
+	image_geometry::PinholeCameraModel model_;
+	sensor_msgs::CameraInfoConstPtr _cam_info;
+	pcl::ModelCoefficients::Ptr plane_coefficients_;
+	tf::Transform tf_virtual_cam;
+	tf::Transform tf_virtual_cam_transl;
+	double virtual_cam_x,virtual_cam_z;
+	Eigen::Matrix4f transform_eigen3f_;
+	tf::Transform my_trans_;
+	tf::Transform my_trans2_;
+
+
+
 };
 
 #endif /* PRIMITIVESEXTRACT_H_ */

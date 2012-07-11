@@ -21,6 +21,8 @@
   <depend package="camera_self_filter"/>
   <depend package="opencv2"/>
   <depend package="object_part_decomposition"/>
+  <depend package="tf"/>
+  <depend package="tf_conversions"/>
 
 </package>
 

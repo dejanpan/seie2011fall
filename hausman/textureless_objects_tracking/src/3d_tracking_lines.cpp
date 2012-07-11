@@ -332,6 +332,12 @@ public:
 				if (!viz.updatePointCloud(result_cloud, red_color, ss.str()))
 					viz.addPointCloud(result_cloud, red_color, ss.str());
 
+
+
+//				if((!viz.updatePointCloud(result_cloud, red_color, ss.str()))&&(!viz.addPointCloud(result_cloud, red_color, ss.str())))
+//					viz.removePointCloud()
+
+
 				//points' size
 				viz.setPointCloudRenderingProperties(
 						pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4,
@@ -343,6 +349,7 @@ public:
 
 	void viz_cb(pcl::visualization::PCLVisualizer& viz) {
 		boost::mutex::scoped_lock lock(mtx_);
+
 
 		viz.setBackgroundColor(255,255,255);
 		if (!cloud_pass_) {
@@ -363,10 +370,22 @@ public:
 			}
 		}
 
+		if (viz.wasStopped())
+			std::cout<<"Program stopped"<<std::endl;
+
+		if(feature_lost_>-1){
+			std::stringstream ss_del;
+			ss_del << feature_lost_;
+			viz.removePointCloud(ss_del.str());
+
+		}
+
 		if (new_cloud_ && reference_) {
 			bool ret = drawParticles(viz);
 			if (ret) {
 				drawResult(viz);
+
+
 
 				// draw some texts
 //
@@ -404,6 +423,7 @@ public:
 //						tracker_vector_[track]->getParticles();
 					std::stringstream ss;
 					ss << track;
+
 
 					viz.removeShape("particles" + ss.str());
 //					viz.addText(
@@ -526,9 +546,18 @@ public:
 		double start = pcl::getTime();
 		FPS_CALC_BEGIN;
 		for (uint track = 0; track < tracker_vector_.size(); track++) {
+			feature_lost_=-1;
 
 			tracker_vector_[track]->setInputCloud(cloud);
 			tracker_vector_[track]->compute();
+		if((tracker_vector_[track]->getResult().weight<0.0035)&&(counter_>40)){
+			std::cout<<"probability of " <<track<<" is : "<<tracker_vector_[track]->getResult().weight<<std::endl;
+			std::cout<<"Feature "<<track<<" is lost!"<<std::endl;
+			feature_lost_=track;
+			tracker_vector_.erase(tracker_vector_.begin()+track);
+
+
+		}
 
 //		tracker_->setInputCloud(cloud);
 //		tracker_->compute();
@@ -536,6 +565,7 @@ public:
 		double end = pcl::getTime();
 		FPS_CALC_END("tracking");
 		tracking_time_ = end - start;
+
 
 	}
 
@@ -742,6 +772,7 @@ public:
 					removeZeroPoints(ref_cloud, *nonzero_ref);
 
 					PrimitivesExtract<pcl::PointXYZRGBA> prim_ex(nonzero_ref);
+					prim_ex.setPlaneCoefficients(coefficients);
 					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector_lines;
 					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector_corners;
 					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector_cylinders;
@@ -818,9 +849,9 @@ public:
 					if(nonzero_ref_circular->size()!=0){
 
 						prim_ex.extractCylinderVector(nonzero_ref_circular,
-								result_vector_cylinders, 3);
+								result_vector_cylinders, 2);
 						prim_ex.extractCircleVector(nonzero_ref_circular,
-								result_vector_circles, 3);
+								result_vector_circles, 1);
 						PCL_INFO(
 								"number of cylinders: %d \n", result_vector_cylinders.size());
 						PCL_INFO(
@@ -857,6 +888,8 @@ public:
 
 					tracker_vector_.resize(result_vector.size());
 
+					bool save_feature=false;
+
 					for (int track = 0; track < tracker_vector_.size();
 							track++) {
 
@@ -865,15 +898,14 @@ public:
 						pcl::copyPointCloud(*result_vector[track],
 								*nonzero_ref_final_cloud);
 
+
+						if(save_feature){
+
 						for(uint i=0;i<nonzero_ref_final_cloud->points.size();i++){
 
 							PointType searchPointTemp=nonzero_ref_final_cloud->points[i];
 
-//							RefPointType searchPoint;
-//							searchPoint.x=searchPointTemp.x;
-//							searchPoint.y=searchPointTemp.y;
-//							searchPoint.z=searchPointTemp.z;
-//							searchPoint.f=0;
+
 
 							pcl::KdTreeFLANN<PointType> kdtree;
 
@@ -888,9 +920,10 @@ public:
 
 								cloud_to_save->points[pointIdxRadiusSearch[0]].f=track+1;
 
+								}
+
+
 							}
-
-
 						}
 
 //						if (track < directions_vector.size()) {
@@ -972,7 +1005,9 @@ public:
 		pcl::Grabber* interface = new pcl::OpenNIGrabber(device_id_);
 		boost::function<void(const CloudConstPtr&)> f = boost::bind(
 				&OpenNISegmentTracking::cloud_cb, this, _1);
+
 		interface->registerCallback(f);
+
 
 		viewer_.runOnVisualizationThread(
 				boost::bind(&OpenNISegmentTracking::viz_cb, this, _1),
@@ -980,8 +1015,10 @@ public:
 
 		interface->start();
 
-		while (!viewer_.wasStopped())
+		while (!viewer_.wasStopped()){
 			boost::this_thread::sleep(boost::posix_time::seconds(1));
+		}
+
 		interface->stop();
 		a_file_.close();
 
@@ -1006,6 +1043,7 @@ public:
 	std::string device_id_;
 	boost::mutex mtx_;
 	bool new_cloud_;
+	int feature_lost_;
 	pcl::NormalEstimationOMP<PointType, pcl::Normal> ne_; // to store threadpool
 	boost::shared_ptr<ParticleFilter> tracker_;
 	std::vector<boost::shared_ptr<ParticleFilter> > tracker_vector_;
