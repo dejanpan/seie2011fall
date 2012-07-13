@@ -5,8 +5,10 @@
  *      Author: ross
  */
 
-//sift gpu
+//local files
 #include "sift_gpu_wrapper.h"
+#include "parameter_server.h"
+#include "ransac_transformation.h"
 
 // pcl
 #include <pcl/io/pcd_io.h>
