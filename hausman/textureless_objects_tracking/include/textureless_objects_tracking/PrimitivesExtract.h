@@ -53,12 +53,12 @@
 #include <pcl_ros/transforms.h>
 #include <tf_conversions/tf_eigen.h>
 
-
 #include <ros/ros.h>
-
 
 #ifndef PRIMITIVESEXTRACT_H_
 #define PRIMITIVESEXTRACT_H_
+
+const double PI = 3.141592;
 
 template<typename PointType>
 class PrimitivesExtract {
@@ -106,14 +106,18 @@ public:
 
 	PrimitivesExtract(CloudPtr cloud) {
 
-		_segmentation_srv =_nh.serviceClient<object_part_decomposition::ClassifyScene>("/classify_scene/classify_scene");
-		_corner_finder = _nh.serviceClient<textureless_objects_tracking::cornerFind>("find_corners");
-		if (!_corner_finder.waitForExistence(ros::Duration(5.0))){
+		_segmentation_srv = _nh.serviceClient<
+				object_part_decomposition::ClassifyScene>(
+				"/classify_scene/classify_scene");
+		_corner_finder = _nh.serviceClient<
+				textureless_objects_tracking::cornerFind>("find_corners");
+		if (!_corner_finder.waitForExistence(ros::Duration(5.0))) {
 			ROS_ERROR("find_corners service not found");
 			exit(1);
 		}
 
-		_cam_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>("/camera/rgb/camera_info",  ros::Duration(5.0));
+		_cam_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(
+				"/camera/rgb/camera_info", ros::Duration(5.0));
 		model_.fromCameraInfo(_cam_info);
 
 		//parameters for lines extraction
@@ -157,49 +161,47 @@ public:
 		radius_harris_ = 0.01;
 		radius_search_harris_ = 0.01;
 		convex_corners_only_ = true;
+		max_distance_from_corner_service_ = 0.001;
 
+		virt_cam_transl_.setIdentity();
+		virt_cam_transl_.setOrigin(tf::Vector3(0, 0.5, 0));
 
-//		virtual_cam_x=0.3;
-//		virtual_cam_z=0.1;
-		_nh.param("virtual_cam_x",virtual_cam_x,0.10);
-		_nh.param("virtual_cam_z",virtual_cam_z,0.01);
+		btMatrix3x3 rotationMatrix;
 
+		rotationMatrix.setEulerYPR(0, 0, 30 * PI / 180);
 
-		tf_virtual_cam.setIdentity();
-		tf_virtual_cam_transl.setIdentity();
-		tf_virtual_cam_transl.setOrigin(tf::Vector3(virtual_cam_x, -0.5, virtual_cam_z));
-		//optical frame is rotated by 180 degree around y-axis
-		btMatrix3x3 rot    (0, -1, 0,
-							-1, 0, 0,
-							0, 0 , -1);
-		tf::Quaternion q;
-		rot.getRotation(q);
-		tf_virtual_cam.setRotation(q);
+		tf::Quaternion q2;
 
-
-//		std::cout<<"tf_virtual_cam"<<std::endl<<tf_virtual_cam<<std::endl;
-//		std::cout<<"tf_virtual_cam_transl"<<std::endl<<tf_virtual_cam_transl<<std::endl;
-
+		rotationMatrix.getRotation(q2);
+		virt_cam_rot_.setRotation(q2);
 
 	}
+
+	pcl::PointCloud<PointType> getConvex_corners(){return convex_corners_
+		;
+	};
 
 	bool extractCornerVector(CloudConstPtr input, std::vector<CloudPtr>& result,
 			int number = 0);
 	bool extractLineVector(const CloudConstPtr& input,
 			std::vector<CloudPtr>& result,
-			std::vector<Eigen::Vector3f> &directions_vector,
-			int lines_number = 0);
-	bool extractCylinderVector(
-			const CloudConstPtr &cloud, std::vector<CloudPtr> &result,
-			int cylinders_number=0);
-	bool extractCircleVector(
-			const CloudConstPtr &cloud, std::vector<CloudPtr> &result,
-			int cylinders_number=0);
-	bool getCornersToPush(cv::Mat& topview, textureless_objects_tracking::cornerFind::Response& res);
-	bool getSegments(const CloudConstPtr cloud,  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr &cloud_out);
-	void setPlaneCoefficients(pcl::ModelCoefficients::Ptr coefficients){plane_coefficients_=coefficients;};
-	bool get3dPoints(const textureless_objects_tracking::cornerFind::Response& res, pcl::PointCloud<PointType>& grasp_points);
-	bool getTopView(const CloudConstPtr cloud,cv::Mat& topview,CloudPtr & cloud_in_virt_cam);
+			std::vector<Eigen::Vector3f> &directions_vector, int lines_number =
+					0);
+	bool extractCylinderVector(const CloudConstPtr &cloud,
+			std::vector<CloudPtr> &result, int cylinders_number = 0);
+	bool extractCircleVector(const CloudConstPtr &cloud,
+			std::vector<CloudPtr> &result, int cylinders_number = 0);
+	bool getCornersToPush(cv::Mat& topview,
+			textureless_objects_tracking::cornerFind::Response& res);
+	bool getSegments(const CloudConstPtr cloud,
+			pcl::PointCloud<pcl::PointXYZLRegion>::Ptr &cloud_out);
+	void setPlaneCoefficients(pcl::ModelCoefficients::Ptr coefficients) {
+		plane_coefficients_ = coefficients;
+	}
+	;
+	bool get3dPoints(
+			const textureless_objects_tracking::cornerFind::Response& res);
+	bool getTopView(const CloudConstPtr cloud, cv::Mat& topview);
 
 private:
 	void computeNormals(const CloudConstPtr cloud,
@@ -210,7 +212,8 @@ private:
 			std::vector<pcl::ModelCoefficients::Ptr> &coefficients_vector,
 			int lines_number = 0);
 	bool extractCircular(const CloudConstPtr &cloud,
-			std::vector<CloudPtr> &result, int cylinders_number = 0,std::string what="cylinder");
+			std::vector<CloudPtr> &result, int cylinders_number = 0,
+			std::string what = "cylinder");
 	void removePrimitive(const CloudConstPtr &cloud,
 			pcl::PointIndices::Ptr &indices_to_remove, Cloud &result);
 	void removePointsAroundLine(const CloudConstPtr &cloud, Cloud &result,
@@ -225,8 +228,10 @@ private:
 	void euclidianClustering(CloudPtr& cloudForEuclidianDistance,
 			std::vector<pcl::PointIndices>& cluster_indices,
 			float euclidian_cluster_tolerance);
-	void lineDirectionPCA(const CloudConstPtr &cloud, Eigen::Vector3f &direction);
+	void lineDirectionPCA(const CloudConstPtr &cloud,
+			Eigen::Vector3f &direction);
 
+	float max_distance_from_corner_service_;
 	float find_normals_radius_search_;
 	float best_curv_percent_;
 	float best_intens_percent_;
@@ -262,14 +267,9 @@ private:
 	image_geometry::PinholeCameraModel model_;
 	sensor_msgs::CameraInfoConstPtr _cam_info;
 	pcl::ModelCoefficients::Ptr plane_coefficients_;
-	tf::Transform tf_virtual_cam;
-	tf::Transform tf_virtual_cam_transl;
-	double virtual_cam_x,virtual_cam_z;
-	Eigen::Matrix4f transform_eigen3f_;
-	tf::Transform my_trans_;
-	tf::Transform my_trans2_;
-
-
+	tf::Transform virt_cam_transl_;
+	tf::Transform virt_cam_rot_;
+	pcl::PointCloud<PointType> convex_corners_;
 
 };
 

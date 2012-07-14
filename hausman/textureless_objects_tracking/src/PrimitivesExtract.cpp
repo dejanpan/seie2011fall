@@ -7,9 +7,6 @@
 
 #include "textureless_objects_tracking/PrimitivesExtract.h"
 
-
-const double PI = 3.141592;
-
 inline bool comparison_intens(const pcl::PointXYZI& i,
 		const pcl::PointXYZI& j) {
 	return (i.intensity > j.intensity);
@@ -19,43 +16,47 @@ inline bool comparison_curvature(pcl::Normal i, pcl::Normal j) {
 	return (i.curvature > j.curvature);
 }
 
-template<typename PointType> bool PrimitivesExtract<PointType>::getSegments(const CloudConstPtr cloud,  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr &cloud_out){
+template<typename PointType> bool PrimitivesExtract<PointType>::getSegments(
+		const CloudConstPtr cloud,
+		pcl::PointCloud<pcl::PointXYZLRegion>::Ptr &cloud_out) {
 
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in(new pcl::PointCloud<pcl::PointXYZRGB>());
-	pcl::copyPointCloud(*cloud,*cloud_in);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in(
+			new pcl::PointCloud<pcl::PointXYZRGB>());
+	pcl::copyPointCloud(*cloud, *cloud_in);
 	sensor_msgs::PointCloud2 in_cloud_blob, out_cloud_blob;
 	pcl::toROSMsg(*cloud_in, in_cloud_blob);
 	object_part_decomposition::ClassifyScene srv;
-	  srv.request.in_cloud = in_cloud_blob;
-	  srv.request.ID=0;
-	  srv.request.params="-n 3 -s 1";
-	  if (_segmentation_srv.call(srv))
-	  {
-	    ROS_INFO("Calling classify scene service");
-	    out_cloud_blob = srv.response.out_cloud;
-	    pcl::fromROSMsg(out_cloud_blob,*cloud_out);
-	    ROS_INFO("Response Clouds Size: %d", cloud_out->points.size());
-	    pcl::io::savePCDFile("/tmp/result.pcd",*cloud_out);
-	    return true;
-	  }
-	  else
-	  {
-	    ROS_ERROR("Failed to call service classify_scene");
-	    return false;
-	  }
+	srv.request.in_cloud = in_cloud_blob;
+	srv.request.ID = 0;
+	srv.request.params = "-n 3 -s 1";
+	if (_segmentation_srv.call(srv)) {
+		ROS_INFO("Calling classify scene service");
+		out_cloud_blob = srv.response.out_cloud;
+		pcl::fromROSMsg(out_cloud_blob, *cloud_out);
+		ROS_INFO("Response Clouds Size: %d", cloud_out->points.size());
+		pcl::io::savePCDFile("/tmp/result.pcd", *cloud_out);
+		return true;
+	} else {
+		ROS_ERROR("Failed to call service classify_scene");
+		return false;
+	}
 }
 
-template<typename PointType> bool PrimitivesExtract<PointType>::getCornersToPush(cv::Mat& topview, textureless_objects_tracking::cornerFind::Response& res){
+template<typename PointType> bool PrimitivesExtract<PointType>::getCornersToPush(
+		cv::Mat& topview,
+		textureless_objects_tracking::cornerFind::Response& res) {
 	textureless_objects_tracking::cornerFind::Request req;
 	IplImage temp(topview);
-	sensor_msgs::ImagePtr imgptr  = sensor_msgs::CvBridge::cvToImgMsg(&temp);
-    req.image = *imgptr;
-	_corner_finder.call(req, res);
+	cv::namedWindow("Display window", CV_WINDOW_AUTOSIZE);
+	cv::imshow("Display window", topview);
 
+	cv::waitKey(0);
+	sensor_msgs::ImagePtr imgptr = sensor_msgs::CvBridge::cvToImgMsg(&temp);
+	req.image = *imgptr;
+	_corner_finder.call(req, res);
 
 	return true;
 }
-
 
 template<typename PointType> void PrimitivesExtract<PointType>::computeNormals(
 		const CloudConstPtr cloud,
@@ -84,7 +85,7 @@ template<typename PointType> void PrimitivesExtract<PointType>::findBoundaries(
 	int place = (int) (temp_normals->points.size() * best_curv_percent_);
 	pcl::Normal tresh_point = *(temp_normals->points.begin() + place);
 	float treshold = tresh_point.curvature;
-	PCL_DEBUG("Curvature treshold for corners: %f \n",treshold);
+	PCL_DEBUG("Curvature treshold for corners: %f \n", treshold);
 
 	for (size_t i = 0; i < normals_cloud->size(); ++i) {
 		if (normals_cloud->points[i].curvature > treshold)
@@ -177,11 +178,11 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCornerVec
 
 		}
 		int planes_number = countPlanes(augmented_corner);
-		if ((planes_number == 4) || (planes_number == 3))
-			result.push_back(augmented_corner);
-		else
-			PCL_INFO(
-					"Corner deleted because of too many planes. Planes number:  %d \n", planes_number);
+//		if ((planes_number == 4) || (planes_number == 3))
+		result.push_back(augmented_corner);
+//		else
+//			PCL_INFO(
+//					"Corner deleted because of too many planes. Planes number:  %d \n", planes_number);
 
 	}
 	if (result.size() == 0)
@@ -346,78 +347,57 @@ template<typename PointType> int PrimitivesExtract<PointType>::countPlanes(
 	return number;
 
 }
-template<typename PointType> bool PrimitivesExtract<PointType>::getTopView(const CloudConstPtr cloud,cv::Mat& topview,CloudPtr & cloud_in_virt_cam){
-//	CloudPtr cloud_in_virt_cam(new Cloud);
+template<typename PointType> bool PrimitivesExtract<PointType>::getTopView(
+		const CloudConstPtr cloud, cv::Mat& topview) {
 
-//	tf::Transform my_trans_;
-	btMatrix3x3 rot90z    (0, -1, 0,
-							1, 0, 0,
-							0, 0 , 1);
-	tf::Quaternion q1;
-	rot90z.getRotation(q1);
-	my_trans_.setRotation(q1);
-
-
-	btMatrix3x3 rotationMatrix;
-	rotationMatrix.setEulerYPR( 0,0,30*PI/180);
-//	tf::Transform my_trans2_;
-
-	tf::Quaternion q2;
-
-
-	rotationMatrix.getRotation(q2);
-		my_trans2_.setRotation(q2);
-
-
-	tf::Transform full_tf = tf_virtual_cam_transl*my_trans2_*my_trans_*tf_virtual_cam ;
-
+	CloudPtr cloud_in_virt_cam(new Cloud);
+	tf::Transform full_tf = virt_cam_rot_ * virt_cam_transl_;
 
 	Eigen::Affine3d transform_eigen;
-	tf::TransformTFToEigen(full_tf,transform_eigen );
+	tf::TransformTFToEigen(full_tf, transform_eigen);
 	Eigen::Matrix4d transform_eigen3(transform_eigen.matrix());
-	transform_eigen3f_ = transform_eigen3.cast<float>();
-	pcl::transformPointCloud(  *cloud, *cloud_in_virt_cam, transform_eigen3f_ );
+	Eigen::Matrix4f transform_eigen3f = transform_eigen3.cast<float>();
+	pcl::transformPointCloud(*cloud, *cloud_in_virt_cam, transform_eigen3f);
 
+	cv::Mat mask = cv::Mat::zeros(cv::Size(_cam_info->width, _cam_info->height),
+			CV_8U);
 
-
-
-	cv::Mat mask = cv::Mat::zeros(cv::Size(_cam_info->width, _cam_info->height), CV_8U);
-	cv::Mat mask_cont = cv::Mat::zeros(cv::Size(_cam_info->width, _cam_info->height), CV_8U);
-
-	cv::Mat maskRGB = cv::Mat::zeros(cv::Size(_cam_info->width, _cam_info->height), CV_8UC3);
-//	ROS_INFO("picel_coords %f %f %f", cloud.points[0].x, cloud.points[0].y,cloud.points[0].z );
 	std::vector<pcl::PointXYZRGBA, Eigen::aligned_allocator<pcl::PointXYZRGBA> >::iterator iter;
-	for (iter = cloud_in_virt_cam->points.begin(); iter != cloud_in_virt_cam->points.end(); ++iter){
+	for (iter = cloud_in_virt_cam->points.begin();
+			iter != cloud_in_virt_cam->points.end(); ++iter) {
 		pcl::PointXYZRGBA& point = *iter;
 
-			if (isnan(point.x) || isnan(point.y) || isnan(point.z))
-				continue;
+		if (isnan(point.x) || isnan(point.y) || isnan(point.z))
+			continue;
 		cv::Point3d p3d(point.x, point.y, point.z);
 		cv::Point2d p2d;
 		model_.project3dToPixel(p3d, p2d);
 		int x = round(p2d.x);
 		int y = round(p2d.y);
-		if((x>mask.cols-1) || (x<0) || (y>mask.rows-1) || (y<0))
-			  continue;
+		if ((x > mask.cols - 1) || (x < 0) || (y > mask.rows - 1) || (y < 0))
+			continue;
 		mask.at<unsigned char>(y, x) = 255;
 	}
 
-	cv::morphologyEx(mask,mask,CV_MOP_CLOSE , getStructuringElement(cv::MORPH_RECT, cv::Size(3,3)), cv::Point(-1,-1), 3);
+	cv::morphologyEx(mask, mask, CV_MOP_CLOSE,
+			getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)),
+			cv::Point(-1, -1), 3);
 
-
-	topview=mask;
+	topview = mask;
+	return true;
 
 }
 
-template<typename PointType> bool PrimitivesExtract<PointType>::get3dPoints(const textureless_objects_tracking::cornerFind::Response& res, pcl::PointCloud<PointType>& grasp_points){
-	Eigen::Vector3f table_normal(plane_coefficients_->values[0], plane_coefficients_->values[1], plane_coefficients_->values[2]);
+template<typename PointType> bool PrimitivesExtract<PointType>::get3dPoints(
+		const textureless_objects_tracking::cornerFind::Response& res) {
+	Eigen::Vector3f table_normal(plane_coefficients_->values[0],
+			plane_coefficients_->values[1], plane_coefficients_->values[2]);
 
-	//create Points
-	grasp_points.reserve(res.corner.size());
-	grasp_points.width = res.corner.size();
-	grasp_points.height = 1;
-	for (int i = 0; i< res.corner.size() ; ++i){
-		cv::Point2d p2d(res.corner[i].x, res.corner[i].y);
+	convex_corners_.reserve(res.corner_convex.size());
+	convex_corners_.width = res.corner_convex.size();
+	convex_corners_.height = 1;
+	for (int i = 0; i < res.corner_convex.size(); ++i) {
+		cv::Point2d p2d(res.corner_convex[i].x, res.corner_convex[i].y);
 		cv::Point3d p3d;
 
 //		get the ray of the pinhole camera
@@ -425,36 +405,30 @@ template<typename PointType> bool PrimitivesExtract<PointType>::get3dPoints(cons
 		Eigen::Vector3f ray(p3d.x, p3d.y, p3d.z);
 
 //		distance to the corner to push from the virtual camera
-		float t = -1.0 * plane_coefficients_->values[3] / (table_normal.dot(ray));
+		float t = -1.0 * plane_coefficients_->values[3]
+				/ (table_normal.dot(ray));
 
 //		vector to the corner
 		Eigen::Vector3f intersec = t * ray;
 
 		PointType p;
 		p.getArray3fMap() = intersec;
-		grasp_points.push_back(p);
+		convex_corners_.push_back(p);
 	}
 
-//	Eigen::Matrix4f inversed=transform_eigen3f_.inverse();
-
 	Eigen::Affine3d transform_eigen;
-	tf::Transform tf_virtual_cam_translation;
-	tf_virtual_cam_translation.setIdentity();
-	tf_virtual_cam_translation.setOrigin(tf::Vector3(0, 0, 0));
 
-//	tf::Transform full_tf = tf_virtual_cam.inverse()*my_trans_.inverse()*my_trans2_.inverse()*tf_virtual_cam_transl.inverse;
+	tf::Transform full_tf = virt_cam_rot_.inverse()
+			* virt_cam_transl_.inverse();
 
-	tf::TransformTFToEigen(tf_virtual_cam_translation,transform_eigen );
+	tf::TransformTFToEigen(full_tf, transform_eigen);
 	Eigen::Matrix4d transform_eigen3(transform_eigen.matrix());
 	Eigen::Matrix4f transform_eigen3f = transform_eigen3.cast<float>();
-//	transform_eigen3f=transform_eigen3f.inverse().eval();
 
-	pcl::transformPointCloud(  grasp_points, grasp_points, transform_eigen3f );
-
+//	pcl::transformPointCloud(  grasp_points, grasp_points, transform_eigen3f );
 
 	return true;
 }
-
 
 template<typename PointType> bool PrimitivesExtract<PointType>::extractCorners(
 		const CloudConstPtr cloud, Cloud &result, Cloud &result_debug,
@@ -513,35 +487,87 @@ template<typename PointType> bool PrimitivesExtract<PointType>::extractCorners(
 
 		if (convex_corners_only_) {
 
-			std::vector<int> neighbor_num;
+			cv::Mat top_image(640, 480, CV_8U);
+			getTopView(cloud, top_image);
+			textureless_objects_tracking::cornerFind::Response res_corner;
+			getCornersToPush(top_image, res_corner);
+			get3dPoints(res_corner);
 
-			for (size_t j = 0; j < result.points.size(); j++) {
+			int K = 1;
 
-				pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-				int size;
-				extractNeighbor(cloud, result.points[j], inliers, size);
+			CloudPtr result_projected(new Cloud);
 
-				if (size > 0)
-					neighbor_num.push_back(size);
+			pcl::ProjectInliers<PointType> proj;
+			proj.setModelType(pcl::SACMODEL_PLANE);
+			proj.setInputCloud(result.makeShared());
+			proj.setModelCoefficients(plane_coefficients_);
+			proj.filter(*result_projected);
+
+			std::vector<int> pointIdxNKNSearch;
+			std::vector<float> pointNKNSquaredDistance;
+
+			KdTreePtr tree(new KdTree());
+			tree->setInputCloud(result_projected);
+			Cloud result_convex_only;
+
+			for (uint i = 0; i < convex_corners_.points.size(); i++) {
+
+				PointType searchPoint = convex_corners_.points[i];
+
+				pointIdxNKNSearch.resize(1);
+				pointNKNSquaredDistance.reserve(1);
+
+				if (tree->nearestKSearch(searchPoint, K, pointIdxNKNSearch,
+						pointNKNSquaredDistance) > 0) {
+					for (size_t j = 0; j < pointIdxNKNSearch.size(); ++j) {
+						if ((pointIdxNKNSearch[j] >= 0)
+								&& (pointNKNSquaredDistance[j] < max_distance_from_corner_service_)
+								&& (pointIdxNKNSearch[j] < result.points.size())) {
+							result_convex_only.push_back(
+									result.points[pointIdxNKNSearch[j]]);
+						}
+					}
+
+				}
+
+
 
 			}
-			double avg = 0;
-			std::vector<int>::iterator it;
-			for (it = neighbor_num.begin(); it != neighbor_num.end(); it++)
-				avg += *it;
-			avg /= neighbor_num.size();
+			std::cout << "Number of result_convex_only"
+					<< result_convex_only.size() << std::endl;
+			result.clear();
+			pcl::copyPointCloud(result_convex_only, result);
 
-			if (neighbor_num.size() == result.points.size()) {
-				for (int n = 0; n < neighbor_num.size(); n++) {
-					if (neighbor_num[n] > avg) {
-						neighbor_num.erase(neighbor_num.begin() + n);
-						result.points.erase(result.points.begin() + n);
-					}
-				}
-			} else
-				return false;
+			/*
+			 std::vector<int> neighbor_num;
 
-		} else {
+			 for (size_t j = 0; j < result.points.size(); j++) {
+
+			 pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+			 int size;
+			 extractNeighbor(cloud, result.points[j], inliers, size);
+
+			 if (size > 0)
+			 neighbor_num.push_back(size);
+
+			 }
+			 double avg = 0;
+			 std::vector<int>::iterator it;
+			 for (it = neighbor_num.begin(); it != neighbor_num.end(); it++)
+			 avg += *it;
+			 avg /= neighbor_num.size();
+
+			 if (neighbor_num.size() == result.points.size()) {
+			 for (int n = 0; n < neighbor_num.size(); n++) {
+			 if (neighbor_num[n] > avg) {
+			 neighbor_num.erase(neighbor_num.begin() + n);
+			 result.points.erase(result.points.begin() + n);
+			 }
+			 }
+			 } else
+			 return false;
+
+			 */} else {
 			return false;
 		}
 	}

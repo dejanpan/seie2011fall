@@ -93,20 +93,27 @@ int main(int argc, char **argv)
 			*inliers);
 	prim_ex.setPlaneCoefficients(coefficients2);
 
+	 pcl::ExtractIndices<pcl::PointXYZRGBA> extract;
+	  	  extract.setInputCloud (cloud_input);
+	  	  extract.setIndices (inliers);
+	  	  extract.setNegative (true);
+	  	  extract.filter (*cloud_objects_in_virt_cam);
 //  prim_ex.extractCorners(cloud_input,*result,*result_debug);
-/*  prim_ex.extractCornerVector(cloud_input,result_vector);
+  prim_ex.extractCornerVector(cloud_objects_in_virt_cam,result_vector,1);
   std::cerr<<"number of corners: "<<result_vector.size()<<std::endl;
 
+  pcl::copyPointCloud(prim_ex.getConvex_corners(),*grasps_points);
 //  prim_ex.findBoundaries(cloud_input,*cloud_boundaries);
 //  prim_ex.extractLines(cloud_boundaries,result_vector_lines,coefficients);
-  prim_ex.extractLineVector(cloud_input,result_vector_lines,directions_vector);
+//  prim_ex.extractLineVector(cloud_input,result_vector_lines,directions_vector);
 //  prim_ex.extractCircleVector(cloud_input,result_vector_lines);
-  std::cerr<<"number of lines: "<<result_vector_lines.size()<<std::endl;
+//  std::cerr<<"number of lines: "<<result_vector_lines.size()<<std::endl;
 
 //  pcl::copyPointCloud(*result_vector[0],*result_corners);
 //  pcl::copyPointCloud(*result_vector_lines[0],*result_lines);
-*/
+
 //Convert point cloud to an image and depthmap of type OpenCV Mat
+  /*
     cv::Mat cvimage(cloud_input->width,cloud_input->height, CV_8UC3);
         cv::Mat cvimage_depth(cloud->width,cloud->height, CV_32FC1);
     //cv::Mat cvimage_xyz(cloud->width,cloud->height, CV_32FC3);
@@ -139,7 +146,7 @@ int main(int argc, char **argv)
         prim_ex.get3dPoints(res_corner,*grasps_points);
         std::cout<<"grasps points: "<<grasps_points->points.size()<<std::endl;
 */
- 	  pcl::ExtractIndices<pcl::PointXYZRGBA> extract;
+/* 	  pcl::ExtractIndices<pcl::PointXYZRGBA> extract;
   	  extract.setInputCloud (cloud_input);
   	  extract.setIndices (inliers);
   	  extract.setNegative (true);
@@ -150,7 +157,7 @@ int main(int argc, char **argv)
 
 
         cv::Mat top_image(cvimage.rows,cvimage.cols,CV_8U);
-        prim_ex.getTopView(cloud_objects_in_virt_cam,top_image,cloud_virtual);
+        prim_ex.getTopView(cloud_objects_in_virt_cam,top_image);
         cv::namedWindow( "Display window", CV_WINDOW_AUTOSIZE );
            cv::imshow( "Display window", top_image );
 
@@ -160,9 +167,9 @@ int main(int argc, char **argv)
 		std::cout<<"res_corner: "<<res_corner.corner.size()<<std::endl;
 		std::cout<<"res_corner convex: "<<res_corner.corner_convex.size()<<std::endl;
 
-		prim_ex.get3dPoints(res_corner,*grasps_points);
+		prim_ex.get3dPoints(res_corner);
 		std::cout<<"grasps points: "<<grasps_points->points.size()<<std::endl;
-
+*/
 //    cv::namedWindow( "Display window image", CV_WINDOW_AUTOSIZE );// Create a window for display.
 //    cv::imshow( "Display window image", cvimage );                   // Show our image inside it.
 //
@@ -173,7 +180,8 @@ int main(int argc, char **argv)
 //    cv::waitKey(0);                                          // Wait for a keystroke in the window
 
 
-
+//	    pcl::io::savePCDFile("test.pcd",*cloud_input);
+//	    pcl::io::savePCDFile("test2.pcd",*cloud_virtual);
 
   pcl::visualization::PCLVisualizer viz;
   viz.initCameraParameters();
@@ -200,7 +208,7 @@ int main(int argc, char **argv)
 			//			cloud_boundaries, colormap_[9], colormap_[10], colormap_[11]);
 //
 //	  viz.addPointCloud<pcl::PointXYZRGBA> (debug, yellow_color,"debug");
-/*			for (int number=0;number<result_vector.size();number++){
+			for (int number=0;number<result_vector.size();number++){
 			pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
 					result_vector[number], colormap_[3*(number+1)], colormap_[3*(number+1)+1], colormap_[3*(number+1)+2]);
 
@@ -233,7 +241,7 @@ int main(int argc, char **argv)
 //  viz.addPointCloud<pcl::PointXYZRGBA> (result_corners, yellow_color,"result_corners");
 	//	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> diff_color(
 	//			cloud_boundaries, colormap_[9], colormap_[10], colormap_[11]);
-*/
+
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "result");
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "cloud_boundaries");
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "result debug");
