@@ -124,6 +124,12 @@ public:
 		ne_.setSearchMethod(tree);
 		ne_.setRadiusSearch(0.03);
 
+		line_treshold_=0.005;
+		corner_treshold_=0.005;
+		cylinder_treshold_=0.00001;
+		circle_treshold_=0.00001;
+
+
 		a_file_.open("poses_final.txt");
 		//std::vector<double> default_step_covariance = std::vector<double>(6,
 		//		0.015 * 0.015);
@@ -225,8 +231,17 @@ public:
 		unsigned char colormap_[36] = { 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0,
 				255, 0, 255, 0, 255, 255, 127, 0, 0, 0, 127, 0, 0, 0, 127, 127, 127, 0,
 				127, 0, 127, 0, 127, 127 };
-
+		bool lost_flag=false;
 		for (uint track = 0; track < tracker_vector_.size(); track++) {
+
+			for(uint losts=0;losts<features_lost_.size();losts++)
+				if(features_lost_[losts]==track) lost_flag=true;
+			if (lost_flag) {
+				lost_flag=false;
+
+				continue;
+			}
+
 			bool drawParticles = true;
 			ParticleFilter::PointCloudStatePtr particles =
 					tracker_vector_[track]->getParticles();
@@ -273,8 +288,18 @@ public:
 		unsigned char colormap_[36] = { 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0,
 				255, 0, 255, 0, 255, 255, 127, 0, 0, 0, 127, 0, 0, 0, 127, 127, 127, 0,
 				127, 0, 127, 0, 127, 127 };
-
+		bool lost_flag=false;
 		for (uint track = 0; track < tracker_vector_.size(); track++) {
+
+
+			for(uint losts=0;losts<features_lost_.size();losts++)
+				if(features_lost_[losts]==track) lost_flag=true;
+			if (lost_flag) {
+				lost_flag=false;
+				a_file_ << 0.0 << " " << 0.0 << " " << 0.0<< " " << 0.0 << " " << 0.0<< " " << 0.0
+									<< std::endl;
+				continue;
+			}
 
 			ParticleXYZRPY result = tracker_vector_[track]->getResult();
 			bool non_tracking = false;
@@ -312,14 +337,15 @@ public:
 						*(tracker_vector_[track]->getReferenceCloud()),
 						*result_cloud, transformation_);
 
-			Eigen::Vector4f center;
-			pcl::compute3DCentroid<RefPointType>(*result_cloud, center);
+//			Eigen::Vector4f center;
+//			pcl::compute3DCentroid<RefPointType>(*result_cloud, center);
 
 			std::stringstream ss;
 			ss << track;
 
-			a_file_ << center[0] << " " << center[1] << " " << center[2]
-					<< std::endl;
+//			a_file_ << center[0] << " " << center[1] << " " << center[2]
+//					<< std::endl;
+			a_file_ << result.x<<" "<<result.y<<" "<<result.z<<" "<<result.roll<<" "<<result.pitch<<" "<<result.yaw<<std::endl;
 
 
 			{
@@ -351,7 +377,7 @@ public:
 		boost::mutex::scoped_lock lock(mtx_);
 
 
-		viz.setBackgroundColor(255,255,255);
+//		viz.setBackgroundColor(255,255,255);
 		if (!cloud_pass_) {
 			boost::this_thread::sleep(boost::posix_time::seconds(1));
 			return;
@@ -373,10 +399,11 @@ public:
 		if (viz.wasStopped())
 			std::cout<<"Program stopped"<<std::endl;
 
-		if(feature_lost_>-1){
-			std::stringstream ss_del;
-			ss_del << feature_lost_;
-			viz.removePointCloud(ss_del.str());
+		for(uint losts=0;losts<features_lost_.size();losts++)
+		{
+				std::stringstream ss_del;
+				ss_del << features_lost_[losts];
+				viz.removePointCloud(ss_del.str());
 
 		}
 
@@ -423,6 +450,12 @@ public:
 //						tracker_vector_[track]->getParticles();
 					std::stringstream ss;
 					ss << track;
+
+					viz.removeShape("Weights"+ss.str());
+					viz.addText(
+							(boost::format("Weight of the particles:  %f")
+									% tracker_vector_[track]->getResult().weight).str(),
+							10, 120*track, 20, 1.0, 1.0, 1.0, "Weights"+ss.str());
 
 
 					viz.removeShape("particles" + ss.str());
@@ -544,23 +577,38 @@ public:
 
 	void tracking(const RefCloudConstPtr &cloud) {
 		double start = pcl::getTime();
+		bool lost_flag=false;
 		FPS_CALC_BEGIN;
 		for (uint track = 0; track < tracker_vector_.size(); track++) {
 			feature_lost_=-1;
-
+			for(uint losts=0;losts<features_lost_.size();losts++)
+				if(features_lost_[losts]==track) lost_flag=true;
+			if (lost_flag) {
+				lost_flag=false;
+				continue;
+			}
 			tracker_vector_[track]->setInputCloud(cloud);
 			tracker_vector_[track]->compute();
-		if((tracker_vector_[track]->getResult().weight<0.0035)&&(counter_>40)){
+			float weight_threshold;
+			if(track<cylinders_number_) weight_threshold=cylinder_treshold_;
+			else if(track<(circles_number_+cylinders_number_)) weight_threshold=circle_treshold_;
+			else if(track<(circles_number_+cylinders_number_+lines_number_)) weight_threshold=line_treshold_;
+			else if(track<(circles_number_+cylinders_number_+lines_number_+corners_number_)) weight_threshold=corner_treshold_;
+
+		if((tracker_vector_[track]->getResult().weight<weight_threshold)&&(counter_>40)){
 			std::cout<<"probability of " <<track<<" is : "<<tracker_vector_[track]->getResult().weight<<std::endl;
 			std::cout<<"Feature "<<track<<" is lost!"<<std::endl;
 			feature_lost_=track;
-			tracker_vector_.erase(tracker_vector_.begin()+track);
+			features_lost_.push_back(track);
+
+			std::sort( features_lost_.begin(), features_lost_.end() );
+			features_lost_.erase( std::unique( features_lost_.begin(), features_lost_.end()), features_lost_.end() );
+//			tracker_vector_.erase(tracker_vector_.begin()+track);
 
 
 		}
 
-//		tracker_->setInputCloud(cloud);
-//		tracker_->compute();
+
 		}
 		double end = pcl::getTime();
 		FPS_CALC_END("tracking");
@@ -638,24 +686,24 @@ public:
 		FPS_CALC_BEGIN;
 		bool online = true;
 
-		if(counter_==0){
-
-	    cv::Mat cvimage(cloud->width,cloud->height, CV_8UC3);
-        for (uint h = 0; h < cloud->height; h++) {
-                for (uint w = 0; w < cloud->width; w++) {
+//		if(counter_==0){
+//
+//	    cv::Mat cvimage(cloud->width,cloud->height, CV_8UC3);
+//        for (uint h = 0; h < cloud->height; h++) {
+//                for (uint w = 0; w < cloud->width; w++) {
             //Get colour data for our cvimage
-                        cvimage.at<cv::Vec3b>(w, h)[0] = cloud->at(h * cloud->width + w).b;
-                        cvimage.at<cv::Vec3b>(w, h)[1] = cloud->at(h * cloud->width + w).g;
-                        cvimage.at<cv::Vec3b>(w, h)[2] = cloud->at(h * cloud->width + w).r;
-
-                }
-        }
+//                        cvimage.at<cv::Vec3b>(w, h)[0] = cloud->at(h * cloud->width + w).b;
+//                        cvimage.at<cv::Vec3b>(w, h)[1] = cloud->at(h * cloud->width + w).g;
+//                        cvimage.at<cv::Vec3b>(w, h)[2] = cloud->at(h * cloud->width + w).r;
+//
+//                }
+//        }
     //Transpose
-        cvimage = cvimage.t();
+//        cvimage = cvimage.t();
 //        textureless_objects_tracking::cornerFind::Response res_corner;
-        cv::Mat bw_image(cvimage.rows,cvimage.cols,CV_8U);
-        cv::cvtColor(cvimage,bw_image ,CV_BGR2GRAY);
-        bw_image_=bw_image;
+//        cv::Mat bw_image(cvimage.rows,cvimage.cols,CV_8U);
+//        cv::cvtColor(cvimage,bw_image ,CV_BGR2GRAY);
+//        bw_image_=bw_image;
 //            cv::namedWindow( "Display window image", CV_WINDOW_AUTOSIZE );
 //            cv::imshow( "Display window image", bw_image );
 //            cv::waitKey(0);
@@ -666,10 +714,10 @@ public:
 //		ros::Duration(2.0);
 //        std::cout<<"res_corner: "<<res_corner.corner.size()<<std::endl;
 //        std::cout<<"res_corner convex: "<<res_corner.corner_convex.size()<<std::endl;
-		std::cerr<<"cloud height: "<<cloud->height<<std::endl;
-		std::cerr<<"cloud width: "<<cloud->width<<std::endl;
-
-		}
+//		std::cerr<<"cloud height: "<<cloud->height<<std::endl;
+//		std::cerr<<"cloud width: "<<cloud->width<<std::endl;
+//
+//		}
 		if (online)
 			cloud_pass_.reset(new Cloud);
 
@@ -780,7 +828,6 @@ public:
 					std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> result_vector;
 					std::vector<Eigen::Vector3f> directions_vector;
 
-					std::string what = "rectangular";
 
 
 					pcl::PointCloud<pcl::PointXYZLRegion>::Ptr cloud_out(new pcl::PointCloud<pcl::PointXYZLRegion>);
@@ -837,14 +884,7 @@ public:
 					if(nonzero_ref_other->size()!=0)
 				    pcl::io::savePCDFile("other.pcd",*nonzero_ref_other);
 
-//			        textureless_objects_tracking::cornerFind::Response res_corner;
 
-//					prim_ex.getCornersToPush(bw_image_,res_corner);
-//							ros::Duration(2.0);
-//					        std::cout<<"res_corner: "<<res_corner.corner.size()<<std::endl;
-//					        std::cout<<"res_corner convex: "<<res_corner.corner_convex.size()<<std::endl;
-
-//					if (what == "circular") {
 
 					if(nonzero_ref_circular->size()!=0){
 
@@ -864,7 +904,6 @@ public:
 				}
 					if(nonzero_ref_rectangular->size()!=0)
 					{
-//					} else {
 						prim_ex.extractLineVector(nonzero_ref_rectangular,
 								result_vector_lines, directions_vector);
 						prim_ex.extractCornerVector(nonzero_ref_rectangular,
@@ -874,7 +913,6 @@ public:
 						PCL_INFO(
 								"number of corners: %d \n", result_vector_corners.size());
 
-//						result_vector = result_vector_lines;
 						result_vector.insert(result_vector.end(),
 								result_vector_lines.begin(),
 								result_vector_lines.end());
@@ -882,9 +920,13 @@ public:
 								result_vector_corners.begin(),
 								result_vector_corners.end());
 					}
-//					}
 				PCL_INFO(
 							"number of features: %d \n", result_vector.size());
+
+					lines_number_=result_vector_lines.size();
+					corners_number_=result_vector_corners.size();
+					cylinders_number_=result_vector_cylinders.size();
+					circles_number_=result_vector_circles.size();
 
 					tracker_vector_.resize(result_vector.size());
 
@@ -1040,10 +1082,21 @@ public:
 
 	std::vector<pcl::Vertices> hull_vertices_;
 
+
 	std::string device_id_;
 	boost::mutex mtx_;
 	bool new_cloud_;
+	float cylinder_treshold_;
+	float circle_treshold_;
+	float line_treshold_;
+	float corner_treshold_;
+
+	int lines_number_;
+	int corners_number_;
+	int cylinders_number_;
+	int circles_number_;
 	int feature_lost_;
+	std::vector<int> features_lost_;
 	pcl::NormalEstimationOMP<PointType, pcl::Normal> ne_; // to store threadpool
 	boost::shared_ptr<ParticleFilter> tracker_;
 	std::vector<boost::shared_ptr<ParticleFilter> > tracker_vector_;

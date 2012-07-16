@@ -47,10 +47,10 @@ template<typename PointType> bool PrimitivesExtract<PointType>::getCornersToPush
 		textureless_objects_tracking::cornerFind::Response& res) {
 	textureless_objects_tracking::cornerFind::Request req;
 	IplImage temp(topview);
-	cv::namedWindow("Display window", CV_WINDOW_AUTOSIZE);
-	cv::imshow("Display window", topview);
-
-	cv::waitKey(0);
+//	cv::namedWindow("Display window", CV_WINDOW_AUTOSIZE);
+//	cv::imshow("Display window", topview);
+//
+//	cv::waitKey(0);
 	sensor_msgs::ImagePtr imgptr = sensor_msgs::CvBridge::cvToImgMsg(&temp);
 	req.image = *imgptr;
 	_corner_finder.call(req, res);
