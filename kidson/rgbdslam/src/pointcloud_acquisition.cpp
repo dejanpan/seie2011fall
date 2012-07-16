@@ -5,6 +5,9 @@
 #include "pcl_ros/transforms.h"
 #include "sensor_msgs/Image.h"
 #include <cv_bridge/CvBridge.h>
+#include "parameter_server.h"
+#include <rosbag/view.h>
+#include <boost/foreach.hpp>
 
 class PointCloudCapturer
 {
@@ -24,13 +27,37 @@ class PointCloudCapturer
 public:
   PointCloudCapturer()
   {
-	  cloud_topic_ = "/camera/rgb/points";
-	  image_topic_ = "/camera/rgb/image_color";
-	  camera_info_topic_ = "/camera/rgb/camera_info";
+	  cloud_topic_ =  ParameterServer::instance()->get<std::string>("topic_points");
+	  image_topic_ =  ParameterServer::instance()->get<std::string>("topic_image_mono");
+	  camera_info_topic_ = ParameterServer::instance()->get<std::string>("camera_info_topic");
 	  bag_name_ = "RGBD_Output.bag";
 	  to_frame_ = "base_link";
 	  rate_ = 1.0;
 	  bag_.open(bag_name_, rosbag::bagmode::Write);
+
+	  //get the camera info (just once)
+	std::string bagfile_name = ParameterServer::instance()->get<std::string>("bagfile_name");
+	if(bagfile_name.empty())
+		cam_info_ = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(camera_info_topic_);
+	else
+	{
+		rosbag::Bag bag;
+		bag.open(bagfile_name, rosbag::bagmode::Read);
+
+		std::vector<std::string> topics;
+		topics.push_back(camera_info_topic_);
+
+		rosbag::View view(bag, rosbag::TopicQuery(topics));
+
+		BOOST_FOREACH(rosbag::MessageInstance const m, view)
+		{
+			 if ((m.getTopic() == camera_info_topic_) && (cam_info_ == NULL))
+			 {
+				 cam_info_ = m.instantiate<sensor_msgs::CameraInfo>();
+				 ROS_INFO("cam info pointer set");
+			 }
+		}
+	}
   }
 
   ~PointCloudCapturer()
@@ -40,7 +67,6 @@ public:
   }
 
   void saveCloudsToBagfile(Node* node_, tf::Transform nodeTransform){
-  	sensor_msgs::CameraInfoConstPtr cam_info_;
   	ros::Time now = ros::Time::now(); //makes sure things have a corresponding timestamp
 
   	/***********Write data to a bag file ******************/
@@ -76,9 +102,6 @@ public:
   	ROS_INFO("Wrote image to %s", bag_name_.c_str());
   	bag_.write(image_topic_ + "/transform", cloudMessage.header.stamp, transform_msg);
 
-
-  	//writing camera image to bag file
-  	cam_info_ = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(camera_info_topic_);
   	bag_.write(camera_info_topic_, cam_info_->header.stamp, cam_info_);
   	ROS_INFO("Wrote Camera Info to %s", bag_name_.c_str());
   }
