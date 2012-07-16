@@ -1,0 +1,32 @@
+
+1. Create releasable code
+-------------------------------
+-RGBDSLAM release version
+	checkout stock rgbdslam version, add required mods
+	-cache/delete point clouds
+	-point cloud skip step
+	-bagfile creater (for dejans code)
+	-parameters (min matches etc)
+	-euclidean distance check for adding edges
+	-sensor model
+
+-Frame to frame registration
+	-copy/test ransac
+	-icp/feature joint optimization
+
+
+2. Test RGBDSLAM on multiple kitchens
+-------------------------------------
+-4 datasets
+	-IAS labs (gorden, 5th floor)
+	-My kitchen
+	-Dejans kitchen
+
+3. Semantic Mapping
+-------------------------------------
+ UI to fine tune semantic mapping
+	-auto/manual segmentation
+	-functional properties of containers
+	-static models from clutter
+	-Exploiting Semantic map's priors to make perception smarter
+

@@ -111,26 +111,31 @@ int
 	std::vector< cv::DMatch > matches;
 	matcher.match( source_descriptors, target_descriptors, matches );
 
-	double max_dist = 0; double min_dist = 100;
-
-	//-- Quick calculation of max and min distances between keypoints
-	for( int i = 0; i < source_descriptors.rows; i++ )
-	{ double dist = matches[i].distance;
-	if( dist < min_dist ) min_dist = dist;
-	if( dist > max_dist ) max_dist = dist;
-	}
-
-	printf("-- Max dist : %f \n", max_dist );
-	printf("-- Min dist : %f \n", min_dist );
-
-	//-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist )
-	//-- PS.- radiusMatch can also be used here.
-	std::vector< cv::DMatch > good_matches;
-
-	for( int i = 0; i < source_descriptors.rows; i++ ){
-		if( matches[i].distance < 2*min_dist )
-			good_matches.push_back( matches[i]);
-	}
+	// Outlier detection
+	// ##### OPENCV CODE- USE RANSAC FOR OUTLIER DETECTION #######
+//	double max_dist = 0; double min_dist = 100;
+//
+//	//-- Quick calculation of max and min distances between keypoints
+//	for( int i = 0; i < source_descriptors.rows; i++ )
+//	{ double dist = matches[i].distance;
+//	if( dist < min_dist ) min_dist = dist;
+//	if( dist > max_dist ) max_dist = dist;
+//	}
+//
+//	printf("-- Max dist : %f \n", max_dist );
+//	printf("-- Min dist : %f \n", min_dist );
+//
+//	//-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist )
+//	//-- PS.- radiusMatch can also be used here.
+//	std::vector< cv::DMatch > good_matches;
+//
+//	for( int i = 0; i < source_descriptors.rows; i++ ){
+//		if( matches[i].distance < 2*min_dist )
+//			good_matches.push_back( matches[i]);
+//	}
+//	for( uint i = 0; i < good_matches.size(); i++ ){
+//		printf( "-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, good_matches[i].queryIdx, good_matches[i].trainIdx );
+//	}
 
 	//-- Draw only "good" matches
 	cv::Mat img_matches;
@@ -141,9 +146,6 @@ int
 	//-- Show detected matches
 	imshow( "Good Matches", img_matches );
 
-	for( uint i = 0; i < good_matches.size(); i++ ){
-		printf( "-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, good_matches[i].queryIdx, good_matches[i].trainIdx );
-	}
 
 	cv::waitKey(0);
   return 0;
