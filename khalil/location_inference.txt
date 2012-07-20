@@ -1,0 +1,7 @@
+ias_semantic_map$ less owl/ccrl2_semantic_map.owl
+
+kitchenobjects.owl in the comp_barcoo
+
+comp_barcoo/bin$ ls ../owl/barcoo.owl
+
+maxWup
