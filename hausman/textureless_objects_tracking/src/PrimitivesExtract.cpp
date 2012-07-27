@@ -23,18 +23,22 @@ template<typename PointType> bool PrimitivesExtract<PointType>::getSegments(
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in(
 			new pcl::PointCloud<pcl::PointXYZRGB>());
 	pcl::copyPointCloud(*cloud, *cloud_in);
+	pcl::io::savePCDFile("cloud_in.pcd",*cloud_in);
+
+	ROS_INFO("Response Clouds Size 1: %d", cloud_in->points.size());
 	sensor_msgs::PointCloud2 in_cloud_blob, out_cloud_blob;
 	pcl::toROSMsg(*cloud_in, in_cloud_blob);
+	ROS_INFO("Response Clouds Size 2: %d", in_cloud_blob.width);
 	object_part_decomposition::ClassifyScene srv;
 	srv.request.in_cloud = in_cloud_blob;
 	srv.request.ID = 0;
-	srv.request.params = "-n 3 -s 1";
+	srv.request.params = "-n 5 -s 0";
 	if (_segmentation_srv.call(srv)) {
 		ROS_INFO("Calling classify scene service");
 		out_cloud_blob = srv.response.out_cloud;
 		pcl::fromROSMsg(out_cloud_blob, *cloud_out);
 		ROS_INFO("Response Clouds Size: %d", cloud_out->points.size());
-		pcl::io::savePCDFile("/tmp/result.pcd", *cloud_out);
+		pcl::io::savePCDFile("service_call_result.pcd", *cloud_out);
 		return true;
 	} else {
 		ROS_ERROR("Failed to call service classify_scene");
@@ -425,10 +429,51 @@ template<typename PointType> bool PrimitivesExtract<PointType>::get3dPoints(
 	Eigen::Matrix4d transform_eigen3(transform_eigen.matrix());
 	Eigen::Matrix4f transform_eigen3f = transform_eigen3.cast<float>();
 
+//	CONCAVE CORNERS
+
+	concave_corners_.reserve(res.corner.size());
+
+	concave_corners_.width = res.corner.size();
+	concave_corners_.height = 1;
+	for (int i = 0; i < res.corner.size(); ++i) {
+		cv::Point2d p2d(res.corner[i].x, res.corner[i].y);
+		cv::Point3d p3d;
+
+//		get the ray of the pinhole camera
+		model_.projectPixelTo3dRay(p2d, p3d);
+		Eigen::Vector3f ray(p3d.x, p3d.y, p3d.z);
+
+//		distance to the corner to push from the virtual camera
+		float t = -1.0 * plane_coefficients_->values[3]
+				/ (table_normal.dot(ray));
+
+//		vector to the corner
+		Eigen::Vector3f intersec = t * ray;
+
+		PointType p;
+		p.getArray3fMap() = intersec;
+		concave_corners_.push_back(p);
+	}
+
+
+
 //	pcl::transformPointCloud(  grasp_points, grasp_points, transform_eigen3f );
 
 	return true;
 }
+
+template<typename PointType> void PrimitivesExtract<PointType>::getAll3DCornersFromService(const CloudConstPtr cloud,Cloud &concave_result,Cloud &convex_result){
+
+	cv::Mat top_image(640, 480, CV_8U);
+	getTopView(cloud, top_image);
+	textureless_objects_tracking::cornerFind::Response res_corner;
+	getCornersToPush(top_image, res_corner);
+	get3dPoints(res_corner);
+	pcl::copyPointCloud(concave_corners_,concave_result);
+	pcl::copyPointCloud(convex_corners_,convex_result);
+
+}
+
 
 template<typename PointType> bool PrimitivesExtract<PointType>::extractCorners(
 		const CloudConstPtr cloud, Cloud &result, Cloud &result_debug,

@@ -202,6 +202,7 @@ public:
 	bool get3dPoints(
 			const textureless_objects_tracking::cornerFind::Response& res);
 	bool getTopView(const CloudConstPtr cloud, cv::Mat& topview);
+	void getAll3DCornersFromService(const CloudConstPtr cloud,Cloud &concave_result,Cloud &convex_result);
 
 private:
 	void computeNormals(const CloudConstPtr cloud,
@@ -270,6 +271,8 @@ private:
 	tf::Transform virt_cam_transl_;
 	tf::Transform virt_cam_rot_;
 	pcl::PointCloud<PointType> convex_corners_;
+	pcl::PointCloud<PointType> concave_corners_;
+
 
 };
 

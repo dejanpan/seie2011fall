@@ -32,20 +32,25 @@ class PushPointEstimation {
 public:
 	PushPointEstimation();
 	virtual ~PushPointEstimation();
+	void getPushCloud(pcl::PointCloud<pcl::PointXYZLRegion>::Ptr& cloud,pcl::PointCloud<pcl::PointXYZLRegion>& push_point_cloud,pcl::PointCloud<pcl::PointXYZLRegion> &push_point);
 	void getUncertainRegion(std::vector<pcl::PointCloud<pcl::PointXYZLRegion> >& cluster_pointclouds,pcl::PointCloud<pcl::PointXYZLRegion> &uncertain_cloud,std::string &what,double &min_probability);
 	void getLabels(pcl::PointCloud<pcl::PointXYZLRegion>::Ptr &cloud);
 	void euclidianClustering(
 			pcl::PointCloud<pcl::PointXYZLRegion>::Ptr& cloudForEuclidianDistance,
 			std::vector<pcl::PointCloud<pcl::PointXYZLRegion> >& cluster_pointclouds);
+	void setAll3DCornersFromService(pcl::PointCloud<pcl::PointXYZLRegion>& concave_cloud,pcl::PointCloud<pcl::PointXYZLRegion>& convex_cloud);
+	void getPushPoint(const pcl::PointCloud<pcl::PointXYZLRegion>::Ptr& push_cloud,pcl::PointCloud<pcl::PointXYZLRegion>& push_point_cloud);
 
 
-
+	pcl::PointCloud<pcl::PointXYZLRegion> concave_cloud_;
+	pcl::PointCloud<pcl::PointXYZLRegion> convex_cloud_;
     pcl::PointCloud<pcl::PointXYZLRegion>::Ptr label_rectangular_;
     pcl::PointCloud<pcl::PointXYZLRegion>::Ptr label_circular_;
     pcl::PointCloud<pcl::PointXYZLRegion>::Ptr label_other_;
     float euclidian_min_cluster_size_;
     float euclidian_max_cluster_size_;
     float euclidian_cluster_tolerance_;
+    float max_distance_from_corner_concave_;
 };
 
 #endif /* PUSHPOINTESTIMATION_H_ */

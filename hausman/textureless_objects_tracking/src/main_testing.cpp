@@ -25,6 +25,11 @@
 
 #include <pcl/filters/extract_indices.h>
 
+#include <object_part_decomposition/point_type.h>
+#include "textureless_objects_tracking/point_type.h"
+#include "textureless_objects_tracking/PushPointEstimation.h"
+
+
 
 unsigned char colormap_ [36] = { 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0, 255, 0, 255, 0, 255, 255, 127, 0, 0, 0, 127, 0, 0, 0, 127,127, 127, 0, 127, 0, 127, 0, 127, 127 };
 
@@ -39,7 +44,19 @@ void planeSegmentation(const pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &cloud,
 	seg.setInputCloud(cloud);
 	seg.segment(inliers, coefficients);
 }
+void removeZeroPoints(const pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZRGBA> &result) {
+	for (size_t i = 0; i < cloud->points.size(); i++) {
+		pcl::PointXYZRGBA point = cloud->points[i];
+		if (!(fabs(point.x) < 0.01 && fabs(point.y) < 0.01
+				&& fabs(point.z) < 0.01) && !isnan(point.x)
+				&& !isnan(point.y) && !isnan(point.z))
+			result.points.push_back(point);
+	}
 
+	result.width = result.points.size();
+	result.height = 1;
+	result.is_dense = true;
+}
 int main(int argc, char **argv)
 {
 
@@ -77,6 +94,21 @@ int main(int argc, char **argv)
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr grasps_points(new pcl::PointCloud<pcl::PointXYZRGBA>);
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_virtual(new pcl::PointCloud<pcl::PointXYZRGBA>);
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_objects_in_virt_cam(new pcl::PointCloud<pcl::PointXYZRGBA>);
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_objects_in_virt_cam_no_nans(new pcl::PointCloud<pcl::PointXYZRGBA>);
+
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_concave(new pcl::PointCloud<pcl::PointXYZRGBA>);
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_convex(new pcl::PointCloud<pcl::PointXYZRGBA>);
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr push_point_cloud_result(new pcl::PointCloud<pcl::PointXYZRGBA>);
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr push_point_result(new pcl::PointCloud<pcl::PointXYZRGBA>);
+
+
+
+  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr cloud_concave_push(new pcl::PointCloud<pcl::PointXYZLRegion>);
+  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr cloud_convex_push(new pcl::PointCloud<pcl::PointXYZLRegion>);
+
+  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr push_point_cloud(new pcl::PointCloud<pcl::PointXYZLRegion>);
+  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr cloud_objects_in_virt_cam_regions(new pcl::PointCloud<pcl::PointXYZLRegion>);
+  pcl::PointCloud<pcl::PointXYZLRegion>::Ptr push_point_xlregion(new pcl::PointCloud<pcl::PointXYZLRegion>);
 
 
   std::vector<Eigen::Vector3f> directions_vector;
@@ -89,6 +121,9 @@ int main(int argc, char **argv)
 	pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
 	pcl::ModelCoefficients::Ptr coefficients2(new pcl::ModelCoefficients);
 
+	std::cout<<"size of the cloud_input cloud: "<<cloud_input->size()<<std::endl;
+
+
 	planeSegmentation(cloud_input, *coefficients2,
 			*inliers);
 	prim_ex.setPlaneCoefficients(coefficients2);
@@ -100,9 +135,40 @@ int main(int argc, char **argv)
 	  	  extract.filter (*cloud_objects_in_virt_cam);
 //  prim_ex.extractCorners(cloud_input,*result,*result_debug);
   prim_ex.extractCornerVector(cloud_objects_in_virt_cam,result_vector,1);
+
+  prim_ex.getAll3DCornersFromService(cloud_objects_in_virt_cam,*cloud_concave,*cloud_convex);
   std::cerr<<"number of corners: "<<result_vector.size()<<std::endl;
 
-  pcl::copyPointCloud(prim_ex.getConvex_corners(),*grasps_points);
+//  pcl::copyPointCloud(prim_ex.getConvex_corners(),*grasps_points);
+  pcl::copyPointCloud(*cloud_concave,*grasps_points);
+  pcl::copyPointCloud(*cloud_convex,*debug);
+
+
+  pcl::copyPointCloud(*cloud_concave,*cloud_concave_push);
+  pcl::copyPointCloud(*cloud_convex,*cloud_convex_push);
+
+
+//  pcl::copyPointCloud(*cloud_objects_in_virt_cam,*cloud_objects_in_virt_cam_regions);
+
+//	pcl::PointCloud<pcl::PointXYZLRegion>::Ptr cloud_out(new pcl::PointCloud<pcl::PointXYZLRegion>);
+//  pcl::io::savePCDFile("objects_in_the_virtual_cam.pcd",*cloud_objects_in_virt_cam);
+  removeZeroPoints(cloud_objects_in_virt_cam,*cloud_objects_in_virt_cam_no_nans);
+	prim_ex.getSegments(cloud_objects_in_virt_cam_no_nans,cloud_objects_in_virt_cam_regions);
+//  pcl::io::savePCDFile("objects_in_the_virtual_cam_regions.pcd",*cloud_objects_in_virt_cam_regions);
+
+  PushPointEstimation push_point_es;
+  push_point_es.setAll3DCornersFromService(*cloud_concave_push,*cloud_convex_push);
+//  push_point_es.getLabels(cloud_objects_in_virt_cam_regions);
+	std::cout<<"size of the cloud_objects_in_virt_cam cloud: "<<cloud_objects_in_virt_cam->size()<<std::endl;
+
+	std::cout<<"size of the cloud_objects_in_virt_cam_regions cloud: "<<cloud_objects_in_virt_cam_regions->size()<<std::endl;
+
+	pcl::PointCloud<pcl::PointXYZLRegion> push_point;
+  push_point_es.getPushCloud(cloud_objects_in_virt_cam_regions,*push_point_cloud,push_point);
+    pcl::copyPointCloud(*push_point_cloud,*push_point_cloud_result);
+
+//    push_point_xlregion->points.push_back(push_point);
+    pcl::copyPointCloud(push_point,*push_point_result);
 //  prim_ex.findBoundaries(cloud_input,*cloud_boundaries);
 //  prim_ex.extractLines(cloud_boundaries,result_vector_lines,coefficients);
 //  prim_ex.extractLineVector(cloud_input,result_vector_lines,directions_vector);
@@ -194,21 +260,21 @@ int main(int argc, char **argv)
 			cloud_input, colormap_[0], colormap_[1], colormap_[2]);
 	  viz.addPointCloud<pcl::PointXYZRGBA> (cloud_input, red_color);
 
-//		pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> yellow_color(
-//				result_corners, colormap_[9], colormap_[10], colormap_[11]);
-//
-//		  viz.addPointCloud<pcl::PointXYZRGBA> (result_corners, yellow_color,"result_corners");
 
 		  	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
-		  			grasps_points, colormap_[3], colormap_[4], colormap_[5]);
+		  			push_point_cloud_result, colormap_[3], colormap_[4], colormap_[5]);
 
-		  viz.addPointCloud<pcl::PointXYZRGBA> (grasps_points, green_color,"result");
+		  viz.addPointCloud<pcl::PointXYZRGBA> (push_point_cloud_result, green_color,"result");
 
+		pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> yellow_color(
+				push_point_result, colormap_[9], colormap_[10], colormap_[11]);
+
+		  viz.addPointCloud<pcl::PointXYZRGBA> (push_point_result, yellow_color,"debug");
 		//	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> diff_color(
 			//			cloud_boundaries, colormap_[9], colormap_[10], colormap_[11]);
 //
 //	  viz.addPointCloud<pcl::PointXYZRGBA> (debug, yellow_color,"debug");
-			for (int number=0;number<result_vector.size();number++){
+/*			for (int number=0;number<result_vector.size();number++){
 			pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
 					result_vector[number], colormap_[3*(number+1)], colormap_[3*(number+1)+1], colormap_[3*(number+1)+2]);
 
@@ -221,7 +287,7 @@ int main(int argc, char **argv)
 		  viz.addPointCloud<pcl::PointXYZRGBA> (result_vector[number], green_color,k.str());
 		  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, k.str());
 			}
-
+*/
 
 //	for (int number=0;number<result_vector_lines.size();number++){
 //	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> blue_color(
@@ -245,6 +311,7 @@ int main(int argc, char **argv)
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "result");
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "cloud_boundaries");
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "result debug");
+  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "debug");
 
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "result_corners");
 

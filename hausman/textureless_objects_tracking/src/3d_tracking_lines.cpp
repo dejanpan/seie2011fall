@@ -920,6 +920,12 @@ public:
 								result_vector_corners.begin(),
 								result_vector_corners.end());
 					}
+
+
+
+
+
+
 				PCL_INFO(
 							"number of features: %d \n", result_vector.size());
 
