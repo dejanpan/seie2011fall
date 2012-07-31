@@ -20,6 +20,7 @@
 #include <ctime>
 #include <Eigen/Geometry>
 #include "pcl/ros/conversions.h"
+#include "pcl/io/pcd_io.h"
 #include <pcl/common/transformation_from_correspondences.h>
 //#include <opencv2/highgui/highgui.hpp>
 #include <qtconcurrentrun.h>
@@ -1096,4 +1097,22 @@ void Node::clearPointCloud(){
   pc_col->height = 0;
   pointcloud_type pc_empty;
   pc_empty.points.swap(pc_col->points);
+}
+
+// writes the point cloud of a node to file and clears it from memory
+void Node::cachePointCloudToFile()
+{
+	 pcl::PCDWriter writer;
+	 std::stringstream filename;
+	 filename << "node_" << id_ << ".pcd";
+	 writer.write (filename.str(), *pc_col, true);
+}
+
+void Node::reloadPointCloudFromDisk()
+{
+	std::stringstream nodeName;
+	nodeName << "node_" << id_ << ".pcd";
+	ROS_INFO_STREAM("Retrieving node " << nodeName.str() << " from cache and saving to map");
+	pcl::PCDReader nodeFetcher;
+	nodeFetcher.read(nodeName.str(), *pc_col);
 }

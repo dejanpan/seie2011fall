@@ -33,7 +33,8 @@
 #include "node.h"
 #include "misc.h"
 //#include <image_geometry/pinhole_camera_model.h>
-#include "pcl/ros/for_each_type.h"
+//#include "pcl/ros/for_each_type.h"
+#include <pcl/for_each_type.h>
 
 //For rosbag reading
 #include <rosbag/view.h>

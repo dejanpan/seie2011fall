@@ -140,6 +140,10 @@ public:
 
   //!erase the points from the cloud to save memory
   void clearPointCloud();
+
+  void cachePointCloudToFile();
+
+  void reloadPointCloudFromDisk();
 	//PointCloud pc;
 	///pointcloud_type centrally defines what the pc is templated on
 	unsigned int id_; ///must correspond to the g2o vertex id
