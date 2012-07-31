@@ -87,7 +87,7 @@ void ParameterServer::defaultConfig() {
     config["keep_all_nodes"]                = static_cast<bool> (false); //Keep nodes with const motion assumption if too few inliers
     config["visualize_mono_depth_overlay"]  = static_cast<bool> (false); //Show Depth and Monochrome image as overlay in featureflow
     // ROSS PARAM
-    config["pointcloud_skip_step"]          = static_cast<int> (0);
+    config["pointcloud_skip_step"]          = static_cast<int> (5);
 }
 
 void ParameterServer::getValues() {
