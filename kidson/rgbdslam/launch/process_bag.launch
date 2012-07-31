@@ -2,7 +2,7 @@
   <node pkg="rgbdslam" type="rgbdslam" name="rgbdslam" cwd="node" required="false" output="screen" > 
     <!-- see rgbslam_sample_config.launch for all available parameters and their default values -->
   	<!-- <param name="config/start_paused"                  value="false"/>
-  	<param name="config/pointcloud_step_size"          value="0"/>
-    -->
+  	<param name="config/pointcloud_step_size"          value="1"/> -->
+    
   </node>
 </launch>
