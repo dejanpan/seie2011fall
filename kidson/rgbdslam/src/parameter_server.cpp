@@ -46,8 +46,7 @@ void ParameterServer::defaultConfig() {
     config["fixed_frame_name"]              = std::string("/map");
     config["ground_truth_frame_name"]       = std::string("");                  //use empty string if no ground truth tf frame available
     config["base_frame_name"]               = std::string("/openni_camera");    //if the camera is articulated use robot base
-    //"/media/burg/data/bagfiles/bench1-2sweeps.bag"   /home/ross/ros_workspace/bagfiles/bench1-2sweeps.bag
-    config["bagfile_name"]                  = std::string("/media/8530926e-6dfa-4040-8930-02b7a3aaafc3/ross/manyOverlaps.bag");
+    config["bagfile_name"]                  = std::string("/media/burg/work/manyOverlaps.bag");
     config["batch_processing"]              = static_cast<bool> (false);        //store results and close after bagfile has been processed
     config["fixed_camera"]                  = static_cast<bool> (true);         //is camera fixed relative to base?
     config["feature_detector_type"]         = std::string("SURF");              //SURF, SIFT, FAST, ... see misc.cpp
@@ -88,8 +87,7 @@ void ParameterServer::defaultConfig() {
     config["keep_all_nodes"]                = static_cast<bool> (false); //Keep nodes with const motion assumption if too few inliers
     config["visualize_mono_depth_overlay"]  = static_cast<bool> (false); //Show Depth and Monochrome image as overlay in featureflow
     // ROSS PARAM
-    config["max_matches_rgbdicp"]           = static_cast<int> (90);
-    config["pointcloud_skip_step"]          = static_cast<int> (6);
+    config["pointcloud_skip_step"]          = static_cast<int> (1);
 }
 
 void ParameterServer::getValues() {

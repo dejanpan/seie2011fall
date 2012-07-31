@@ -332,6 +332,11 @@ bool GraphManager::addNode(Node* new_node) {
         init_base_pose_ =  new_node->getGroundTruthTransform();//identity if no MoCap available
         new_node->buildFlannIndex(); // create index so that next nodes can use it
         graph_[new_node->id_] = new_node;
+        if(ParameterServer::instance()->get<int>("pointcloud_skip_step") > 0)
+        {
+        	new_node->cachePointCloudToFile();
+        	new_node->clearPointCloud();
+        }
         g2o::VertexSE3* reference_pose = new g2o::VertexSE3;
         reference_pose->setId(0);
         reference_pose->setEstimate(g2o::SE3Quat());
@@ -510,6 +515,10 @@ bool GraphManager::addNode(Node* new_node) {
     if (optimizer_->edges().size() > num_edges_before) { //Success
         new_node->buildFlannIndex();
         graph_[new_node->id_] = new_node;
+        if(new_node->id_ % ParameterServer::instance()->get<int>("pointcloud_skip_step") == 0)
+        	new_node->cachePointCloudToFile();
+        if(ParameterServer::instance()->get<int>("pointcloud_skip_step") > 0)
+        	new_node->clearPointCloud();
         ROS_INFO("Added Node, new Graphsize: %i", (int) graph_.size());
         if((optimizer_->vertices().size() % ParameterServer::instance()->get<int>("optimizer_skip_step")) == 0){ 
           optimizeGraph();
@@ -1106,7 +1115,10 @@ void GraphManager::saveAllCloudsToFile(QString filename){
     tf::Transform cam2rgb;
     cam2rgb.setRotation(tf::createQuaternionFromRPY(-1.57,0,-1.57));
     cam2rgb.setOrigin(tf::Point(0,-0.04,0));
+    uint pointcloud_skip = ParameterServer::instance()->get<int>("pointcloud_skip_step");
     for (unsigned int i = 0; i < optimizer_->vertices().size(); ++i) {
+    	if((i%pointcloud_skip != 0) && (pointcloud_skip > 0))
+    	    		continue;	// for high overlapping recordings
         g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(i));
         if(!v){ 
             ROS_ERROR("Nullpointer in graph at position %i!", i);
@@ -1114,9 +1126,11 @@ void GraphManager::saveAllCloudsToFile(QString filename){
         }
         tf::Transform transform = g2o2TF(v->estimate());
         world2cam = cam2rgb*transform;
+        if(pointcloud_skip > 0)
+        	graph_[i]->reloadPointCloudFromDisk();
         transformAndAppendPointCloud (*(graph_[i]->pc_col), aggregate_cloud, world2cam, Max_Depth);
 
-        if(ParameterServer::instance()->get<bool>("batch_processing"))
+        if((ParameterServer::instance()->get<bool>("batch_processing")) || (pointcloud_skip > 0))
           graph_[i]->clearPointCloud(); //saving all is the last thing to do, so these are not required anymore
         Q_EMIT setGUIStatus(message.sprintf("Saving to %s: Transformed Node %i/%i", qPrintable(filename), i, (int)optimizer_->vertices().size()));
     }
