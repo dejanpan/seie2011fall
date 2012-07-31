@@ -136,7 +136,39 @@ IF (${USE_GICP_CODE})
 	add_definitions(-DUSE_ICP_CODE) 
 ENDIF (${USE_GICP_CODE})
 
+##############################
+## G2O ###################
+##############################
+#SET(g2o_build_path ${CMAKE_SOURCE_DIR}/external/g2o)
+#ADD_DEFINITIONS(-DDO_FEATURE_OPTIMIZATION)
+#
+#include_directories(${CMAKE_CURRENT_BINARY_DIR} ${g2o_build_path})
+#  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${g2o_build_path}/lib)
+#   
+#   MESSAGE("\n------------------------------------------------------------------\n")
+#   MESSAGE("Compiling G2O...")
+#   EXECUTE_PROCESS(
+#       COMMAND cmake .
+#       COMMAND make ${ROS_PARALLEL_JOBS} 
+#       WORKING_DIRECTORY ${g2o_build_path}
+#       RESULT_VARIABLE g2o_return
+#   )
+#   MESSAGE("\n------------------------------------------------------------------\n")
+#   
+#   #on error
+#   IF (NOT ${g2o_return} EQUAL 0)
+#    MESSAGE(FATAL_ERROR "G2O cannot be compiled. Returned: ${g2o_return}")
+#   ENDIF (NOT ${g2o_return} EQUAL 0)
 
+##################### MY g2o hackING
+#include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/external/g2o/)
+
+#LINK_DIRECTORIES(/home/ross/ros_workspace/g2o/build/g2o/build/)
+
+#include_directories(/home/ross/ros_workspace/g2o/build/g2o/EXTERNAL/csparse/ /usr/include/suitesparse/)
+#SET(g2o_build_path ${CMAKE_SOURCE_DIR}/external/g2o-1.x)
+#include_directories(${CMAKE_CURRENT_BINARY_DIR} ${g2o_build_path})
+####################################################################################
 
 #############################
 # OpenCV ####################
@@ -172,8 +204,10 @@ file(GLOB_RECURSE QT_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINK
 ##############################################################################
 rosbuild_add_executable(rgbdslam ${QT_SOURCES} ${QT_RESOURCES_CPP} ${QT_FORMS_HPP} ${QT_MOC_HPP})
 
+SET(EXTRA_G2O g2o_core g2o_stuff cholmod)
+
 #set libs
-SET(LIBS_LINK rgbdslam GL GLU g2o_types_slam3d g2o_solver_cholmod g2o_solver_pcg g2o_solver_csparse ${QT_LIBRARIES} ${QT_QTOPENGL_LIBRARY} ${GLUT_LIBRARY} ${OPENGL_LIBRARY} ${OpenCV_LIBS})
+SET(LIBS_LINK rgbdslam GL GLU ${EXTRA_G2O} g2o_types_slam3d g2o_solver_cholmod g2o_solver_pcg g2o_solver_csparse ${QT_LIBRARIES} ${QT_QTOPENGL_LIBRARY} ${GLUT_LIBRARY} ${OPENGL_LIBRARY} ${OpenCV_LIBS})
 
 IF (${USE_SIFT_GPU})
  	SET(LIBS_LINK ${LIBS_LINK} siftgpu)
