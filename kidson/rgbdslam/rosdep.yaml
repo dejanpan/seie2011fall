@@ -1,0 +1,9 @@
+libglew:  
+  ubuntu: 
+    libglew1.5-dev 
+libdevil:  
+  ubuntu: 
+    libdevil-dev
+suitesparse:  
+  ubuntu: 
+    libsuitesparse-dev
