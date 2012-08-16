@@ -28,6 +28,7 @@
 #include <object_part_decomposition/point_type.h>
 #include "textureless_objects_tracking/point_type.h"
 #include "textureless_objects_tracking/PushPointEstimation.h"
+#include "textureless_objects_tracking/TrajectoryClustering.h"
 
 
 
@@ -169,6 +170,15 @@ int main(int argc, char **argv)
 
 //    push_point_xlregion->points.push_back(push_point);
     pcl::copyPointCloud(push_point,*push_point_result);
+
+
+
+    TrajectoryClustering clustering;
+    clustering.readFromFile("poses_final.txt",3);
+    clustering.buildLaplacian();
+
+
+
 //  prim_ex.findBoundaries(cloud_input,*cloud_boundaries);
 //  prim_ex.extractLines(cloud_boundaries,result_vector_lines,coefficients);
 //  prim_ex.extractLineVector(cloud_input,result_vector_lines,directions_vector);
