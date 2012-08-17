@@ -162,4 +162,25 @@ void TrajectoryClustering::readFromFile(std::string fname,int features_number){
 //		  std::cout<<"feature column 1: "<<grouped_features[0][1]<<std::endl;
 
       infile.close();
+      bool erase_flag=false;
+
+      for(int i=0;i<grouped_features_.size();i++){
+    	  if(erase_flag){
+			  grouped_features_.erase(grouped_features_.begin()+i);
+			  i--;
+    		  erase_flag=false;
+    	  }
+    	  for(int j=0;j<grouped_features_[i].size();j++){
+    		  if (grouped_features_[i][j](0,0)==0){
+    			  erase_flag=true;
+    			  break;
+    		  }
+
+    	  }
+
+      }
+      features_number_=grouped_features_.size();
+
+
+
 }

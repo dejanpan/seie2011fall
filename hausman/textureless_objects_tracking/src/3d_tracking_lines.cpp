@@ -59,7 +59,8 @@
 #include <math.h>
 #include "PrimitivesExtract.cpp"
 #include "textureless_objects_tracking/point_type.h"
-
+#include <stdio.h>
+#include <string.h>
 
 #include <ros/ros.h>
 
@@ -396,8 +397,87 @@ public:
 			}
 		}
 
-		if (viz.wasStopped())
-			std::cout<<"Program stopped"<<std::endl;
+		if (viz.wasStopped()){
+
+			std::cout<<"Program stopped. Press 's' for saving the pointcloud. "<<std::endl;
+
+			std::string s;
+
+			std::cin>>s;
+			std::cout<<"Your input is: "<<s<<std::endl;
+			bool result = (s=="s");
+			std::cout<<"Wait a second, your pointcloud is being saved."<<std::endl;
+			if (result)
+			{
+
+			pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr cloud_to_save(new pcl::PointCloud<pcl::PointXYZLRegionF>);
+
+			pcl::copyPointCloud(*cloud_pass_,*cloud_to_save);
+
+			bool lost_flag=false;
+
+
+
+			for (uint track = 0; track < tracker_vector_.size(); track++) {
+
+				for(uint losts=0;losts<features_lost_.size();losts++)
+					if(features_lost_[losts]==track) lost_flag=true;
+
+				if (lost_flag) {
+					lost_flag=false;
+					continue;
+				}
+				ParticleXYZRPY result = tracker_vector_[track]->getResult();
+
+				Eigen::Affine3f transformation =
+						tracker_vector_[track]->toEigenMatrix(result);
+				transformation.translation() += Eigen::Vector3f(0.0, 0.0,
+						-0.005);
+				transformation_ = transformation;
+
+				RefCloudPtr result_cloud(new RefCloud());
+
+				pcl::transformPointCloud<RefPointType>(
+						*(tracker_vector_[track]->getReferenceCloud()),
+						*result_cloud, transformation_);
+
+				RefCloudPtr cloud_to_save_temp(new RefCloud);
+
+
+				for(uint i=0;i<result_cloud->points.size();i++){
+
+					PointType searchPointTemp=result_cloud->points[i];
+
+
+
+					pcl::KdTreeFLANN<PointType> kdtree;
+
+					kdtree.setInputCloud(cloud_pass_);
+
+					std::vector<int> pointIdxRadiusSearch;
+					std::vector<float> pointRadiusSquaredDistance;
+					float radius=0.002;
+
+					if (kdtree.nearestKSearch(searchPointTemp, 1, pointIdxRadiusSearch,
+							pointRadiusSquaredDistance) > 0) {
+
+						cloud_to_save->points[pointIdxRadiusSearch[0]].f=track+1;
+
+						}
+
+
+					}
+
+
+
+			}
+
+		    pcl::io::savePCDFile("afterwards.pcd",*cloud_to_save);
+
+		    std::cout<<"Your pointcloud is saved."<<std::endl;
+
+		}
+		}
 
 		for(uint losts=0;losts<features_lost_.size();losts++)
 		{
