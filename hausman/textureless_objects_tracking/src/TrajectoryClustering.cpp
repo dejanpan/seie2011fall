@@ -126,10 +126,7 @@ void TrajectoryClustering::readFromFile(std::string fname,int features_number){
       while (infile.good()){
 
     	  infile >> d;
-//    	  Eigen::Matrix3d rotation;
-//    	  btMatrix3x3 rotationMatrix;
-//    	  rotationMatrix.setEulerYPR(0, 0, 0);
-//    	  btVector3 position;
+
     	  if(counter_till_six==6){
     		  counter_till_six=0;
     		  ungrouped_features.push_back(pose);

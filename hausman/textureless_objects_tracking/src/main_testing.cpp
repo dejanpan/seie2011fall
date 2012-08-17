@@ -29,6 +29,7 @@
 #include "textureless_objects_tracking/point_type.h"
 #include "textureless_objects_tracking/PushPointEstimation.h"
 #include "textureless_objects_tracking/TrajectoryClustering.h"
+#include "textureless_objects_tracking/DenseReconstruction.h"
 
 
 
@@ -75,6 +76,16 @@ int main(int argc, char **argv)
 
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
   pcl::io::loadPCDFile(filename, *cloud);
+
+  pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr cloud_for_dense(new pcl::PointCloud<pcl::PointXYZLRegionF>);
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_for_dense_viz(new pcl::PointCloud<pcl::PointXYZRGBA>);
+
+  pcl::io::loadPCDFile("afterwards.pcd", *cloud_for_dense);
+
+  DenseReconstruction dense(cloud_for_dense);
+  std::cout<<"size of operational: "<<dense.cloud_operational_->size()<<std::endl;
+
+  pcl::copyPointCloud(*(dense.cloud_operational_),*cloud_for_dense_viz);
 
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_input(new pcl::PointCloud<pcl::PointXYZRGBA>);
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_boundaries(new pcl::PointCloud<pcl::PointXYZRGBA>);
@@ -268,9 +279,9 @@ int main(int argc, char **argv)
 //  pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(segments);
 	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> red_color(
 			cloud_input, colormap_[0], colormap_[1], colormap_[2]);
-	  viz.addPointCloud<pcl::PointXYZRGBA> (cloud_input, red_color);
+	  viz.addPointCloud<pcl::PointXYZRGBA> (cloud_for_dense_viz, red_color);
 
-
+/*
 		  	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
 		  			push_point_cloud_result, colormap_[3], colormap_[4], colormap_[5]);
 
@@ -280,6 +291,7 @@ int main(int argc, char **argv)
 				push_point_result, colormap_[9], colormap_[10], colormap_[11]);
 
 		  viz.addPointCloud<pcl::PointXYZRGBA> (push_point_result, yellow_color,"debug");
+		  /*
 		//	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> diff_color(
 			//			cloud_boundaries, colormap_[9], colormap_[10], colormap_[11]);
 //
