@@ -22,11 +22,34 @@
 	-My kitchen
 	-Dejans kitchen
 
-3. Semantic Mapping
--------------------------------------
- UI to fine tune semantic mapping
-	-auto/manual segmentation
-	-functional properties of containers
-	-static models from clutter
-	-Exploiting Semantic map's priors to make perception smarter
+3. Test RGBDLSAM with new data and feedback to juergen
+
+4. Semantic Mapping
+
+5. Building models with vlads code
+
+Semantic Mapping Notes
+---------------------------------------------
+ 1. Segment Planes
+ 2. Segment Fixtures
+ 3. Segment Drawers
+     - Use kinect video to obtain motion model
+     - Do this with the robot or without the robot
+     --> Juergens code to articulate the robot
+ 4. Reconstruction - generate mesh from kitchen
+ 5. Association - between point cloud and mesh
+GUI can select mesh or point cloud for visualization
+
+GUI
+-----
+
+- 1, 2 or 3 are selectable to segment
+- 3 Requires taking a kinect to the environment to show the drawer motion.
+     -requires registration from kinect video to known model
+     -be able to show drawer articulation and motion model
+- Merging and splitting of sections possible
+- Deal with over/under segmentation
+- Manual Segmentation
+     - Doors --> specular or see through
+     - Non visible handles (e.g. washing mashines with recessed handles)
 

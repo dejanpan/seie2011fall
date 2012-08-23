@@ -10,7 +10,7 @@
   <depend package="tf"/>
   <depend package="g2o"/>
   <depend package="pcl"/>
-  <depend package="eigen"/>
+<!--  <depend package="eigen"/> -->
   <depend package="rospy"/>
   <depend package="roscpp"/>
   <depend package="rosbag"/>
@@ -25,6 +25,7 @@
   <rosdep name="qt4"/>
   <rosdep name="libglew"/>
   <rosdep name="libdevil"/>
+  <rosdep name="eigen"/>
   <export>
     <rosdoc config="rosdoc.yaml" />
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
