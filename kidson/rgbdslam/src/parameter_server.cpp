@@ -74,7 +74,7 @@ void ParameterServer::defaultConfig() {
     config["max_dist_for_inliers"]          = static_cast<double> (0.03);
     config["drop_async_frames"]             = static_cast<bool> (true); //false
     config["ransac_iterations"]             = static_cast<int> (1000); //1000
-    config["use_gui"]                       = static_cast<bool> (true);
+    config["use_gui"]                       = static_cast<bool> (false);
     config["use_wide"]                      = static_cast<bool> (true);
     config["concurrent_node_construction"]  = static_cast<bool> (true);
     config["concurrent_edge_construction"]  = static_cast<bool> (false);		// turn this off to broadcast nodes.  concurrent broadcasting of nodes not supported
