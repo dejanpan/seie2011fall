@@ -183,7 +183,7 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
     clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
 }
 
-// returns a list of all nodes which are close in terms of euclidean distance (only translation) from the optimizer
+// returns a list of all nodes which are close in terms of euclidean distance from the optimizer
 QList<int> GraphManager::getPotentialEdgeTargetsFromProximity(const Node* new_node){
     QList<int> ids_to_link_to;
 
@@ -191,7 +191,8 @@ QList<int> GraphManager::getPotentialEdgeTargetsFromProximity(const Node* new_no
     g2o::VertexSE3* vi = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(new_node->id_));
 	if(!vi){
 		ROS_ERROR("Nullpointer in graph at position %i!", new_node->id_);
-		return ids_to_link_to;
+		// something went wrong, use the old function
+		return getPotentialEdgeTargets(new_node, ParameterServer::instance()->get<int>("connectivity"));
 	}
 	tf::Transform new_node_transform = g2o2TF(vi->estimate());
     //tf::Transform new_node_transform = g2o2TF(dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(new_node->id_))->estimate());
@@ -211,17 +212,29 @@ QList<int> GraphManager::getPotentialEdgeTargetsFromProximity(const Node* new_no
 		}
 		tf::Transform transform = g2o2TF(v->estimate());
 
+		// get the change in angle
+		double yaw1, yaw2, pitch1, pitch2, roll1, roll2;
+		transform.getBasis().getEulerYPR(yaw1, pitch1, roll1);
+		new_node_transform.getBasis().getEulerYPR(yaw2, pitch2, roll2);
+		double yaw_diff = fabs(yaw2 - yaw1);
+		double pitch_diff = fabs(pitch2 - pitch1);
+		double roll_diff = fabs(roll2 - roll1);
+		double max_angle_diff = std::max(yaw_diff, std::max(pitch_diff, roll_diff)) * (180.0 / M_PI);
+
+		ROS_INFO_STREAM("node[" << node_itr << "] dist: " << (transform.getOrigin() - new_node_transform.getOrigin()).length() << " angldiff: " << max_angle_diff);
+
 		// perform distance check and add to list when close enough
-		if ( (transform.getOrigin() - new_node_transform.getOrigin()).length()
+		if ( ( (transform.getOrigin() - new_node_transform.getOrigin()).length()
 				<= ParameterServer::instance()->get<double>("neighbour_search_distance"))
+				&& (max_angle_diff < ParameterServer::instance()->get<double>("neighbour_search_angle")) )
 		{
 			ids_to_link_to.push_back(node_itr);
 		}
     }
 
-//    ROS_INFO_STREAM("##### list of pot edges for new node " << new_node->id_);
-//    for(uint i = 0; i < ids_to_link_to.size(); i++)
-//    	ROS_INFO_STREAM(ids_to_link_to.at(i));
+    ROS_INFO_STREAM("##### list of pot edges for new node " << new_node->id_);
+    for(uint i = 0; i < ids_to_link_to.size(); i++)
+    	ROS_INFO_STREAM(ids_to_link_to.at(i));
 
     return ids_to_link_to;
 }

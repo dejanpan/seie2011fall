@@ -47,7 +47,7 @@ void ParameterServer::defaultConfig() {
     config["ground_truth_frame_name"]       = std::string("");                  //use empty string if no ground truth tf frame available
     config["base_frame_name"]               = std::string("/openni_camera");    //if the camera is articulated use robot base
     //config["bagfile_name"]                  = std::string("/work/kidson/bag_files/bench1-3sweeps3.bag");
-    config["bagfile_name"]                  = std::string("/work/shared/manyOverlaps.bag");
+    config["bagfile_name"]                  = std::string("/work/kidson/bag_files/radu_kitchen/karol_kitchen_2.bag");
     config["batch_processing"]              = static_cast<bool> (false);        //store results and close after bagfile has been processed
     config["fixed_camera"]                  = static_cast<bool> (true);         //is camera fixed relative to base?
     config["feature_detector_type"]         = std::string("SURF");              //SURF, SIFT, FAST, ... see misc.cpp
@@ -82,7 +82,7 @@ void ParameterServer::defaultConfig() {
     config["wide_queue_size"]               = static_cast<int> (2);
     config["visualization_skip_step"]       = static_cast<int> (1);
     config["optimizer_skip_step"]           = static_cast<int> (1);   //1e6
-    config["data_skip_step"]                = static_cast<int> (2);
+    config["data_skip_step"]                = static_cast<int> (1);
     config["show_axis"]                     = static_cast<bool> (true); //use flann insteald of the brute force matcher
     config["depth_scaling_factor"]          = static_cast<double> (1.0); //Some kinects have a wrongly scaled depth
     config["keep_all_nodes"]                = static_cast<bool> (false); //Keep nodes with const motion assumption if too few inliers
@@ -90,6 +90,7 @@ void ParameterServer::defaultConfig() {
     // ROSS PARAM
     config["pointcloud_skip_step"]          = static_cast<int> (5);
     config["neighbour_search_distance"]		= static_cast<double> (0.4);
+    config["neighbour_search_angle"]		= static_cast<double> (40.0);
 }
 
 void ParameterServer::getValues() {
