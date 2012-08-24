@@ -183,6 +183,48 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
     clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
 }
 
+// returns a list of all nodes which are close in terms of euclidean distance (only translation) from the optimizer
+QList<int> GraphManager::getPotentialEdgeTargetsFromProximity(const Node* new_node){
+    QList<int> ids_to_link_to;
+
+    // get the transform of the current node from the optimizer
+    g2o::VertexSE3* vi = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(new_node->id_));
+	if(!vi){
+		ROS_ERROR("Nullpointer in graph at position %i!", new_node->id_);
+		return ids_to_link_to;
+	}
+	tf::Transform new_node_transform = g2o2TF(vi->estimate());
+    //tf::Transform new_node_transform = g2o2TF(dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(new_node->id_))->estimate());
+
+    // iterate through the graph
+    for(uint node_itr = 0; node_itr < graph_.size(); node_itr++)
+    {
+    	// skip if the current or previous node
+    	if( (node_itr == new_node->id_) || (node_itr == (new_node->id_ - 1)) )
+    		continue;
+
+    	// obtain transform of other node
+    	g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(node_itr));
+		if(!v){
+			ROS_ERROR("Nullpointer in graph at position %i!", node_itr);
+			continue;
+		}
+		tf::Transform transform = g2o2TF(v->estimate());
+
+		// perform distance check and add to list when close enough
+		if ( (transform.getOrigin() - new_node_transform.getOrigin()).length()
+				<= ParameterServer::instance()->get<double>("neighbour_search_distance"))
+		{
+			ids_to_link_to.push_back(node_itr);
+		}
+    }
+
+//    ROS_INFO_STREAM("##### list of pot edges for new node " << new_node->id_);
+//    for(uint i = 0; i < ids_to_link_to.size(); i++)
+//    	ROS_INFO_STREAM(ids_to_link_to.at(i));
+
+    return ids_to_link_to;
+}
 
 /// max_targets determines how many potential edges are wanted
 /// max_targets < 0: No limit
@@ -396,7 +438,7 @@ bool GraphManager::addNode(Node* new_node) {
         }
     }
     //Eigen::Matrix4f ransac_trafo, final_trafo;
-    QList<int> vertices_to_comp = getPotentialEdgeTargets(new_node, ParameterServer::instance()->get<int>("connectivity")); //vernetzungsgrad
+    QList<int> vertices_to_comp = getPotentialEdgeTargetsFromProximity(new_node);
     QList<const Node* > nodes_to_comp;//only necessary for parallel computation
 
     if (ParameterServer::instance()->get<bool>("concurrent_edge_construction")) {

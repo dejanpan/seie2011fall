@@ -129,6 +129,8 @@ protected:
     /// max_targets > 1: Select intelligently
     QList<int> getPotentialEdgeTargets(const Node* new_node, int max_targets);
     
+    QList<int> getPotentialEdgeTargetsFromProximity(const Node* new_node);
+
     //std::vector<int> getPotentialEdgeTargetsFeatures(const Node* new_node, int max_targets);
     
     bool addEdgeToG2O(const LoadedEdge3D& edge, bool good_edge, bool set_estimate=false);
