@@ -87,6 +87,34 @@ int main(int argc, char **argv)
 
   pcl::copyPointCloud(*(dense.cloud_operational_),*cloud_for_dense_viz);
 
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr segments(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+  dense.regionGrowing(segments);
+
+  std::cerr<<"segments size: "<<segments->size()<<std::endl;
+
+
+  std::vector<pcl::PointIndices::Ptr> ind_vec;
+
+  dense.extractEuclideanClustersCurvature(ind_vec);
+
+  std::cerr<<"CLUSTERS size: "<<ind_vec.size()<<std::endl;
+
+  std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> clusters_vec;
+
+  for (int i=0;i<ind_vec.size();i++){
+
+	  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_temp(new pcl::PointCloud<pcl::PointXYZRGBA>);
+
+
+	  pcl::copyPointCloud(*(dense.region_grow_point_cloud_),*ind_vec[i],*cloud_temp);
+	  clusters_vec.push_back(cloud_temp);
+  }
+
+  std::cerr<<"CLUSTERS PCL size: "<<clusters_vec.size()<<std::endl;
+
+
+
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_input(new pcl::PointCloud<pcl::PointXYZRGBA>);
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_boundaries(new pcl::PointCloud<pcl::PointXYZRGBA>);
 
@@ -277,15 +305,34 @@ int main(int argc, char **argv)
 
 
 //  pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(segments);
-	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> red_color(
-			cloud_input, colormap_[0], colormap_[1], colormap_[2]);
-	  viz.addPointCloud<pcl::PointXYZRGBA> (cloud_for_dense_viz, red_color);
+//	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> red_color(
+//			cloud_input, colormap_[0], colormap_[1], colormap_[2]);
+//	  viz.addPointCloud<pcl::PointXYZRGBA> (cloud_for_dense_viz, red_color);
+
+//		  	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> green_color(
+//		  			segments, colormap_[3], colormap_[4], colormap_[5]);
+//
+//		  viz.addPointCloud<pcl::PointXYZRGB> (segments, green_color,"result");
+
+//		  pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(segments);
+//		  viz.addPointCloud<pcl::PointXYZRGB> (segments, rgb,"result");
+
+
+		  			for (int number=0;number<clusters_vec.size();number++){
+		  			pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
+		  					clusters_vec[number], colormap_[3*(number+1)], colormap_[3*(number+1)+1], colormap_[3*(number+1)+2]);
+
+
+
+		  			std::stringstream k;
+		  			k<<number+100;
+
+//		  			std::cerr<<"result corners size "<<number<<" = "<<result_vector[number]->size()<<std::endl;
+		  		  viz.addPointCloud<pcl::PointXYZRGBA> (clusters_vec[number], green_color,k.str());
+//		  		  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, k.str());
+		  			}
 
 /*
-		  	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> green_color(
-		  			push_point_cloud_result, colormap_[3], colormap_[4], colormap_[5]);
-
-		  viz.addPointCloud<pcl::PointXYZRGBA> (push_point_cloud_result, green_color,"result");
 
 		pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> yellow_color(
 				push_point_result, colormap_[9], colormap_[10], colormap_[11]);
@@ -330,7 +377,7 @@ int main(int argc, char **argv)
 	//	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGBA> diff_color(
 	//			cloud_boundaries, colormap_[9], colormap_[10], colormap_[11]);
 
-  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "result");
+//  viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "result");
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "cloud_boundaries");
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "result debug");
   viz.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "debug");
