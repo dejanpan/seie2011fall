@@ -14,33 +14,233 @@ DenseReconstruction::DenseReconstruction(pcl::PointCloud<pcl::PointXYZLRegionF>:
 	pcl::ModelCoefficients coefficients;
 	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 	cloud_operational_.reset(new pcl::PointCloud<pcl::PointXYZLRegionF>);
+    pcl::io::savePCDFile("Aafter_beg.pcd",*cloud_);
 
 	planeSegmentation(cloud_,coefficients,*inliers);
 	planeExtraction(cloud_,inliers,*cloud_operational_);
-	normalsEstimation(cloud_operational_);
+    pcl::io::savePCDFile("Aafter_plane.pcd",*cloud_operational_);
+
+	cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>);
+	normalsEstimation(cloud_operational_,cloud_normals_);
+	region_grow_point_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>);
+
+	pcl::copyPointCloud(*cloud_operational_,*region_grow_point_cloud_);
+
+    pcl::io::savePCDFile("Aafter_normals.pcd",*cloud_operational_);
+
 }
 
 DenseReconstruction::~DenseReconstruction() {
 	// TODO Auto-generated destructor stub
 }
 
-void DenseReconstruction::normalsEstimation(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud){
+void DenseReconstruction::normalsEstimation(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud,pcl::PointCloud<pcl::Normal>::Ptr &normals){
 
-	cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>);
-	region_grow_point_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>);
-//	cloud_operational_.reset(new pcl::PointCloud<pcl::PointXYZLRegionF>);
 
-	pcl::copyPointCloud(*cloud,*region_grow_point_cloud_);
+	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
+	pcl::copyPointCloud(*cloud,*temp_cloud);
+
 
 	 // Create a KD-Tree
 	tree_.reset(new pcl::search::KdTree<pcl::PointXYZRGBA>);
 
 	pcl::NormalEstimation<pcl::PointXYZRGBA, pcl::Normal> ne;
-	ne.setInputCloud(region_grow_point_cloud_);
+	ne.setInputCloud(temp_cloud);
 	ne.setSearchMethod(tree_);
 	ne.setRadiusSearch(0.03);
-	ne.compute(*cloud_normals_);
+//	ne.compute(*cloud_normals_);
+	ne.compute(*normals);
 }
+
+void DenseReconstruction::boundaryEstimation(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud_input,const pcl::PointCloud<pcl::Normal>::Ptr &normals, pcl::PointCloud<pcl::Boundary> &boundaries){
+
+	 pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_input_temp(new pcl::PointCloud<pcl::PointXYZRGBA>);
+	 pcl::copyPointCloud(*cloud_input,*cloud_input_temp);
+	 pcl::BoundaryEstimation<pcl::PointXYZRGBA, pcl::Normal, pcl::Boundary> est;
+	 est.setInputCloud (cloud_input_temp);
+	 est.setInputNormals (normals);
+	 est.setRadiusSearch (0.02);   // 2cm radius
+	 est.setSearchMethod (tree_);
+	 est.compute (boundaries);
+
+
+}
+
+
+void DenseReconstruction::addSideWall(std::vector<pcl::PointIndices::Ptr> &clusters_input){
+
+	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_point_cloud;
+	  std::vector<pcl::PointCloud<pcl::Normal>::Ptr> clusters_vec_normals;
+	  std::vector<pcl::PointCloud<pcl::Boundary> > clusters_vec_boundaries;
+//	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_only_boudaries;
+
+
+
+
+
+	  for (int i=0;i<clusters_input.size();i++){
+
+		  pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr cloud_temp(new pcl::PointCloud<pcl::PointXYZLRegionF>);
+
+
+		  pcl::copyPointCloud(*region_grow_point_cloud_,*clusters_input[i],*cloud_temp);
+		  clusters_vec_point_cloud.push_back(cloud_temp);
+	  }
+
+	  for (int i=0;i<clusters_vec_point_cloud.size();i++){
+		  pcl::PointCloud<pcl::Normal>::Ptr normals_temp(new pcl::PointCloud<pcl::Normal>);
+		  pcl::PointCloud<pcl::Boundary> boundary_temp;
+
+
+		  normalsEstimation(clusters_vec_point_cloud[i],normals_temp);
+		  clusters_vec_normals.push_back(normals_temp);
+
+		  boundaryEstimation(clusters_vec_point_cloud[i],normals_temp,boundary_temp);
+		  clusters_vec_boundaries.push_back(boundary_temp);
+	  }
+
+	  for (int i=0;i<clusters_vec_boundaries.size();i++){
+
+		  pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr cloud_temp_boudary(new pcl::PointCloud<pcl::PointXYZLRegionF>);
+
+
+		  for(int j = 0; j < clusters_vec_boundaries[i].size(); j++) {
+				 if (clusters_vec_boundaries[i].points[j].boundary_point != 0) {
+					 cloud_temp_boudary->push_back(clusters_vec_point_cloud[i]->points.at(j));
+				 }
+		  }
+
+		  clusters_vec_only_boudaries.push_back(cloud_temp_boudary);
+
+	  }
+
+
+	  	  std::cerr<<"size of ADDSIDEWALL only boundaries: "<<clusters_vec_only_boudaries.size()<<std::endl;
+
+//	  std::cerr<<"size of ADDSIDEWALL pcls: "<<clusters_vec_point_cloud.size()<<std::endl;
+//	  std::cerr<<"size of ADDSIDEWALL normals: "<<clusters_vec_normals.size()<<std::endl;
+
+
+
+
+}
+
+
+void DenseReconstruction::mergeClusters(std::vector<pcl::PointIndices::Ptr> &clusters_input){
+
+	bool mergeCluster=false;
+	float region=-1;
+
+	int points_number=0;
+
+	for(int i=0;i<clusters_input.size();i++){
+		points_number=+points_number+clusters_input[i]->indices.size();
+
+//		std::cout<<"cluster number respectively: "<<i<<std::endl;
+
+		if(mergeCluster){
+			for(int point=0;point<clusters_input[i]->indices.size();point++){
+				cloud_operational_->points[clusters_input[i]->indices[point]].reg=region;
+			}
+//			std::cerr<<"Merging cluster. Region number= "<<region<<std::endl;
+			mergeCluster=false;
+			region=-1;
+
+			continue;
+		}
+
+
+		for(int cluster_point=0;cluster_point<clusters_input[i]->indices.size();cluster_point++){
+
+			if(cloud_operational_->points[clusters_input[i]->indices[cluster_point]].f!=0){
+//				std::cerr<<"Merging cluster beginning."<<std::endl;
+
+				region=cloud_operational_->points[clusters_input[i]->indices[cluster_point]].f;
+				mergeCluster=true;
+				i--;
+				break;
+
+			}
+
+
+		}
+
+
+
+
+	}
+
+
+
+	std::vector<int> is_to_del;
+	bool delete_flag=false;
+	float region_number=0;
+	std::vector<float>region_numbers;
+	for(int i=0;i<clusters_input.size();i++){
+
+		if(cloud_operational_->points[clusters_input[i]->indices[1]].reg!=0){
+			region_number=cloud_operational_->points[clusters_input[i]->indices[1]].reg;
+			for(int region=0;region<region_numbers.size();region++)
+				if(region_number==region_numbers[region]){
+					delete_flag=true;
+					is_to_del.push_back(i);
+				}
+			if (delete_flag){
+				delete_flag=false;
+				continue;
+			}
+
+			for(int j=i+1;j<clusters_input.size();j++){
+				if(cloud_operational_->points[clusters_input[j]->indices[1]].reg==region_number){
+//					std::cerr<<"REGION NUMBER: "<<region_number<<std::endl;
+//					std::cerr<<"CLUSTERS SIZE BEFORE: "<<clusters_input[i]->indices.size()<<std::endl;
+					clusters_input[i]->indices.insert(clusters_input[i]->indices.end(), clusters_input[j]->indices.begin(), clusters_input[j]->indices.end());
+					region_numbers.push_back(region_number);
+
+				}
+
+			}
+
+
+
+		}
+
+
+	}
+
+
+	//part to have merged clusters
+
+	std::sort(is_to_del.begin(), is_to_del.end());
+	is_to_del.erase(std::unique(is_to_del.begin(), is_to_del.end()), is_to_del.end());
+
+
+
+
+	for(int i=0;i<is_to_del.size();i++){
+
+		is_to_del[i]=is_to_del[i]-i;
+		clusters_input.erase(clusters_input.begin()+is_to_del[i]);
+
+	}
+
+
+
+
+
+
+	std::cout<<"number of point in VECTORS: "<<points_number<<std::endl;
+	std::cout<<"number of points in the PCL: "<<cloud_operational_->points.size()<<std::endl;
+
+
+
+
+
+
+
+
+}
+
 
 void DenseReconstruction::extractEuclideanClustersCurvature(std::vector<pcl::PointIndices::Ptr> &clusters){
 
@@ -191,17 +391,45 @@ void DenseReconstruction::planeSegmentation(const pcl::PointCloud<pcl::PointXYZL
 }
 void DenseReconstruction::planeExtraction(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud_input,pcl::PointIndices::Ptr &inliers,pcl::PointCloud<pcl::PointXYZLRegionF> &cloud_output){
 
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_input_temp(new pcl::PointCloud<pcl::PointXYZ>);
-	pcl::PointCloud<pcl::PointXYZ> cloud_output_temp;
+	pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_input_temp(new pcl::PointCloud<pcl::PointXYZI>);
+	pcl::PointCloud<pcl::PointXYZI> cloud_output_temp;
 
 	pcl::copyPointCloud(*cloud_input,*cloud_input_temp);
 
-	pcl::ExtractIndices<pcl::PointXYZ> extract;
+	pcl::ExtractIndices<pcl::PointXYZI> extract;
 	extract.setInputCloud (cloud_input_temp);
 	extract.setIndices (inliers);
 	extract.setNegative (true);
 	extract.filter (cloud_output_temp);
 	pcl::copyPointCloud(cloud_output_temp,cloud_output);
+
+	for (int i=0;i<cloud_input->points.size();i++){
+		if(cloud_input->points[i].f!=0){
+
+			pcl::PointXYZI searchPointTemp;
+			searchPointTemp.x=cloud_input->points[i].x;
+			searchPointTemp.y=cloud_input->points[i].y;
+			searchPointTemp.z=cloud_input->points[i].z;
+			searchPointTemp.intensity=cloud_input->points[i].f;
+
+								pcl::KdTreeFLANN<pcl::PointXYZI> kdtree;
+
+								kdtree.setInputCloud(cloud_output_temp.makeShared());
+
+								std::vector<int> pointIdxRadiusSearch;
+								std::vector<float> pointRadiusSquaredDistance;
+								float radius=0.002;
+
+								if (kdtree.nearestKSearch(searchPointTemp, 1, pointIdxRadiusSearch,
+										pointRadiusSquaredDistance) > 0) {
+
+									cloud_output.points[pointIdxRadiusSearch[0]].f=cloud_input->points[i].f;
+
+									}
+
+
+		}
+	}
 
 }
 

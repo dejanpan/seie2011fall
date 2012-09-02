@@ -29,6 +29,8 @@
 #include <pcl/segmentation/region_growing_rgb.h>
 #include <pcl/segmentation/region_growing.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/search/pcl_search.h>
+#include <pcl/features/boundary.h>
 
 #include "textureless_objects_tracking/point_type.h"
 
@@ -40,12 +42,17 @@ public:
 	void planeSegmentation(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud,
 			pcl::ModelCoefficients &coefficients, pcl::PointIndices &inliers);
 	void planeExtraction(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud_input,pcl::PointIndices::Ptr &inliers,pcl::PointCloud<pcl::PointXYZLRegionF> &cloud_output);
-	void normalsEstimation(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud);
+	void normalsEstimation(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud,pcl::PointCloud<pcl::Normal>::Ptr &normals);
 	void regionGrowing(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &segments);
 	void extractEuclideanClustersCurvature(std::vector<pcl::PointIndices::Ptr> &clusters);
+	void mergeClusters(std::vector<pcl::PointIndices::Ptr> &clusters_input);
+	void addSideWall(std::vector<pcl::PointIndices::Ptr> &clusters_input);
+
+	void boundaryEstimation(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud_input,const pcl::PointCloud<pcl::Normal>::Ptr &normals, pcl::PointCloud<pcl::Boundary> &boundaries);
 
 
 
+	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_only_boudaries;
 
 	pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr cloud_operational_;
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr region_grow_point_cloud_;

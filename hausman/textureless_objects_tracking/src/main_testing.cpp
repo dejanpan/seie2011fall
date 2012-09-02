@@ -80,7 +80,7 @@ int main(int argc, char **argv)
   pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr cloud_for_dense(new pcl::PointCloud<pcl::PointXYZLRegionF>);
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_for_dense_viz(new pcl::PointCloud<pcl::PointXYZRGBA>);
 
-  pcl::io::loadPCDFile("afterwards.pcd", *cloud_for_dense);
+  pcl::io::loadPCDFile("afterwards_apart.pcd", *cloud_for_dense);
 
   DenseReconstruction dense(cloud_for_dense);
   std::cout<<"size of operational: "<<dense.cloud_operational_->size()<<std::endl;
@@ -98,18 +98,37 @@ int main(int argc, char **argv)
 
   dense.extractEuclideanClustersCurvature(ind_vec);
 
+  dense.mergeClusters(ind_vec);
+
+      pcl::io::savePCDFile("after_merging.pcd",*dense.cloud_operational_);
+
+      dense.addSideWall(ind_vec);
+
   std::cerr<<"CLUSTERS size: "<<ind_vec.size()<<std::endl;
 
   std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> clusters_vec;
 
-  for (int i=0;i<ind_vec.size();i++){
+//  for (int i=0;i<ind_vec.size();i++){
+//
+//	  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_temp(new pcl::PointCloud<pcl::PointXYZRGBA>);
+//
+//
+//	  pcl::copyPointCloud(*(dense.region_grow_point_cloud_),*ind_vec[i],*cloud_temp);
+////	  clusters_vec.push_back(cloud_temp);
+//  }
+
+  for (int i=0;i<dense.clusters_vec_only_boudaries.size();i++){
 
 	  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_temp(new pcl::PointCloud<pcl::PointXYZRGBA>);
 
+	  pcl::copyPointCloud(*(dense.clusters_vec_only_boudaries[i]),*cloud_temp);
 
-	  pcl::copyPointCloud(*(dense.region_grow_point_cloud_),*ind_vec[i],*cloud_temp);
 	  clusters_vec.push_back(cloud_temp);
+
+
   }
+
+
 
   std::cerr<<"CLUSTERS PCL size: "<<clusters_vec.size()<<std::endl;
 
