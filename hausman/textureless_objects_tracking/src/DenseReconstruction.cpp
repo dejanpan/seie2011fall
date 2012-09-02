@@ -69,10 +69,7 @@ void DenseReconstruction::boundaryEstimation(const pcl::PointCloud<pcl::PointXYZ
 
 void DenseReconstruction::addSideWall(std::vector<pcl::PointIndices::Ptr> &clusters_input){
 
-	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_point_cloud;
-	  std::vector<pcl::PointCloud<pcl::Normal>::Ptr> clusters_vec_normals;
-	  std::vector<pcl::PointCloud<pcl::Boundary> > clusters_vec_boundaries;
-//	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_only_boudaries;
+
 
 
 
@@ -86,6 +83,19 @@ void DenseReconstruction::addSideWall(std::vector<pcl::PointIndices::Ptr> &clust
 		  pcl::copyPointCloud(*region_grow_point_cloud_,*clusters_input[i],*cloud_temp);
 		  clusters_vec_point_cloud.push_back(cloud_temp);
 	  }
+
+
+
+for(int how_many=0;how_many<3;how_many++){
+
+//	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_point_cloud;
+	  std::vector<pcl::PointCloud<pcl::Normal>::Ptr> clusters_vec_normals;
+	  std::vector<pcl::PointCloud<pcl::Boundary> > clusters_vec_boundaries;
+//	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_only_boudaries;
+	  std::vector<pcl::PointCloud<pcl::PointXYZRGBA>::Ptr> clusters_vec_temp;
+
+	  clusters_vec_only_boudaries.clear();
+
 
 	  for (int i=0;i<clusters_vec_point_cloud.size();i++){
 		  pcl::PointCloud<pcl::Normal>::Ptr normals_temp(new pcl::PointCloud<pcl::Normal>);
@@ -114,8 +124,109 @@ void DenseReconstruction::addSideWall(std::vector<pcl::PointIndices::Ptr> &clust
 
 	  }
 
+	  for (int i=0;i<clusters_vec_only_boudaries.size();i++){
 
-	  	  std::cerr<<"size of ADDSIDEWALL only boundaries: "<<clusters_vec_only_boudaries.size()<<std::endl;
+			 pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud_temp(new pcl::PointCloud<pcl::PointXYZRGBA>);
+			 pcl::copyPointCloud(*clusters_vec_only_boudaries[i],*cloud_temp);
+			 clusters_vec_temp.push_back(cloud_temp);
+	  }
+
+	  float score_array[clusters_vec_temp.size()][clusters_vec_temp.size()];
+
+	  for(int i=0;i<clusters_vec_temp.size();i++){
+
+		  for(int j=0;j<clusters_vec_temp.size();j++){
+			  score_array[i][j]=0;
+		  }
+
+	  }
+
+	  for (int i=0;i<clusters_vec_temp.size();i++){
+
+		  for (int k=0;k<clusters_vec_temp.size();k++){
+				if(k==i){
+//					score_array[i][k]=0;
+					continue;
+				}
+				for(int j=0;j<clusters_vec_temp[i]->size();j++){
+
+					pcl::PointXYZRGBA searchPointTemp=clusters_vec_temp[i]->points[j];
+
+
+					pcl::KdTreeFLANN<pcl::PointXYZRGBA> kdtree;
+
+
+					if(clusters_vec_temp[k]->size()<1)
+						continue;
+					kdtree.setInputCloud(clusters_vec_temp[k]);
+
+					std::vector<int> pointIdxRadiusSearch;
+					std::vector<float> pointRadiusSquaredDistance;
+					float radius=0.005;
+
+					if (kdtree.radiusSearch(searchPointTemp, radius, pointIdxRadiusSearch,
+							pointRadiusSquaredDistance) > 0) {
+
+						score_array[i][k]=score_array[i][k]+1;
+
+
+						}
+
+				  }
+				score_array[i][k]=score_array[i][k]/clusters_vec_temp[i]->size();
+		  }
+
+	  }
+
+	  for(int i=0;i<clusters_vec_temp.size();i++){
+
+		  for(int j=0;j<clusters_vec_temp.size();j++){
+			  std::cout<<score_array[i][j]<<" ";
+		  }
+		  std::cout<<std::endl;
+
+	  }
+
+	  //merging
+	  std::vector<int> is_to_del;
+
+	  for(int i=0;i<clusters_vec_temp.size();i++){
+
+		  for(int j=0;j<clusters_vec_temp.size();j++){
+			  if(score_array[i][j]>0.45){
+				  clusters_vec_point_cloud[j]->points.insert(clusters_vec_point_cloud[j]->points.end(), clusters_vec_point_cloud[i]->points.begin(), clusters_vec_point_cloud[i]->points.end());
+					is_to_del.push_back(i);
+
+
+			  }
+
+		  }
+
+	  }
+
+	  if(is_to_del.size()>0){
+	  std::cout<<"IS TO DEL SIZE: "<<is_to_del.size()<<std::endl;
+		std::sort(is_to_del.begin(), is_to_del.end());
+		is_to_del.erase(std::unique(is_to_del.begin(), is_to_del.end()), is_to_del.end());
+	  }
+
+
+
+		for(int i=0;i<is_to_del.size();i++){
+
+			std::cout<<"IS TO DEL: "<<is_to_del[i]<<std::endl;
+//			is_to_del[i]=is_to_del[i]-i;
+			clusters_vec_point_cloud.erase(clusters_vec_point_cloud.begin()+is_to_del[i]);
+
+		}
+
+
+
+
+
+
+}
+
 
 //	  std::cerr<<"size of ADDSIDEWALL pcls: "<<clusters_vec_point_cloud.size()<<std::endl;
 //	  std::cerr<<"size of ADDSIDEWALL normals: "<<clusters_vec_normals.size()<<std::endl;
@@ -154,8 +265,13 @@ void DenseReconstruction::mergeClusters(std::vector<pcl::PointIndices::Ptr> &clu
 
 			if(cloud_operational_->points[clusters_input[i]->indices[cluster_point]].f!=0){
 //				std::cerr<<"Merging cluster beginning."<<std::endl;
-
-				region=cloud_operational_->points[clusters_input[i]->indices[cluster_point]].f;
+//				if(cloud_operational_->points[clusters_input[i]->indices[cluster_point]].reg!=0){
+//					std::cout<<std::endl;
+//					std::cout<<"THIS REGION WAS CONSIDERED! "<<std::endl;
+//					std::cout<<std::endl;}
+//					region=10;
+//				else
+					region=cloud_operational_->points[clusters_input[i]->indices[cluster_point]].f;
 				mergeCluster=true;
 				i--;
 				break;
@@ -245,9 +361,9 @@ void DenseReconstruction::mergeClusters(std::vector<pcl::PointIndices::Ptr> &clu
 void DenseReconstruction::extractEuclideanClustersCurvature(std::vector<pcl::PointIndices::Ptr> &clusters){
 
 
-	float tolerance=0.01;//radius of KDTree radius search in region growing in meters
-	double eps_angle=35*M_PI/180;
-	double max_curvature=0.1;  //max value of the curvature of the point form which you can start region growing
+	float tolerance=0.01;//0.01radius of KDTree radius search in region growing in meters
+	double eps_angle=10*M_PI/180;//35
+	double max_curvature=0.1;//0.1  //max value of the curvature of the point form which you can start region growing
 	unsigned int min_pts_per_cluster = 1;
 	unsigned int max_pts_per_cluster = (std::numeric_limits<int>::max) ()	;
     // Create a bool vector of processed point indices, and initialize it to false

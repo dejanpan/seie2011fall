@@ -53,6 +53,7 @@ public:
 
 
 	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_only_boudaries;
+	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_point_cloud;
 
 	pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr cloud_operational_;
 	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr region_grow_point_cloud_;
