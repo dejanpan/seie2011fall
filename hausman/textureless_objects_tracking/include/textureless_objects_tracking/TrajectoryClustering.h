@@ -21,9 +21,9 @@ public:
 	virtual ~TrajectoryClustering();
 	void readFromFile(std::string fname,int features_number);
 	double calcDistance(Eigen::MatrixXf source,Eigen::MatrixXf target);
-	void buildLaplacian(double threshold=0.014,double percentage=0.03);
+	void buildLaplacian(double threshold=0.04,double percentage=0.08);//0.014;0.03
 
-
+	Eigen::MatrixXf laplacian_;
 	std::vector <std::vector<Eigen::MatrixXf> > grouped_features_;
 	int features_number_;
 

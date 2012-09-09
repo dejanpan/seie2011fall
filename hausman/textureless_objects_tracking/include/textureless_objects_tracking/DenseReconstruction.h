@@ -49,7 +49,11 @@ public:
 	void addSideWall(std::vector<pcl::PointIndices::Ptr> &clusters_input);
 
 	void boundaryEstimation(const pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr &cloud_input,const pcl::PointCloud<pcl::Normal>::Ptr &normals, pcl::PointCloud<pcl::Boundary> &boundaries);
-
+	void activeSegmentation (const pcl::PointCloud<pcl::PointXYZLRegionF> &cloud_input,
+	    float search_radius,
+	    double eps_angle,
+	    int fp_index,
+	    pcl::PointIndices &indices_out);
 
 
 	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_only_boudaries;

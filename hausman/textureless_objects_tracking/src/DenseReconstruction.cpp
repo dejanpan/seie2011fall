@@ -67,6 +67,144 @@ void DenseReconstruction::boundaryEstimation(const pcl::PointCloud<pcl::PointXYZ
 }
 
 
+
+void DenseReconstruction::activeSegmentation (const pcl::PointCloud<pcl::PointXYZLRegionF> &cloud_input,
+    float search_radius,
+    double eps_angle,
+    int fp_index,
+    pcl::PointIndices &indices_out)
+{
+
+
+
+
+	  pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+	  pcl::PointCloud<pcl::Boundary> boundary;
+
+
+	  normalsEstimation(cloud_input.makeShared(),normals);
+
+	  boundaryEstimation(cloud_input.makeShared(),normals,boundary);
+
+
+	  std::cerr<<"Index of seed point is: "<<fp_index<<std::endl;
+	  std::cerr<<"Curvature of seed point: "<<normals->points[fp_index].curvature<<std::endl;
+
+
+	pcl::PointCloud<pcl::PointXYZRGBA> cloud_in;
+	pcl::copyPointCloud(cloud_input,cloud_in);
+
+	  pcl::search::KdTree<pcl::PointXYZRGBA>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGBA> ());
+	  tree->setInputCloud(cloud_in.makeShared());
+
+
+  if (fp_index > cloud_in.points.size () || fp_index <0)
+  {
+    PCL_ERROR ("[pcl::activeSegmentation] Fixation point given is invalid\n");
+    return;
+  }
+  if (boundary.points.size () != cloud_in.points.size ())
+  {
+    PCL_ERROR ("[pcl::activeSegmentation] Boundary map given was built for a different dataset (%zu) than the input cloud (%zu)!\n",
+        boundary.points.size () , cloud_in.points.size ());
+    return;
+  }
+  if (tree->getInputCloud ()->points.size () != cloud_in.points.size ())
+  {
+    PCL_ERROR ("[pcl::activeSegmentation] Tree built for a different point cloud dataset (%zu) than the input cloud (%zu)!\n",
+        tree->getInputCloud ()->points.size (), cloud_in.points.size ());
+    return;
+  }
+  if (normals->points.size () != cloud_in.points.size ())
+  {
+    PCL_ERROR ("[pcl::activeSegmentation] Input Normals are for a different point cloud dataset (%zu) than the input cloud (%zu)!\n",
+        normals->points.size (), cloud_in.points.size ());
+    return;
+  }
+  std::vector<int> seed_queue;
+  std::vector<bool> processed (cloud_in.size(), false);
+  seed_queue.push_back (fp_index);
+  indices_out.indices.push_back (fp_index);
+  processed[fp_index] = true;
+  std::vector<int> nn_indices;
+  std::vector<float> nn_distances;
+  //process while there are valid seed points
+
+  for(size_t seed_idx = 0; seed_idx < seed_queue.size();++seed_idx)
+  {
+
+    int curr_seed;
+    curr_seed = seed_queue[seed_idx];
+
+    // Search for seeds
+    if (!tree->radiusSearch (curr_seed, search_radius, nn_indices, nn_distances))
+      continue;
+    //process all points found in the neighborhood
+    bool stop_growing = false;
+    size_t indices_old_size = indices_out.indices.size();
+    for (size_t i=1; i < nn_indices.size (); ++i)
+    {
+      if (processed[nn_indices.at (i)])
+        continue;
+      if (boundary.points[nn_indices.at (i)].boundary_point != 0)
+      {
+        stop_growing=true;
+        indices_out.indices.push_back (nn_indices.at (i));
+        processed[nn_indices.at (i)] = true;
+        break;
+      }
+
+      bool is_convex = false;
+      pcl::PointXYZRGBA temp;
+      temp.x = cloud_in.points[fp_index].x - cloud_in.points[nn_indices.at (i)].x;
+      temp.y = cloud_in.points[fp_index].y - cloud_in.points[nn_indices.at (i)].y;
+      temp.z = cloud_in.points[fp_index].z - cloud_in.points[nn_indices.at (i)].z;
+
+      double dot_p = normals->points[nn_indices.at (i)].normal[0] * temp.x
+          + normals->points[nn_indices.at (i)].normal[1] * temp.y
+          + normals->points[nn_indices.at (i)].normal[2] * temp.z;
+
+      dot_p = dot_p>1? 1:dot_p;
+      dot_p = dot_p<-1 ? -1:dot_p;
+
+      if ((acos (dot_p) > eps_angle*M_PI / 180))
+        is_convex = true;
+
+
+      if (is_convex)
+      {
+        indices_out.indices.push_back (nn_indices.at (i));
+        processed[nn_indices.at (i)] = true;
+      }
+      else
+        break;
+    }//new neighbor
+
+    if(!stop_growing && (indices_old_size != indices_out.indices.size()))
+    {
+      for (size_t j = indices_old_size-1; j < indices_out.indices.size(); ++j)
+        seed_queue.push_back(indices_out.indices.at (j));
+    }
+  }//new seed point
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+ * it has a small bug that is deleting the regions some times.
+ */
 void DenseReconstruction::addSideWall(std::vector<pcl::PointIndices::Ptr> &clusters_input){
 
 
@@ -86,7 +224,7 @@ void DenseReconstruction::addSideWall(std::vector<pcl::PointIndices::Ptr> &clust
 
 
 
-for(int how_many=0;how_many<3;how_many++){
+for(int how_many=0;how_many<6;how_many++){
 
 //	  std::vector<pcl::PointCloud<pcl::PointXYZLRegionF>::Ptr> clusters_vec_point_cloud;
 	  std::vector<pcl::PointCloud<pcl::Normal>::Ptr> clusters_vec_normals;
@@ -178,6 +316,7 @@ for(int how_many=0;how_many<3;how_many++){
 
 	  }
 
+	  std::cout<<"Table: "<<std::endl;
 	  for(int i=0;i<clusters_vec_temp.size();i++){
 
 		  for(int j=0;j<clusters_vec_temp.size();j++){
@@ -193,7 +332,7 @@ for(int how_many=0;how_many<3;how_many++){
 	  for(int i=0;i<clusters_vec_temp.size();i++){
 
 		  for(int j=0;j<clusters_vec_temp.size();j++){
-			  if(score_array[i][j]>0.45){
+			  if(score_array[i][j]>0.4){
 				  clusters_vec_point_cloud[j]->points.insert(clusters_vec_point_cloud[j]->points.end(), clusters_vec_point_cloud[i]->points.begin(), clusters_vec_point_cloud[i]->points.end());
 					is_to_del.push_back(i);
 
@@ -247,13 +386,13 @@ void DenseReconstruction::mergeClusters(std::vector<pcl::PointIndices::Ptr> &clu
 	for(int i=0;i<clusters_input.size();i++){
 		points_number=+points_number+clusters_input[i]->indices.size();
 
-//		std::cout<<"cluster number respectively: "<<i<<std::endl;
+		std::cout<<"cluster number respectively: "<<i<<std::endl;
 
 		if(mergeCluster){
 			for(int point=0;point<clusters_input[i]->indices.size();point++){
 				cloud_operational_->points[clusters_input[i]->indices[point]].reg=region;
 			}
-//			std::cerr<<"Merging cluster. Region number= "<<region<<std::endl;
+			std::cerr<<"Merging cluster. Region number= "<<region<<std::endl;
 			mergeCluster=false;
 			region=-1;
 
@@ -264,7 +403,7 @@ void DenseReconstruction::mergeClusters(std::vector<pcl::PointIndices::Ptr> &clu
 		for(int cluster_point=0;cluster_point<clusters_input[i]->indices.size();cluster_point++){
 
 			if(cloud_operational_->points[clusters_input[i]->indices[cluster_point]].f!=0){
-//				std::cerr<<"Merging cluster beginning."<<std::endl;
+				std::cerr<<"Merging cluster beginning."<<std::endl;
 //				if(cloud_operational_->points[clusters_input[i]->indices[cluster_point]].reg!=0){
 //					std::cout<<std::endl;
 //					std::cout<<"THIS REGION WAS CONSIDERED! "<<std::endl;
@@ -362,7 +501,7 @@ void DenseReconstruction::extractEuclideanClustersCurvature(std::vector<pcl::Poi
 
 
 	float tolerance=0.01;//0.01radius of KDTree radius search in region growing in meters
-	double eps_angle=10*M_PI/180;//35
+	double eps_angle=35*M_PI/180;//35, 10
 	double max_curvature=0.1;//0.1  //max value of the curvature of the point form which you can start region growing
 	unsigned int min_pts_per_cluster = 1;
 	unsigned int max_pts_per_cluster = (std::numeric_limits<int>::max) ()	;
@@ -501,7 +640,7 @@ void DenseReconstruction::planeSegmentation(const pcl::PointCloud<pcl::PointXYZL
 	seg.setModelType(pcl::SACMODEL_PLANE);
 	seg.setMethodType(pcl::SAC_RANSAC);
 	seg.setMaxIterations(1000);
-	seg.setDistanceThreshold(0.03);
+	seg.setDistanceThreshold(0.01);
 	seg.setInputCloud(cloud_temp);
 	seg.segment(inliers, coefficients);
 }

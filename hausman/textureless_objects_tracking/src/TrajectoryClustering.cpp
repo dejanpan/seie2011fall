@@ -32,7 +32,7 @@ double TrajectoryClustering::calcDistance(Eigen::MatrixXf source,Eigen::MatrixXf
 void TrajectoryClustering::buildLaplacian(double threshold,double percentage){
 
 	   Eigen::MatrixXf breaks=Eigen::MatrixXf::Zero(features_number_,features_number_);
-	   Eigen::MatrixXf laplacian=Eigen::MatrixXf::Zero(features_number_,features_number_);
+	   laplacian_=Eigen::MatrixXf::Zero(features_number_,features_number_);
 
 	  //resize all the columns to the same size
 	  std::vector<size_t> sizes;
@@ -80,8 +80,8 @@ void TrajectoryClustering::buildLaplacian(double threshold,double percentage){
 		  for(int j=i+1;j<features_number_;j++){
 
 			  if(breaks(i,j)<percentage){
-				  laplacian(i,j)=1;
-				  laplacian(j,i)=1;
+				  laplacian_(i,j)=1;
+				  laplacian_(j,i)=1;
 			  }
 
 		  }
@@ -89,17 +89,17 @@ void TrajectoryClustering::buildLaplacian(double threshold,double percentage){
 	  Eigen::VectorXf degrees;
 	  Eigen::MatrixXf degrees_m;
 
-	  degrees=(laplacian.colwise().sum()).cast<float>();
+	  degrees=(laplacian_.colwise().sum()).cast<float>();
 	  degrees_m=degrees.asDiagonal();
 
-	  laplacian=degrees_m-laplacian;
+	  laplacian_=degrees_m-laplacian_;
 	  std::cerr<<"laplacian matrix: "<<std::endl;
-	  std::cerr<<laplacian<<std::endl;
+	  std::cerr<<laplacian_<<std::endl;
 
-	  laplacian.eigenvalues();
+	  laplacian_.eigenvalues();
 
 	  std::cerr<<"eigen_values matrix: "<<std::endl;
-	  std::cerr<<laplacian.eigenvalues()<<std::endl;
+	  std::cerr<<laplacian_.eigenvalues()<<std::endl;
 
 }
 void TrajectoryClustering::readFromFile(std::string fname,int features_number){
