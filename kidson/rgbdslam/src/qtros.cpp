@@ -26,6 +26,7 @@ QtROS::QtROS(int argc, char *argv[], const char* node_name) {
 }
 
 void QtROS::quitNow(){ 
+    system("rm node_*.pcd");
   quitfromgui = true; 
 }
 

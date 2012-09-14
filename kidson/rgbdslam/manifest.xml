@@ -15,7 +15,7 @@
   <depend package="roscpp"/>
   <depend package="rosbag"/>
   <depend package="pcl_ros"/>
-  <!--depend package="opencv2"/-->
+  <!-- <depend package="opencv2"/> -->
   <depend package="cv_bridge"/>
   <depend package="sensor_msgs"/>
   <!--depend package="openni_camera"/-->
@@ -26,6 +26,7 @@
   <rosdep name="libglew"/>
   <rosdep name="libdevil"/>
   <rosdep name="eigen"/>
+<!--  <rosdep name="opencv2"/> -->
   <export>
     <rosdoc config="rosdoc.yaml" />
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />

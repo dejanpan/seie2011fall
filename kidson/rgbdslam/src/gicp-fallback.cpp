@@ -22,6 +22,9 @@
  *      Author: engelhar
  */
 
+//fuerte
+#include "ros/ros.h"
+
 #include "gicp-fallback.h"
 
 #include <fstream>

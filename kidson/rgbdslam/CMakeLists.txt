@@ -45,7 +45,7 @@ rosbuild_gensrv()
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library) 
-#rosbuild_add_boost_directories()
+rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 
@@ -175,6 +175,8 @@ ENDIF (${USE_GICP_CODE})
 #############################
 find_package(OpenCV)
 include_directories(${OpenCV_INCLUDE_DIRS})
+MESSAGE("OPENCV DIR--------------------")
+MESSAGE(${OpenCV_INCLUDE_DIRS})
 
 ##############################################################################
 # Sections
@@ -203,7 +205,7 @@ file(GLOB_RECURSE QT_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINK
 # Binaries
 ##############################################################################
 rosbuild_add_executable(rgbdslam ${QT_SOURCES} ${QT_RESOURCES_CPP} ${QT_FORMS_HPP} ${QT_MOC_HPP})
-
+rosbuild_link_boost(rgbdslam signals)
 SET(EXTRA_G2O g2o_core g2o_stuff cholmod)
 
 #set libs
