@@ -37,7 +37,7 @@ ParameterServer* ParameterServer::instance() {
 void ParameterServer::defaultConfig() {
     config["topic_image_mono"]              = std::string("/camera/rgb/image_color");	//record
     config["topic_image_depth"]             = std::string("/camera/depth/image");		//record
-    config["topic_points"]                  = std::string("/camera/rgb/points"); 		//record
+    config["topic_points"]                  = std::string(""); 		//record
     config["wide_topic"]                    = std::string("/wide_stereo/left/image_mono");
     config["wide_cloud_topic"]              = std::string("/wide_stereo/points2");
     config["camera_info_topic"]             = std::string("/camera/rgb/camera_info");	//record
@@ -47,7 +47,7 @@ void ParameterServer::defaultConfig() {
     config["ground_truth_frame_name"]       = std::string("");                  //use empty string if no ground truth tf frame available
     config["base_frame_name"]               = std::string("/openni_camera");    //if the camera is articulated use robot base
     //config["bagfile_name"]                  = std::string("/work/kidson/bag_files/bench1-3sweeps3.bag");
-    config["bagfile_name"]                  = std::string("bag_files/kitchens/dormitory/combined.bag");
+    config["bagfile_name"]                  = std::string("");
     config["batch_processing"]              = static_cast<bool> (false);        //store results and close after bagfile has been processed
     config["fixed_camera"]                  = static_cast<bool> (true);         //is camera fixed relative to base?
     config["feature_detector_type"]         = std::string("SURF");              //SURF, SIFT, FAST, ... see misc.cpp

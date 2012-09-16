@@ -21,7 +21,7 @@
 //#include "pcl/common/transform.h"
 #include "pcl_ros/transforms.h"
 #include "openni_listener.h"
-#include <cv_bridge/CvBridge.h>
+#include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 #include <sstream>
@@ -88,7 +88,7 @@ OpenNIListener::OpenNIListener(ros::NodeHandle nh, GraphManager* graph_mgr)
         ROS_INFO_STREAM("Listening to " << visua_tpc << ", " << depth_tpc << " and " << cloud_tpc);
     } 
     //No cloud, but visual image and depth
-    else if(!visua_tpc.empty() && !depth_tpc.empty() && !cinfo_tpc.empty() && cloud_tpc.empty())
+    else if(!visua_tpc.empty() && !depth_tpc.empty() && !cinfo_tpc.empty()) //&& cloud_tpc.empty())
     {   
         visua_sub_ = new image_sub_type(nh, visua_tpc, q);
         depth_sub_ = new image_sub_type(nh, depth_tpc, q);
@@ -275,8 +275,7 @@ void OpenNIListener::stereoCallback(const sensor_msgs::ImageConstPtr& visual_img
     }
 
     //Get images into OpenCV format
-    sensor_msgs::CvBridge bridge;
-    cv::Mat visual_img =  bridge.imgMsgToCv(visual_img_msg, "mono8");
+    cv::Mat visual_img =  cv_bridge::toCvCopy(visual_img_msg, "mono8")->image;
     if(visual_img.rows != depth_img.rows ||
        visual_img.cols != depth_img.cols ||
        point_cloud->width != (uint32_t) visual_img.cols ||
@@ -312,6 +311,7 @@ void OpenNIListener::noCloudCallback (const sensor_msgs::ImageConstPtr& visual_i
                                       const sensor_msgs::CameraInfoConstPtr& cam_info_msg) 
 {
   struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);
+  ROS_WARN_ONCE_NAMED("eval", "First RGBD-Data Received");
   ROS_DEBUG("Received data from kinect");
   ParameterServer* ps = ParameterServer::instance();
 
@@ -319,15 +319,21 @@ void OpenNIListener::noCloudCallback (const sensor_msgs::ImageConstPtr& visual_i
   if(++data_id_ % ps->get<int>("data_skip_step") != 0){ 
     ROS_INFO_THROTTLE(1, "Skipping Frame %i because of data_skip_step setting (this msg is only shown once a sec)", data_id_);
     if(ps->get<bool>("use_gui")){//Show the image, even if not using it
-      sensor_msgs::CvBridge bridge;
-      cv::Mat depth_float_img = bridge.imgMsgToCv(depth_img_msg);
-      cv::Mat visual_img =  bridge.imgMsgToCv(visual_img_msg);
+      //sensor_msgs::CvBridge bridge;
+      cv::Mat depth_float_img = cv_bridge::toCvCopy(depth_img_msg)->image;
+      //const cv::Mat& depth_float_img_big = cv_bridge::toCvShare(depth_img_msg)->image;
+      cv::Mat visual_img =  cv_bridge::toCvCopy(visual_img_msg)->image;
+      //const cv::Mat& visual_img_big =  cv_bridge::toCvShare(visual_img_msg)->image;
+      //cv::Mat visual_img, depth_float_img;
+      //cv::resize(visual_img_big, visual_img, cv::Size(), 0.25, 0.25);
+      //cv::resize(depth_float_img_big, depth_float_img, cv::Size(), 0.25, 0.25);
       if(visual_img.rows != depth_float_img.rows || 
          visual_img.cols != depth_float_img.cols){
         ROS_ERROR("depth and visual image differ in size! Ignoring Data");
         return;
       }
       depthToCV8UC1(depth_float_img, depth_mono8_img_); //float can't be visualized or used as mask in float format TODO: reprogram keypoint detector to use float values with nan to mask
+      //image_encoding_ = visual_img_msg->encoding;
       Q_EMIT newVisualImage(cvMat2QImage(visual_img, 0)); //visual_idx=0
       Q_EMIT newDepthImage (cvMat2QImage(depth_mono8_img_,1));//overwrites last cvMat2QImage
     }
@@ -335,10 +341,11 @@ void OpenNIListener::noCloudCallback (const sensor_msgs::ImageConstPtr& visual_i
   }
 
 
+
   //Convert images to OpenCV format
-  sensor_msgs::CvBridge bridge;
-  cv::Mat depth_float_img = bridge.imgMsgToCv(depth_img_msg);
-  cv::Mat visual_img =  bridge.imgMsgToCv(visual_img_msg);
+  cv::Mat depth_float_img = cv_bridge::toCvCopy(depth_img_msg)->image;
+  cv::Mat visual_img =  cv_bridge::toCvCopy(visual_img_msg)->image;
+
   if(visual_img.rows != depth_float_img.rows || 
      visual_img.cols != depth_float_img.cols){
     ROS_ERROR("depth and visual image differ in size! Ignoring Data");
@@ -358,6 +365,7 @@ void OpenNIListener::noCloudCallback (const sensor_msgs::ImageConstPtr& visual_i
      bagfile_mutex.unlock();
      if(pause_) return;
   }
+  //image_encoding_ = visual_img_msg->encoding;
 
   if(ps->get<bool>("use_gui")){
     Q_EMIT newVisualImage(cvMat2QImage(visual_img, 0)); //visual_idx=0
@@ -386,9 +394,8 @@ void OpenNIListener::kinectCallback (const sensor_msgs::ImageConstPtr& visual_im
   ROS_DEBUG("Received data from kinect");
 
   //Get images into OpenCV format
-  sensor_msgs::CvBridge bridge;
-  cv::Mat depth_float_img = bridge.imgMsgToCv(depth_img_msg);
-  cv::Mat visual_img =  bridge.imgMsgToCv(visual_img_msg);
+  cv::Mat depth_float_img = cv_bridge::toCvCopy(depth_img_msg)->image;
+  cv::Mat visual_img =  cv_bridge::toCvCopy(visual_img_msg)->image;
   if(visual_img.rows != depth_float_img.rows || 
      visual_img.cols != depth_float_img.cols ||
 
@@ -397,6 +404,7 @@ void OpenNIListener::kinectCallback (const sensor_msgs::ImageConstPtr& visual_im
     ROS_ERROR("PointCloud, depth and visual image differ in size! Ignoring Data");
     return;
   }
+  //image_encoding_ = visual_img_msg->encoding;
   depthToCV8UC1(depth_float_img, depth_mono8_img_); //float can't be visualized or used as mask in float format TODO: reprogram keypoint detector to use float values with nan to mask
 
   if(asyncFrameDrop(depth_img_msg->header.stamp, visual_img_msg->header.stamp)) 

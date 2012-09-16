@@ -423,9 +423,9 @@ pointcloud_type* createXYZRGBPointCloud (const sensor_msgs::ImageConstPtr& depth
   pointcloud_type* cloud (new pointcloud_type() );
   cloud->header.stamp     = depth_msg->header.stamp;
   cloud->header.frame_id  = rgb_msg->header.frame_id;
-  cloud->is_dense         = false;
+  cloud->is_dense         = true; //single point of view, 2d rasterized
 
-  float cx, cy, fx,fy;//principal point and focal lengths
+  float cx, cy, fx, fy;//principal point and focal lengths
   unsigned color_step, color_skip;
 
   cloud->height = depth_msg->height;
@@ -434,10 +434,11 @@ pointcloud_type* createXYZRGBPointCloud (const sensor_msgs::ImageConstPtr& depth
   cy = cam_info->K[5]; //(cloud->height >> 1) - 0.5f;
   fx = 1.0f / cam_info->K[0]; 
   fy = 1.0f / cam_info->K[4]; 
-  int pixel_data_size = 0;
-
+  int pixel_data_size = 3;
+  char red_idx = 0, green_idx = 1, blue_idx = 2;
   if(rgb_msg->encoding.compare("mono8") == 0) pixel_data_size = 1;
-  if(rgb_msg->encoding.compare("rgb8") == 0) pixel_data_size = 3;
+  if(rgb_msg->encoding.compare("bgr8") == 0) { red_idx = 2; blue_idx = 0; }
+
 
   ROS_ERROR_COND(pixel_data_size == 0, "Unknown image encoding: %s!", rgb_msg->encoding.c_str());
   color_step = pixel_data_size * rgb_msg->width / cloud->width;
@@ -475,9 +476,9 @@ pointcloud_type* createXYZRGBPointCloud (const sensor_msgs::ImageConstPtr& depth
       // Fill in color
       RGBValue color;
       if(pixel_data_size == 3){
-        color.Red   = rgb_buffer[color_idx];
-        color.Green = rgb_buffer[color_idx + 1];
-        color.Blue  = rgb_buffer[color_idx + 2];
+        color.Red   = rgb_buffer[color_idx + red_idx];
+        color.Green = rgb_buffer[color_idx + green_idx];
+        color.Blue  = rgb_buffer[color_idx + blue_idx];
       } else {
         color.Red   = color.Green = color.Blue  = rgb_buffer[color_idx];
       }
