@@ -13,7 +13,7 @@
   <depend package="roscpp"/>
   <depend package="sensor_msgs"/>
   <depend package="cv_bridge"/>
-  <depend package="eigen"/>
+  <rosdep name="eigen"/>
   <depend package="opencv2"/>  
 
 </package>

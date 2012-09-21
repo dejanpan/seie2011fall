@@ -173,7 +173,7 @@ ENDIF (${USE_GICP_CODE})
 #############################
 # OpenCV ####################
 #############################
-find_package(OpenCV)
+find_package(OpenCV 2.3 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 MESSAGE("OPENCV DIR--------------------")
 MESSAGE(${OpenCV_INCLUDE_DIRS})
@@ -210,7 +210,7 @@ SET(EXTRA_G2O g2o_core g2o_stuff cholmod)
 
 #set libs
 SET(LIBS_LINK rgbdslam GL GLU ${EXTRA_G2O} g2o_types_slam3d g2o_solver_cholmod g2o_solver_pcg g2o_solver_csparse ${QT_LIBRARIES} ${QT_QTOPENGL_LIBRARY} ${GLUT_LIBRARY} ${OPENGL_LIBRARY} ${OpenCV_LIBS})
-
+#/usr/include/opencv-2.3.1/opencv 
 IF (${USE_SIFT_GPU})
  	SET(LIBS_LINK ${LIBS_LINK} siftgpu)
 ENDIF (${USE_SIFT_GPU})
