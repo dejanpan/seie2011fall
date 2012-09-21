@@ -1,6 +1,9 @@
 <launch>
   <include file="$(find openni_launch)/launch/openni.launch"/>
-  <node pkg="rgbdslam" type="rgbdslam" name="rgbdslam" cwd="node" required="false" output="screen" > </node>
+  <node pkg="rgbdslam" type="rgbdslam" name="rgbdslam" cwd="node" required="false" output="screen" > 
+    <param name="config/topic_image_mono"              value="/camera/rgb/image_color"/>
+    <param name="config/topic_image_depth"             value="/camera/depth/image"/>
+  </node>
   <!--node pkg="rviz" type="rviz" name="rviz" args="-d $(find rgbdslam)/launch/rviz_config.vcg" respawn="false" output="log" > </node-->
   <!--node pkg="rxtools" type="rxconsole" name="rxconsole" output="log" > </node-->
 </launch>

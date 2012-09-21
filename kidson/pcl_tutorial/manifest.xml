@@ -8,7 +8,7 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/pcl_tutorial</url>
-  <depend package="pcl"/>
+  <depend package="pcl16"/>
   <depend package="pcl_ros"/>
   <depend package="roscpp"/>
   <depend package="sensor_msgs"/>

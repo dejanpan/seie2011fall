@@ -1,0 +1,85 @@
+migration guide
+
+also check:
+http://ros.org/wiki/fuerte/Migration
+
+manifest file:
+--------------
+
+change 
+<depend package="eigen"/>
+to 
+<rosdep name="eigen"/>
+
+ROS
+------
+
+Error 'ROS_WARN' was not declared in this scope (or 'ROS_INFO' or 'ROS_DEBUG')
+
+#include <ros/console.h>
+
+openCV
+---------
+
+Ros fuerte uses opencv2.4 instead of 2.3.  A lot has seemed to have changed
+
+the header files will most likely need to change
+for instance to include sift/surf feature detection you now need to include 	
+ "opencv2/core/core.hpp"
+ "opencv2/features2d/features2d.hpp"
+ "opencv2/highgui/highgui.hpp"
+ "opencv2/nonfree/nonfree.hpp"
+
+This may vary, look in /opt/ros/fuerte/include/opencv2 to find the relevant header files.
+
+
+PCL
+----
+
+the PCL stack in fuerte is an empty stack with pcl 1.5 existing as an external library in 
+/opt/ros/fuerte/include/pcl-1.5
+
+if you need pcl 1.6 you can get it by installing 
+sudo apt-get install ros-fuerte-perception-pcl-fuerte-unstable
+
+you can then find the pcl package "pcl16"
+use this by adding it to the manifest file
+<depend package="pcl16"/>
+
+if you need a newer version, or trunk, or an editable version, you can check out the following into your ros_workspace
+
+hg clone https://bitbucket.org/macmason/perception_pcl_fuerte_unstable
+
+edit the Makefile under pcl16 to change the version of pcl you want to check out
+
+http://answers.ros.org/question/36837/how-to-use-current-experimental-pcl-together-with-ros-fuerte/
+http://answers.ros.org/question/39946/upgrading-to-pcl-160-with-ros-fuerte-ubuntu-1204/
+
+
+openni
+-----------
+
+openni_camera does not have any launch files, it only contains the driver
+You now need to launch openni with openni_launch package:
+roslaunch openni_launch openni.launch 
+
+It will complain that the kinect is not calibrated, that's not problem
+You may also see 
+[ERROR] [1348256204.610247227]: Tried to advertise a service that is already advertised in this node [/camera/depth_registered/image_rect_raw/compressedDepth/set_parameters]
+This also doesn't seem to be a problem
+
+You may use the original topics, however you can now also used the "registered" topics, where corrections are done based on camera intrinsics to get rid of lense distortion
+- To use this open dynamic reconfigure
+	rosrun dynamic_reconfigure reconfigure_gui 
+- select /camera/driver
+- select depth_registration.  This is also a parameter you can set in a launch file <arg name="depth_registration" default="true" />
+- use the topics /camera/depth_registered/image_rect and /camera/rgb/image_rect_color
+
+This is all explained in more detail here
+
+http://www.ros.org/wiki/openni_launch
+
+
+
+
+

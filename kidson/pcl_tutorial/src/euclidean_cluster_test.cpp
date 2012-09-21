@@ -8,6 +8,8 @@
 #include <pcl/ModelCoefficients.h>
 #include "pcl/segmentation/extract_clusters.h"
 
+#include "ros/ros.h"
+
 typedef pcl::PointXYZRGB Point;
 typedef pcl::search::KdTree<Point> KdTree;
 typedef KdTree::Ptr KdTreePtr;
