@@ -1,0 +1,11 @@
+  <rosdep name="libglew"/>
+  <rosdep name="libdevil"/>
+  <rosdep name="gsl-dev"/>
+  <rosdep name="gl2ps"/>
+
+ libglew1.5-dev
+ libdevil-dev 
+ libsuitesparse-dev
+ libgsl0-dev
+ libgl2ps-dev 
+ libgl2ps0
