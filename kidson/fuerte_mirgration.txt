@@ -68,7 +68,7 @@ you can then find the pcl package "pcl16"
 use this by adding it to the manifest file
 <depend package="pcl16"/>
 
-However this package contains pcl under the namespace pcl16.  This means all instances of pcl namespace need to be search replaced with pcl16.
+However this package contains pcl under the namespace pcl16.  This means all instances of pcl namespace need to be search replaced with pcl16.  You can find 'pcl_script.sh' in the same folder as this guide.  It will recurse through folders, searching and replacing pcl with pcl16 on source files and CMakeLists files.
 
 if you need a newer version, or trunk, or an editable version, you can check out the following into your ros_workspace
 
