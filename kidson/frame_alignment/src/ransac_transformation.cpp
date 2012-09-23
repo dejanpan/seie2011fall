@@ -6,6 +6,8 @@
  */
 
 #include "ransac_transformation.h"
+//pcl
+#include <pcl/common/transformation_from_correspondences.h>
 
 RansacTransformation::RansacTransformation() {
 	// TODO Auto-generated constructor stub

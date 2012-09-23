@@ -13,8 +13,6 @@
 
 #include <Eigen/Core>
 
-//pcl
-#include <pcl/common/transformation_from_correspondences.h>
 
 class RansacTransformation {
 public:

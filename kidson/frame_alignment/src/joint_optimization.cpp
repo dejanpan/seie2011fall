@@ -15,8 +15,9 @@
 #include <pcl/point_types.h>
 
 //opencv
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
+#include "opencv2/core/core.hpp"
+#include "opencv2/nonfree/features2d.hpp"
+#include "opencv2/highgui/highgui.hpp"
 
 // pcl typedefs
 typedef pcl::PointXYZRGB PointType;
@@ -69,6 +70,12 @@ int
 {
 	PointCloudPtr source_cloud (new PointCloud);
 	PointCloudPtr target_cloud (new PointCloud);
+
+	if(argc < 3)
+	{
+		ROS_WARN("Please provide 2 .pcd files: rosrun frame_matcher joint_optimization source.pcd target.pcd");
+		exit(0);
+	}
 
 	pcl::PCDReader reader;
 	reader.read (argv[1], *source_cloud);

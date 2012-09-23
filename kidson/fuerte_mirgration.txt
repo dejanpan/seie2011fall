@@ -3,7 +3,14 @@ migration guide
 also check:
 http://ros.org/wiki/fuerte/Migration
 
-manifest file:
+ROS
+------
+
+Error 'ROS_WARN' was not declared in this scope (or 'ROS_INFO' or 'ROS_DEBUG')
+
+#include <ros/console.h>
+
+Eigen
 --------------
 
 change 
@@ -11,12 +18,13 @@ change
 to 
 <rosdep name="eigen"/>
 
-ROS
-------
+add to cmake:
+find_package(Eigen REQUIRED)
+include_directories(${EIGEN_INCLUDE_DIRS})
 
-Error 'ROS_WARN' was not declared in this scope (or 'ROS_INFO' or 'ROS_DEBUG')
+no linking required
 
-#include <ros/console.h>
+http://ros.org/wiki/eigen
 
 openCV
 ---------
@@ -32,6 +40,20 @@ for instance to include sift/surf feature detection you now need to include
 
 This may vary, look in /opt/ros/fuerte/include/opencv2 to find the relevant header files.
 
+in manifest:
+  <rosdep name="opencv2"/>
+
+and add to your cmake
+
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+link_directories(${OpenCV_LIBRARY_DIRS})
+
+----- and after adding the target
+
+target_link_libraries(tester ${OpenCV_LIBS})
+
+http://ros.org/wiki/opencv2
 
 PCL
 ----
@@ -46,11 +68,16 @@ you can then find the pcl package "pcl16"
 use this by adding it to the manifest file
 <depend package="pcl16"/>
 
+However this package contains pcl under the namespace pcl16.  This means all instances of pcl namespace need to be search replaced with pcl16.
+
 if you need a newer version, or trunk, or an editable version, you can check out the following into your ros_workspace
 
 hg clone https://bitbucket.org/macmason/perception_pcl_fuerte_unstable
+rosmake pcl16_ros
 
 edit the Makefile under pcl16 to change the version of pcl you want to check out
+
+this also has the pcl16 namespace
 
 http://answers.ros.org/question/36837/how-to-use-current-experimental-pcl-together-with-ros-fuerte/
 http://answers.ros.org/question/39946/upgrading-to-pcl-160-with-ros-fuerte-ubuntu-1204/
