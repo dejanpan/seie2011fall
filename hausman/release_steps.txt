@@ -1,0 +1,10 @@
+Steps to get the interactive_segmentation_package released:
+
+1. Clean up the code.
+2. Work on the better architecture and split the code into 5 classes properly.
+3. Test the code for robustness and make it better.
+4. Document the code.
+5. Get Ferko to release his package and put it as the dependency.
+6. Move all the code to electric brunch.
+7. Migrate the code to fuerte and help Fekro to do the same.
+8. Write a proper tutorial, test it and put it on the webside.
