@@ -119,28 +119,24 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
 void RGBFeatureDetection::findMatches (const cv::Mat& source_descriptors,
     const cv::Mat& target_descriptors, std::vector<cv::DMatch>& matches)
 {
-  if (ParameterServer::instance ()->get<std::string> ("descriptor_matcher") == "FLANN")
+  switch (arameterServer::instance ()->get<std::string> ("descriptor_matcher"))
   {
-    cv::FlannBasedMatcher matcher;
-    matcher.match (source_descriptors, target_descriptors, matches);
-  }
-  else if (ParameterServer::instance ()->get<std::string> ("descriptor_matcher")
-      == "Bruteforce")
-  {
-    cv::DescriptorMatcher* matcher = new cv::BFMatcher (cv::NORM_L1, false);
-    matcher->match (source_descriptors, target_descriptors, matches);
-  }
-  else if (ParameterServer::instance ()->get<std::string> ("descriptor_matcher")
-      == "SIFTGPU")
-  {
-    SiftGPUWrapper::getInstance ()->match (source_descriptors, source_descriptors.rows,
-        target_descriptors, target_descriptors.rows, &matches);
-  }
-  else
-  {
-    ROS_WARN("descriptor_matcher parameter not correctly set, defaulting to FLANN");
-    cv::FlannBasedMatcher matcher;
-    matcher.match (source_descriptors, target_descriptors, matches);
+    case "FLANN":
+      cv::FlannBasedMatcher matcher;
+      matcher.match (source_descriptors, target_descriptors, matches);
+      break;
+    case "Bruteforce":
+      cv::DescriptorMatcher* matcher = new cv::BFMatcher (cv::NORM_L1, false);
+      matcher->match (source_descriptors, target_descriptors, matches);
+      break;
+    case "SIFTGPU":
+      SiftGPUWrapper::getInstance ()->match (source_descriptors, source_descriptors.rows,
+          target_descriptors, target_descriptors.rows, &matches);
+      break;
+    default:
+      ROS_WARN("descriptor_matcher parameter not correctly set, defaulting to FLANN");
+      cv::FlannBasedMatcher matcher;
+      matcher.match (source_descriptors, target_descriptors, matches);
   }
 }
 
