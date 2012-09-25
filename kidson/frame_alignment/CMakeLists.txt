@@ -67,6 +67,7 @@ SET(ADDITIONAL_SOURCES
 src/sift_gpu_wrapper.cpp
 src/parameter_server.cpp
 src/ransac_transformation.cpp
+src/RGBFeatureDetection.cpp
 #src/transformation_estimation_wdf.cpp
 )
 
