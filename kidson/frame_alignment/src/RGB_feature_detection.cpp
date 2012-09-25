@@ -2,10 +2,10 @@
  * RGBFeatureDetection.cpp
  *
  *  Created on: Sep 25, 2012
- *      Author: kidson
+ *      Author: Ross kidson
  */
 
-#include "RGBFeatureDetection.h"
+#include "frame_alignment/RGB_feature_detection.h"
 
 //opencv
 #include "opencv2/core/core.hpp"
@@ -46,7 +46,8 @@ cv::Mat RGBFeatureDetection::restoreCVMatFromPointCloud (PointCloudConstPtr clou
 // Takes a RGB feature pixel location and uses depth information to make it a 3d coordiant
 // this also removes features that have nan as a depth value
 
-void RGBFeatureDetection::projectFeaturesTo3D (std::vector<cv::KeyPoint>& feature_locations_2d,
+void RGBFeatureDetection::projectFeaturesTo3D (
+    std::vector<cv::KeyPoint>& feature_locations_2d,
     std::vector<Eigen::Vector4f> & feature_locations_3d, PointCloudConstPtr point_cloud)
 {
   int index = -1;
@@ -72,8 +73,8 @@ void RGBFeatureDetection::projectFeaturesTo3D (std::vector<cv::KeyPoint>& featur
 }
 
 void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr input_cloud,
-    std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors_2d,
-    std::vector<Eigen::Vector4f>& features_3d)
+    std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors_2d, std::vector<
+        Eigen::Vector4f>& features_3d)
 {
   // get image from pointcloud
   cv::Mat input_image = restoreCVMatFromPointCloud (input_cloud);
@@ -91,7 +92,7 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
   cv::drawKeypoints (image_greyscale, keypoints, output);
   std::stringstream result;
   result << "sift_result" << image_counter_++ << ".jpg";
-  cv::imwrite (result.str(), output);
+  cv::imwrite (result.str (), output);
 
   // get sift descriptors
   cv::SiftDescriptorExtractor extractor;
@@ -110,19 +111,28 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
 }
 
 void RGBFeatureDetection::flannMatcher (const cv::Mat& source_descriptors,
-    const cv::Mat& target_descriptors, std::vector<cv::DMatch>& good_matches)
+    const cv::Mat& target_descriptors, std::vector<cv::DMatch>& matches)
 {
-  // Matching descriptor vectors using FLANN matcher
   cv::FlannBasedMatcher matcher;
-  std::vector<cv::DMatch> matches;
   matcher.match (source_descriptors, target_descriptors, matches);
+}
 
+void RGBFeatureDetection::bruteForceMatcher (const cv::Mat& source_descriptors,
+    const cv::Mat& target_descriptors, std::vector<cv::DMatch>& matches)
+{
+  cv::DescriptorMatcher* matcher = new cv::BFMatcher(cv::NORM_L2,false);
+  matcher->match (source_descriptors, target_descriptors, matches);
+}
+
+void RGBFeatureDetection::OutlierRemoval (const std::vector<cv::DMatch>& matches,
+    std::vector<cv::DMatch>& good_matches)
+{
   // Outlier detection
   double max_dist = 0;
   double min_dist = 100;
 
   //-- Quick calculation of max and min distances between keypoints
-  for (int i = 0; i < source_descriptors.rows; i++)
+  for (uint i = 0; i < matches.size(); i++)
   {
     double dist = matches[i].distance;
     if (dist < min_dist)
@@ -136,7 +146,7 @@ void RGBFeatureDetection::flannMatcher (const cv::Mat& source_descriptors,
 
   //-- Find only "good" matches (i.e. whose distance is less than 2*min_dist )
   //-- PS.- radiusMatch can also be used here.
-  for (int i = 0; i < source_descriptors.rows; i++)
+  for (uint i = 0; i < matches.size(); i++)
   {
     if (matches[i].distance < 3 * min_dist)
       good_matches.push_back (matches[i]);
@@ -146,5 +156,5 @@ void RGBFeatureDetection::flannMatcher (const cv::Mat& source_descriptors,
     printf ("-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i,
         good_matches[i].queryIdx, good_matches[i].trainIdx);
   }
-
 }
+
