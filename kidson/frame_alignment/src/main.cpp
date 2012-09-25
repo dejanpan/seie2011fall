@@ -9,7 +9,7 @@
 #include <iostream>
 
 //local files
-#include "frame_alignment/sift_gpu_wrapper.h"
+//#include "frame_alignment/sift_gpu_wrapper.h"
 #include "frame_alignment/parameter_server.h"
 #include "frame_alignment/ransac_transformation.h"
 #include "frame_alignment/RGB_feature_detection.h"

@@ -23,9 +23,9 @@ ParameterServer* ParameterServer::instance() {
     return _instance;
 }
 void ParameterServer::defaultConfig() {
-    config["feature_extractor"]        = std::string("SURF");            //SIFT, SURF or SIFTGPU
-    config["descriptor_matcher"]       = std::string("dsf");      //Bruteforce, FLANN or SIFTGPU
-	  config["max_keypoints"]            = static_cast<int> (1000);
+    config["feature_extractor_descripter"]    = std::string("SURF");            //SIFT, SURF
+    config["descriptor_matcher"]              = std::string("FLANN");      //Bruteforce, FLANN
+	  config["max_keypoints"]                   = static_cast<int> (1000);
 }
 
 void ParameterServer::getValues() {

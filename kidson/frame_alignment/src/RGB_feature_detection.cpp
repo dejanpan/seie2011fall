@@ -6,7 +6,7 @@
  */
 
 #include "frame_alignment/RGB_feature_detection.h"
-#include "frame_alignment/sift_gpu_wrapper.h"
+//#include "frame_alignment/sift_gpu_wrapper.h"
 #include "frame_alignment/parameter_server.h"
 
 //opencv
@@ -81,17 +81,28 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
   // get image from pointcloud
   cv::Mat input_image = restoreCVMatFromPointCloud (input_cloud);
 
-  std::stringstream resultt;
-  resultt << "pic" << image_counter_++ << ".png";
-  cv::imwrite (resultt.str (), input_image);
-
   // convert to black and white
   cv::Mat image_greyscale;
   cvtColor (input_image, image_greyscale, CV_RGB2GRAY);
 
-  //detect sift features
-  cv::SurfFeatureDetector detector (400);
-  detector.detect (image_greyscale, keypoints);
+  //detect features
+  if (ParameterServer::instance ()->get<std::string> ("feature_extractor_descripter")
+      == "SIFT")
+  {
+    cv::SiftFeatureDetector detector (400);
+    detector.detect (image_greyscale, keypoints);
+
+    cv::SiftDescriptorExtractor extractor;
+    extractor.compute (image_greyscale, keypoints, descriptors_2d);
+  }
+  else
+  {
+    cv::SurfFeatureDetector detector (400);
+    detector.detect (image_greyscale, keypoints);
+
+    cv::SurfDescriptorExtractor extractor;
+    extractor.compute (image_greyscale, keypoints, descriptors_2d);
+  }
 
   // draw features (debugging)
   cv::Mat output;
@@ -99,10 +110,6 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
   std::stringstream result;
   result << "sift_result" << image_counter_++ << ".jpg";
   cv::imwrite (result.str (), output);
-
-  // get sift descriptors
-  cv::SurfDescriptorExtractor extractor;
-  extractor.compute (image_greyscale, keypoints, descriptors_2d);
 
   // project sift descriptors to 3d
   projectFeaturesTo3D (keypoints, features_3d, input_cloud);
@@ -119,24 +126,22 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
 void RGBFeatureDetection::findMatches (const cv::Mat& source_descriptors,
     const cv::Mat& target_descriptors, std::vector<cv::DMatch>& matches)
 {
-  switch (arameterServer::instance ()->get<std::string> ("descriptor_matcher"))
+  if (ParameterServer::instance ()->get<std::string> ("descriptor_matcher") == "FLANN")
   {
-    case "FLANN":
-      cv::FlannBasedMatcher matcher;
-      matcher.match (source_descriptors, target_descriptors, matches);
-      break;
-    case "Bruteforce":
-      cv::DescriptorMatcher* matcher = new cv::BFMatcher (cv::NORM_L1, false);
-      matcher->match (source_descriptors, target_descriptors, matches);
-      break;
-    case "SIFTGPU":
-      SiftGPUWrapper::getInstance ()->match (source_descriptors, source_descriptors.rows,
-          target_descriptors, target_descriptors.rows, &matches);
-      break;
-    default:
-      ROS_WARN("descriptor_matcher parameter not correctly set, defaulting to FLANN");
-      cv::FlannBasedMatcher matcher;
-      matcher.match (source_descriptors, target_descriptors, matches);
+    cv::FlannBasedMatcher matcher;
+    matcher.match (source_descriptors, target_descriptors, matches);
+  }
+  else if (ParameterServer::instance ()->get<std::string> ("descriptor_matcher")
+      == "Bruteforce")
+  {
+    cv::DescriptorMatcher* matcher = new cv::BFMatcher (cv::NORM_L1, false);
+    matcher->match (source_descriptors, target_descriptors, matches);
+  }
+  else
+  {
+    ROS_WARN("descriptor_matcher parameter not correctly set, defaulting to FLANN");
+    cv::FlannBasedMatcher matcher;
+    matcher.match (source_descriptors, target_descriptors, matches);
   }
 }
 

@@ -32,11 +32,12 @@ LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 # SiftGPU ###################
 #############################
 
-set(USE_SIFT_GPU        1)
+set(USE_SIFT_GPU        0)
 set(ENV{SIFT_GPU_MODE}		2) #CUDA = 1, GLSL = 2
 set(ENV{SIFT_GPU_CUDA_PATH}	/usr/local/cuda)	
 
 IF (${USE_SIFT_GPU})
+	SET(ADDITIONAL_SOURCES src/sift_gpu_wrapper.cpp)
 	SET(sift_gpu_build_path ${CMAKE_SOURCE_DIR}/external/siftgpu/linux)
 
 	include_directories(${CMAKE_CURRENT_BINARY_DIR} external/siftgpu/src)
@@ -64,11 +65,11 @@ ENDIF (${USE_SIFT_GPU})
 #rosbuild_add_library(mypcl src/transformation_estimation_wdf.cpp)
 
 SET(ADDITIONAL_SOURCES 
-src/sift_gpu_wrapper.cpp
 src/parameter_server.cpp
 src/ransac_transformation.cpp
 src/RGB_feature_detection.cpp
 #src/transformation_estimation_wdf.cpp
+ ${ADDITIONAL_SOURCES} 
 )
 
 rosbuild_add_executable(joint_optimization src/main.cpp ${ADDITIONAL_SOURCES})
