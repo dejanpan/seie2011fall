@@ -55,9 +55,8 @@ int main (int argc, char** argv)
   std::vector<cv::DMatch> matches, good_matches;
   RGB_feature_detector.findMatches(source_descriptors_2d, target_descriptors_2d,
       matches);
-  //RGB_feature_detector.OutlierRemoval (matches, good_matches);
 
-  //-- Draw only "good" matches
+  //-- Draw matches
   cv::Mat img_matches;
   cv::drawMatches (RGB_feature_detector.restoreCVMatFromPointCloud (source_cloud),
       source_keypoints, RGB_feature_detector.restoreCVMatFromPointCloud (target_cloud),
