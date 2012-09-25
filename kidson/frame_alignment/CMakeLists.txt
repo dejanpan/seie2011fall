@@ -61,8 +61,18 @@ IF (${USE_SIFT_GPU})
 	add_definitions(-DSIFT_GPU_MODE=$ENV{SIFT_GPU_MODE})
 ENDIF (${USE_SIFT_GPU})
 
-SET(ADDITIONAL_SOURCES src/sift_gpu_wrapper.cpp src/parameter_server.cpp src/ransac_transformation.cpp)
-rosbuild_add_executable(joint_optimization src/joint_optimization.cpp )
+#rosbuild_add_library(mypcl src/transformation_estimation_wdf.cpp)
+
+SET(ADDITIONAL_SOURCES 
+src/sift_gpu_wrapper.cpp
+src/parameter_server.cpp
+src/ransac_transformation.cpp
+#src/transformation_estimation_wdf.cpp
+)
+
+rosbuild_add_executable(joint_optimization src/joint_optimization.cpp ${ADDITIONAL_SOURCES})
+
+
 target_link_libraries(joint_optimization siftgpu)
 
 

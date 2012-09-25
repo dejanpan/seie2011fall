@@ -5,10 +5,15 @@
  *      Author: ross
  */
 
+#include <stdio.h>
+#include <iostream>
+
 //local files
 #include "sift_gpu_wrapper.h"
 #include "parameter_server.h"
 #include "ransac_transformation.h"
+
+#include "transformation_estimation_wdf.h"
 
 // pcl
 #include <pcl/io/pcd_io.h>
@@ -28,6 +33,7 @@ typedef pcl::PointXYZRGBNormal PointNormal;
 typedef pcl::PointCloud<PointNormal> PointCloudNormals;
 typedef PointCloudNormals::Ptr PointCloudNormalsPtr;
 typedef PointCloudNormals::ConstPtr PointCloudNormalsConstPtr;
+
 
 void restoreCVMatFromPointCloud(PointCloudConstPtr cloud_in, cv::Mat & restored_image)
 {
@@ -81,6 +87,26 @@ int
 	reader.read (argv[1], *source_cloud);
 	reader.read (argv[2], *target_cloud);
 
+	RansacTransformation rsacTest;
+	rsacTest.testfn();
+	boost::shared_ptr< TransformationEstimationWDF<pcl::PointXYZRGBNormal,pcl::PointXYZRGBNormal> >
+		  		initialTransformWDF(new TransformationEstimationWDF<pcl::PointXYZRGBNormal,pcl::PointXYZRGBNormal>());
+
+		initialTransformWDF->setAlpha(0.5);
+		//initialTransformWDF->setCorrespondecesDFP(indicesSource, indicesTarget);
+
+		// Instantiate ICP
+		pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_wdf;
+
+		// Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
+		icp_wdf.setMaxCorrespondenceDistance (0.05);
+		// Set the maximum number of iterations (criterion 1)
+		icp_wdf.setMaximumIterations (75);
+		// Set the transformation epsilon (criterion 2)
+		icp_wdf.setTransformationEpsilon (1e-8);
+		// Set the euclidean distance difference epsilon (criterion 3)
+		icp_wdf.setEuclideanFitnessEpsilon (0); //1
+
 	cv::Mat source_image;
 	cv::Mat target_image;
 	cv::Mat source_image_greyscale;
@@ -113,13 +139,25 @@ int
 	projectFeaturesTo3D(source_keypoints, source_features_3d, source_cloud);
 	projectFeaturesTo3D(target_keypoints, target_features_3d, target_cloud);
 
-	//-- Step 3: Matching descriptor vectors using FLANN matcher
-	cv::FlannBasedMatcher matcher;
-	std::vector< cv::DMatch > matches;
-	matcher.match( source_descriptors, target_descriptors, matches );
+//	 //-- Step 3: Matching descriptor vectors with a brute force matcher
+//	  cv::BruteForceMatcher< L2<float> > matcher;
+//	  std::vector< DMatch > matches;
+//	  matcher.match( descriptors_1, descriptors_2, matches );
+//
+//	  //-- Draw matches
+//	  cv::Mat img_matches;
+//	  drawMatches( img_1, keypoints_1, img_2, keypoints_2, matches, img_matches );
+//
+//	  //-- Show detected matches
+//	  imshow("Matches", img_matches );
 
-	// Outlier detection
-	// ##### OPENCV CODE- USE RANSAC FOR OUTLIER DETECTION #######
+//	//-- Step 3: Matching descriptor vectors using FLANN matcher
+//	cv::FlannBasedMatcher matcher;
+//	std::vector< cv::DMatch > matches;
+//	matcher.match( source_descriptors, target_descriptors, matches );
+//
+//	// Outlier detection
+//	// ##### OPENCV CODE- USE RANSAC FOR OUTLIER DETECTION #######
 //	double max_dist = 0; double min_dist = 100;
 //
 //	//-- Quick calculation of max and min distances between keypoints
@@ -143,15 +181,15 @@ int
 //	for( uint i = 0; i < good_matches.size(); i++ ){
 //		printf( "-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, good_matches[i].queryIdx, good_matches[i].trainIdx );
 //	}
-
-	//-- Draw only "good" matches
-	cv::Mat img_matches;
-	drawMatches( source_image, source_keypoints, target_image, target_keypoints,
-			   matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
-			   std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-
-	//-- Show detected matches
-	imshow( "Good Matches", img_matches );
+//
+//	//-- Draw only "good" matches
+//	cv::Mat img_matches;
+//	drawMatches( source_image, source_keypoints, target_image, target_keypoints,
+//			good_matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
+//			   std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+//
+//	//-- Show detected matches
+//	imshow( "Good Matches", img_matches );
 
 
 	cv::waitKey(0);
