@@ -67,11 +67,11 @@ SET(ADDITIONAL_SOURCES
 src/sift_gpu_wrapper.cpp
 src/parameter_server.cpp
 src/ransac_transformation.cpp
-src/RGBFeatureDetection.cpp
+src/RGB_feature_detection.cpp
 #src/transformation_estimation_wdf.cpp
 )
 
-rosbuild_add_executable(joint_optimization src/joint_optimization.cpp ${ADDITIONAL_SOURCES})
+rosbuild_add_executable(joint_optimization src/main.cpp ${ADDITIONAL_SOURCES})
 
 
 target_link_libraries(joint_optimization siftgpu)

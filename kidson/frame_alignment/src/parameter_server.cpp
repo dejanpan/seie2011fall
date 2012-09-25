@@ -2,7 +2,7 @@
  * parameter_server.cpp
  *
  */
-#include "parameter_server.h"
+#include "frame_alignment/parameter_server.h"
 
 using namespace std;
 

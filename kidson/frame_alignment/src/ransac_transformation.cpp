@@ -5,7 +5,7 @@
  *      Author: ross
  */
 
-#include "ransac_transformation.h"
+#include "frame_alignment/ransac_transformation.h"
 //pcl
 //#include <pcl/common/transformation_from_correspondences.h>
 #include <iostream>
