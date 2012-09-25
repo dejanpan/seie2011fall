@@ -19,13 +19,13 @@ ParameterServer* ParameterServer::instance() {
     if (_instance == NULL) {
         _instance = new ParameterServer();
     }
-    //getValues();
+
     return _instance;
 }
 void ParameterServer::defaultConfig() {
-	// bioloid_master parameters
-    config["SIFT_feature_extractor"]        = std::string("OPENCV");              //openCV or SIFTGPU
-	config["max_keypoints"]                 = static_cast<int> (1000);
+    config["feature_extractor"]        = std::string("SURF");            //SIFT, SURF or SIFTGPU
+    config["descriptor_matcher"]       = std::string("dsf");      //Bruteforce, FLANN or SIFTGPU
+	  config["max_keypoints"]            = static_cast<int> (1000);
 }
 
 void ParameterServer::getValues() {

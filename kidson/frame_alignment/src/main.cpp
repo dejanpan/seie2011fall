@@ -26,6 +26,8 @@
 
 int main (int argc, char** argv)
 {
+  ros::init(argc, argv, "frame_alignment");
+
   PointCloudPtr source_cloud (new PointCloud);
   PointCloudPtr target_cloud (new PointCloud);
 
@@ -38,8 +40,8 @@ int main (int argc, char** argv)
   reader.read (argv[1], *source_cloud);
   reader.read (argv[2], *target_cloud);
 
-  RGBFeatureDetection RGB_feature_detector;
   // Extract RGB features and project into 3d
+  RGBFeatureDetection RGB_feature_detector;
   std::vector<Eigen::Vector4f> source_features_3d, target_features_3d;
   std::vector<cv::KeyPoint> source_keypoints, target_keypoints;
   cv::Mat source_descriptors_2d, target_descriptors_2d;
@@ -51,15 +53,15 @@ int main (int argc, char** argv)
 
   // Match features using opencv (doesn't consider depth info)
   std::vector<cv::DMatch> matches, good_matches;
-  RGB_feature_detector.bruteForceMatcher(source_descriptors_2d, target_descriptors_2d,
+  RGB_feature_detector.findMatches(source_descriptors_2d, target_descriptors_2d,
       matches);
-  RGB_feature_detector.OutlierRemoval(matches, good_matches);
+  //RGB_feature_detector.OutlierRemoval (matches, good_matches);
 
   //-- Draw only "good" matches
   cv::Mat img_matches;
   cv::drawMatches (RGB_feature_detector.restoreCVMatFromPointCloud (source_cloud),
       source_keypoints, RGB_feature_detector.restoreCVMatFromPointCloud (target_cloud),
-      target_keypoints, good_matches, img_matches, cv::Scalar::all (-1), cv::Scalar::all (
+      target_keypoints, matches, img_matches, cv::Scalar::all (-1), cv::Scalar::all (
           -1), std::vector<char> (), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
 
   //-- Show detected matches

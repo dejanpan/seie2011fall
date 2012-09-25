@@ -21,7 +21,7 @@ class RGBFeatureDetection
 
     cv::Mat restoreCVMatFromPointCloud (PointCloudConstPtr cloud_in);
 
-    void projectFeaturesTo3D (std::vector<cv::KeyPoint>& feature_locations_2d,
+    void projectFeaturesTo3D (const std::vector<cv::KeyPoint>& feature_locations_2d,
         std::vector<Eigen::Vector4f> & feature_locations_3d,
         PointCloudConstPtr point_cloud);
 
@@ -32,10 +32,7 @@ class RGBFeatureDetection
     void extractVisualFeaturesFromPointCloud (PointCloudPtr input_cloud, std::vector<
         Eigen::Vector4f>& features_3d);
 
-    void flannMatcher (const cv::Mat& source_descriptors,
-        const cv::Mat& target_descriptors, std::vector<cv::DMatch>& good_matches);
-
-    void bruteForceMatcher (const cv::Mat& source_descriptors,
+    void findMatches (const cv::Mat& source_descriptors,
         const cv::Mat& target_descriptors, std::vector<cv::DMatch>& good_matches);
 
     void OutlierRemoval (const std::vector<cv::DMatch>& matches,
