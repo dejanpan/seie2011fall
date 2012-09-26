@@ -38,12 +38,10 @@ int main (int argc, char** argv)
     exit (0);
   }
 
-  //  joint_opt_trafo = performJointOptimization (source_cloud_ptr, target_cloud_ptr,
-  //      source_feature_indices, target_feature_indices, ransac_trafo);
+  joint_opt_trafo = performJointOptimization (source_cloud_ptr, target_cloud_ptr,
+      source_feature_indices, target_feature_indices, ransac_trafo);
 
   transformAndWriteToFile (source_cloud_ptr, ransac_trafo);
-  writeFeaturePointCloudsToFile (source_cloud_ptr, source_feature_indices, target_cloud_ptr,
-      target_feature_indices, ransac_trafo);
 
   return 0;
 }

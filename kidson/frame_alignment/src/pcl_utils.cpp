@@ -30,5 +30,6 @@ void writeFeaturePointCloudsToFile (const PointCloudConstPtr source_cloud,
   writer.write ("source_feature_cloud.pcd", *source_cloud, source_indices, false);
   writer.write ("source_cloud.pcd", *source_cloud, false);
   writer.write ("target_feature_cloud.pcd", *target_cloud, target_indices, false);
+  writer.write ("target_cloud.pcd", *target_cloud, false);
   writer.write ("transformed_feature_cloud.pcd", *transformed_cloud, source_indices, false);
 }
