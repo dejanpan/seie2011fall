@@ -41,7 +41,7 @@ class RansacTransformation
             std::vector<cv::DMatch>* initial_matches,
             Eigen::Matrix4f& resulting_transformation,
             float& rmse,
-            std::vector<cv::DMatch>& matches, int min_matches);
+            std::vector<cv::DMatch>& matches, uint min_matches);
 };
 
 #endif /* RANSACTRANSFORMATION_H_ */

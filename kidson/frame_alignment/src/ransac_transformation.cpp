@@ -156,7 +156,7 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
                                        Eigen::Matrix4f& resulting_transformation,
                                        float& rmse,
                                        std::vector<cv::DMatch>& matches,
-                                       int min_matches)
+                                       uint min_matches)
 {
   struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);
 
@@ -222,7 +222,7 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
       best_inlier_invalid = inlier.size();
       best_error_invalid = inlier_error;
     }
-    // ROS_INFO("iteration %d  cnt: %d, best: %d,  error: %.2f",n_iter, inlier.size(), best_inlier_cnt, inlier_error*100);
+    ROS_DEBUG("iteration %d  cnt: %lu, best: %u,  error: %.2f",n_iter, inlier.size(), best_inlier_cnt, inlier_error*100);
 
     if(inlier.size() < min_inlier_threshold || inlier_error > max_dist_m){
       ROS_DEBUG("Skipped iteration: inliers: %i (min %i), inlier_error: %.2f (max %.2f)", (int)inlier.size(), (int) min_inlier_threshold,  inlier_error*100, max_dist_m*100);
@@ -300,7 +300,7 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
     }
   } //iterations
   ROS_INFO("%i good iterations (from %i), inlier pct %i, inlier cnt: %i, error: %.2f cm",valid_iterations, ransac_iterations, (int) (matches.size()*1.0/initial_matches->size()*100),(int) matches.size(),rmse*100);
-  // ROS_INFO("best overall: inlier: %i, error: %.2f",best_inlier_invalid, best_error_invalid*100);
+  ROS_DEBUG("best overall: inlier: %i, error: %.2f",best_inlier_invalid, best_error_invalid*100);
 
   clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
   return matches.size() >= min_inlier_threshold;

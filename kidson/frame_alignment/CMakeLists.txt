@@ -28,9 +28,8 @@ LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 
-#############################
-# SiftGPU ###################
-#############################
+
+############# SiftGPU ###################
 
 set(USE_SIFT_GPU        0)
 set(ENV{SIFT_GPU_MODE}		2) #CUDA = 1, GLSL = 2
@@ -62,15 +61,18 @@ IF (${USE_SIFT_GPU})
 	add_definitions(-DSIFT_GPU_MODE=$ENV{SIFT_GPU_MODE})
 ENDIF (${USE_SIFT_GPU})
 
-#############################
-# Eigen## ###################
-#############################
-#find_package(Eigen REQUIRED)
-#include_directories(${Eigen_INCLUDE_DIRS})
+############# Eigen #####################
 
-include_directories(/work/kidson/ros_workspace/g2o/build/g2o/EXTERNAL/eigen3)
+find_package(Eigen REQUIRED)
+include_directories(${Eigen_INCLUDE_DIRS})
 
-#rosbuild_add_library(mypcl src/transformation_estimation_wdf.cpp)
+############ OpenCV #####################
+
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+link_directories(${OpenCV_LIBRARY_DIRS})
+
+############ Make target #####################
 
 SET(ADDITIONAL_SOURCES 
 src/parameter_server.cpp
@@ -83,7 +85,4 @@ src/RGB_feature_detection.cpp
 rosbuild_add_executable(joint_optimization src/main.cpp ${ADDITIONAL_SOURCES})
 
 
-target_link_libraries(joint_optimization siftgpu)
-
-
-
+target_link_libraries(joint_optimization siftgpu ${OpenCV_LIBS})
