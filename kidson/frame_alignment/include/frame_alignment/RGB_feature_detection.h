@@ -25,11 +25,11 @@ class RGBFeatureDetection
         std::vector<Eigen::Vector4f> & feature_locations_3d,
         PointCloudConstPtr point_cloud);
 
-    void extractVisualFeaturesFromPointCloud (PointCloudPtr input_cloud, std::vector<
+    void extractVisualFeaturesFromPointCloud (PointCloudConstPtr input_cloud, std::vector<
         cv::KeyPoint>& keypoints, cv::Mat& descriptors_2d,
         std::vector<Eigen::Vector4f>& features_3d);
 
-    void extractVisualFeaturesFromPointCloud (PointCloudPtr input_cloud, std::vector<
+    void extractVisualFeaturesFromPointCloud (PointCloudConstPtr input_cloud, std::vector<
         Eigen::Vector4f>& features_3d);
 
     void findMatches (const cv::Mat& source_descriptors,

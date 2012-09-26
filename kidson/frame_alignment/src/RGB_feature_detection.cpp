@@ -72,7 +72,7 @@ void RGBFeatureDetection::projectFeaturesTo3D (std::vector<cv::KeyPoint>& featur
   }
 }
 
-void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr input_cloud,
+void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudConstPtr input_cloud,
     std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors_2d,
     std::vector<Eigen::Vector4f>& features_3d)
 {
@@ -110,7 +110,7 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
   }
 }
 
-void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr input_cloud,
+void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudConstPtr input_cloud,
     std::vector<Eigen::Vector4f>& features_3d)
 {
   std::vector<cv::KeyPoint> keypoints;

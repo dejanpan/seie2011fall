@@ -80,6 +80,7 @@ src/ransac_transformation.cpp
 src/RGB_feature_detection.cpp
 src/RGB_feature_matcher.cpp
 src/pcl_utils.cpp
+src/joint_optimize_wrapper.cpp
 #src/transformation_estimation_wdf.cpp
  ${ADDITIONAL_SOURCES} 
 )
