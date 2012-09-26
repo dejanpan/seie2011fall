@@ -47,8 +47,7 @@ cv::Mat RGBFeatureDetection::restoreCVMatFromPointCloud (PointCloudConstPtr clou
 // Takes a RGB feature pixel location and uses depth information to make it a 3d coordiant
 // this also removes keypoints that have NaN depths
 
-void RGBFeatureDetection::projectFeaturesTo3D (
-    std::vector<cv::KeyPoint>& feature_locations_2d,
+void RGBFeatureDetection::projectFeaturesTo3D (std::vector<cv::KeyPoint>& feature_locations_2d,
     std::vector<Eigen::Vector4f> & feature_locations_3d, PointCloudConstPtr point_cloud)
 {
   int index = -1;
@@ -63,7 +62,7 @@ void RGBFeatureDetection::projectFeaturesTo3D (
     if (isnan (p3d.x) || isnan (p3d.y) || isnan (p3d.z))
     {
       ROS_DEBUG ("Feature %d has been extracted at NaN depth. Omitting", i);
-            feature_locations_2d.erase (feature_locations_2d.begin () + i);
+      feature_locations_2d.erase (feature_locations_2d.begin () + i);
       continue;
     }
 
@@ -85,34 +84,30 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
   cvtColor (input_image, image_greyscale, CV_RGB2GRAY);
 
   //detect features
+  cv::FeatureDetector* detector;
+  cv::DescriptorExtractor* extractor;
   if (ParameterServer::instance ()->get<std::string> ("feature_extractor_descripter") == "SIFT")
   {
-    cv::SiftFeatureDetector detector (400);
-    detector.detect (image_greyscale, keypoints);
-
-    projectFeaturesTo3D (keypoints, features_3d, input_cloud);
-
-    cv::SiftDescriptorExtractor extractor;
-    extractor.compute (image_greyscale, keypoints, descriptors_2d);
+    detector = new cv::SiftFeatureDetector;
+    extractor = new cv::SiftDescriptorExtractor;
   }
   else
   {
-    cv::SurfFeatureDetector detector (400);
-    detector.detect (image_greyscale, keypoints);
-
-    projectFeaturesTo3D (keypoints, features_3d, input_cloud);
-
-    cv::SurfDescriptorExtractor extractor;
-    extractor.compute (image_greyscale, keypoints, descriptors_2d);
+    detector = new cv::SurfFeatureDetector (400);
+    extractor = new cv::SurfDescriptorExtractor;
   }
+  detector->detect (image_greyscale, keypoints);
+  projectFeaturesTo3D (keypoints, features_3d, input_cloud);
+  extractor->compute (image_greyscale, keypoints, descriptors_2d);
 
-  // draw features (debugging)
-  cv::Mat output;
-  cv::drawKeypoints (image_greyscale, keypoints, output);
-  std::stringstream result;
-  result << "sift_result" << image_counter_++ << ".jpg";
-  cv::imwrite (result.str (), output);
-
+  if (ParameterServer::instance ()->get<bool> ("save_features_image"))
+  {
+    cv::Mat output;
+    cv::drawKeypoints (image_greyscale, keypoints, output);
+    std::stringstream result;
+    result << "sift_result" << image_counter_++ << ".jpg";
+    cv::imwrite (result.str (), output);
+  }
 }
 
 void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr input_cloud,
@@ -121,62 +116,5 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
   std::vector<cv::KeyPoint> keypoints;
   cv::Mat descriptors;
   extractVisualFeaturesFromPointCloud (input_cloud, keypoints, descriptors, features_3d);
-}
-
-void RGBFeatureDetection::findMatches (const cv::Mat& source_descriptors,
-    const cv::Mat& target_descriptors, std::vector<cv::DMatch>& matches)
-{
-  if (ParameterServer::instance ()->get<std::string> ("descriptor_matcher") == "FLANN")
-  {
-    cv::FlannBasedMatcher matcher;
-    matcher.match (source_descriptors, target_descriptors, matches);
-  }
-  else if (ParameterServer::instance ()->get<std::string> ("descriptor_matcher") == "Bruteforce")
-  {
-    cv::DescriptorMatcher* matcher = new cv::BFMatcher (cv::NORM_L1, false);
-    matcher->match (source_descriptors, target_descriptors, matches);
-  }
-  else
-  {
-    ROS_WARN("descriptor_matcher parameter not correctly set, defaulting to FLANN");
-    cv::FlannBasedMatcher matcher;
-    matcher.match (source_descriptors, target_descriptors, matches);
-  }
-}
-
-// crude outlier removal implementation.  RANSAC is preferred to find outliers
-
-void RGBFeatureDetection::OutlierRemoval (const std::vector<cv::DMatch>& matches, std::vector<
-    cv::DMatch>& good_matches)
-{
-  // Outlier detection
-  double max_dist = 0;
-  double min_dist = 100;
-
-  //-- Quick calculation of max and min distances between keypoints
-  for (uint i = 0; i < matches.size (); i++)
-  {
-    double dist = matches[i].distance;
-    if (dist < min_dist)
-      min_dist = dist;
-    if (dist > max_dist)
-      max_dist = dist;
-  }
-
-  printf ("-- Max dist : %f \n", max_dist);
-  printf ("-- Min dist : %f \n", min_dist);
-
-  //-- Find only "good" matches (i.e. whose distance is less than 2*min_dist )
-  //-- PS.- radiusMatch can also be used here.
-  for (uint i = 0; i < matches.size (); i++)
-  {
-    if (matches[i].distance < 4 * min_dist)
-      good_matches.push_back (matches[i]);
-  }
-  for (uint i = 0; i < good_matches.size (); i++)
-  {
-    printf ("-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i,
-        good_matches[i].queryIdx, good_matches[i].trainIdx);
-  }
 }
 

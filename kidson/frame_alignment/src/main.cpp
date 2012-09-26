@@ -58,10 +58,8 @@ int main (int argc, char** argv)
       source_keypoints, RGB_feature_detector.restoreCVMatFromPointCloud (target_cloud),
       target_keypoints, matches, img_matches, cv::Scalar::all (-1), cv::Scalar::all (-1),
       std::vector<char> (), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-
-  //-- Show detected matches
   cv::imshow ("Matches", img_matches);
-  cv::moveWindow("Matches", -10, 0);
+  cv::moveWindow ("Matches", -10, 0);
 
   RansacTransformation ransac_transformer;
   Eigen::Matrix4f ransac_trafo;
@@ -70,18 +68,53 @@ int main (int argc, char** argv)
       target_feature_locations_3d, &matches, ransac_trafo, rmse, good_matches,
       ParameterServer::instance ()->get<int> ("minimum_inliers"));
 
-  ROS_INFO_STREAM("Final transformation from RANSAC: " << ransac_trafo);
-  transformAndWriteToFile (source_cloud, ransac_trafo);
-
   cv::drawMatches (RGB_feature_detector.restoreCVMatFromPointCloud (source_cloud),
       source_keypoints, RGB_feature_detector.restoreCVMatFromPointCloud (target_cloud),
       target_keypoints, good_matches, img_matches, cv::Scalar::all (-1), cv::Scalar::all (-1),
       std::vector<char> (), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-
-  //-- Show detected matches
   cv::imshow ("Good Matches", img_matches);
-  cv::moveWindow("Good Matches", -10, 500);
-  cv::waitKey(0);
+  cv::moveWindow ("Good Matches", -10, 500);
+  cv::waitKey (0);
+
+  // PERFORM RGBD-ICP JOINT OPTIMIZATION --------------------------
+
+//  boost::shared_ptr<TransformationEstimationWDF<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> >
+//      initialTransformWDF (new TransformationEstimationWDF<pcl::PointXYZRGBNormal,
+//          pcl::PointXYZRGBNormal> ());
+//
+//  initialTransformWDF->setAlpha (alpha);
+//  initialTransformWDF->setCorrespondecesDFP (indicesSource, indicesTarget);
+//
+//  // Instantiate ICP
+//  pcl::IterativeClosestPoint<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> icp_wdf;
+//
+//  // Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
+//  icp_wdf.setMaxCorrespondenceDistance (0.05);
+//  // Set the maximum number of iterations (criterion 1)
+//  icp_wdf.setMaximumIterations (75);
+//  // Set the transformation epsilon (criterion 2)
+//  icp_wdf.setTransformationEpsilon (1e-8);
+//  // Set the euclidean distance difference epsilon (criterion 3)
+//  icp_wdf.setEuclideanFitnessEpsilon (0); //1
+//
+//  // Set TransformationEstimationWDF as ICP transform estimator
+//  icp_wdf.setTransformationEstimation (initialTransformWDF);
+//
+//  icp_wdf.setInputCloud (concatinatedSourceCloud);
+//  icp_wdf.setInputTarget (concatinatedTargetCloud);
+//
+//  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_transformed (new pcl::PointCloud<
+//      pcl::PointXYZRGBNormal>);
+//  // As before, due to my initial bad naming, it is the "target" that is being transformed
+//  //                  set initial transform
+//  ROS_INFO_STREAM("---------------------------------------------------------      indices size: " << indicesSource.size() );
+//  if (indicesSource.size () < MINIMUM_FEATURES)
+//    icp_wdf.align (*cloud_transformed);
+//  else
+//    icp_wdf.align (*cloud_transformed, ransacInverse);
+//  std::cout << "[SIIMCloudMatch::runICPMatch] Has converged? = " << icp_wdf.hasConverged ()
+//      << std::endl << " fitness score (SSD): " << icp_wdf.getFitnessScore (1000) << std::endl;
+//  icp_wdf.getFinalTransformation ();
 
   return 0;
 }
