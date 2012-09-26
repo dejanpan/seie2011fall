@@ -19,7 +19,8 @@ int main (int argc, char** argv)
 {
   if (argc < 3)
   {
-    ROS_WARN("Please provide 2 .pcd files: rosrun frame_matcher joint_optimization source.pcd target.pcd");
+    ROS_WARN(
+        "Please provide 2 .pcd files: rosrun frame_matcher joint_optimization source.pcd target.pcd");
     exit (0);
   }
   ros::init (argc, argv, "frame_alignment");
@@ -32,9 +33,10 @@ int main (int argc, char** argv)
   RGBFeatureMatcher point_cloud_matcher (source_cloud_ptr, target_cloud_ptr);
   std::vector<int> source_feature_indices, target_feature_indices;
   Eigen::Matrix4f ransac_trafo, joint_opt_trafo;
-  if (!point_cloud_matcher.getMatches (source_feature_indices, target_feature_indices, ransac_trafo))
+  if (!point_cloud_matcher.getMatches (source_feature_indices, target_feature_indices,
+      ransac_trafo))
   {
-    ROS_ERROR("Not enough feature matches between frames.  Adjust 'minimum inliers parameter'");
+    ROS_ERROR( "Not enough feature matches between frames.  Adjust 'minimum inliers parameter'");
     exit (0);
   }
 
