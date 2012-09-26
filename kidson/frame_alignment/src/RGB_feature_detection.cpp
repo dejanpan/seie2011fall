@@ -45,9 +45,10 @@ cv::Mat RGBFeatureDetection::restoreCVMatFromPointCloud (PointCloudConstPtr clou
 // projectFeaturesTo3D
 //
 // Takes a RGB feature pixel location and uses depth information to make it a 3d coordiant
+// this also removes keypoints that have NaN depths
 
 void RGBFeatureDetection::projectFeaturesTo3D (
-    const std::vector<cv::KeyPoint>& feature_locations_2d,
+    std::vector<cv::KeyPoint>& feature_locations_2d,
     std::vector<Eigen::Vector4f> & feature_locations_3d, PointCloudConstPtr point_cloud)
 {
   int index = -1;
@@ -62,8 +63,7 @@ void RGBFeatureDetection::projectFeaturesTo3D (
     if (isnan (p3d.x) || isnan (p3d.y) || isnan (p3d.z))
     {
       ROS_DEBUG ("Feature %d has been extracted at NaN depth. Omitting", i);
-      //      feature_locations_2d.erase (feature_locations_2d.begin () + i);
-      i++;
+            feature_locations_2d.erase (feature_locations_2d.begin () + i);
       continue;
     }
 
@@ -74,8 +74,8 @@ void RGBFeatureDetection::projectFeaturesTo3D (
 }
 
 void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr input_cloud,
-    std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors_2d, std::vector<
-        Eigen::Vector4f>& features_3d)
+    std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors_2d,
+    std::vector<Eigen::Vector4f>& features_3d)
 {
   // get image from pointcloud
   cv::Mat input_image = restoreCVMatFromPointCloud (input_cloud);
@@ -85,11 +85,12 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
   cvtColor (input_image, image_greyscale, CV_RGB2GRAY);
 
   //detect features
-  if (ParameterServer::instance ()->get<std::string> ("feature_extractor_descripter")
-      == "SIFT")
+  if (ParameterServer::instance ()->get<std::string> ("feature_extractor_descripter") == "SIFT")
   {
     cv::SiftFeatureDetector detector (400);
     detector.detect (image_greyscale, keypoints);
+
+    projectFeaturesTo3D (keypoints, features_3d, input_cloud);
 
     cv::SiftDescriptorExtractor extractor;
     extractor.compute (image_greyscale, keypoints, descriptors_2d);
@@ -98,6 +99,8 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
   {
     cv::SurfFeatureDetector detector (400);
     detector.detect (image_greyscale, keypoints);
+
+    projectFeaturesTo3D (keypoints, features_3d, input_cloud);
 
     cv::SurfDescriptorExtractor extractor;
     extractor.compute (image_greyscale, keypoints, descriptors_2d);
@@ -110,8 +113,6 @@ void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr inp
   result << "sift_result" << image_counter_++ << ".jpg";
   cv::imwrite (result.str (), output);
 
-  // project sift descriptors to 3d
-  projectFeaturesTo3D (keypoints, features_3d, input_cloud);
 }
 
 void RGBFeatureDetection::extractVisualFeaturesFromPointCloud (PointCloudPtr input_cloud,
@@ -130,8 +131,7 @@ void RGBFeatureDetection::findMatches (const cv::Mat& source_descriptors,
     cv::FlannBasedMatcher matcher;
     matcher.match (source_descriptors, target_descriptors, matches);
   }
-  else if (ParameterServer::instance ()->get<std::string> ("descriptor_matcher")
-      == "Bruteforce")
+  else if (ParameterServer::instance ()->get<std::string> ("descriptor_matcher") == "Bruteforce")
   {
     cv::DescriptorMatcher* matcher = new cv::BFMatcher (cv::NORM_L1, false);
     matcher->match (source_descriptors, target_descriptors, matches);
@@ -144,10 +144,10 @@ void RGBFeatureDetection::findMatches (const cv::Mat& source_descriptors,
   }
 }
 
-// crude outlier removal implementation.  RANSAC is preffered to find outliers
+// crude outlier removal implementation.  RANSAC is preferred to find outliers
 
-void RGBFeatureDetection::OutlierRemoval (const std::vector<cv::DMatch>& matches,
-    std::vector<cv::DMatch>& good_matches)
+void RGBFeatureDetection::OutlierRemoval (const std::vector<cv::DMatch>& matches, std::vector<
+    cv::DMatch>& good_matches)
 {
   // Outlier detection
   double max_dist = 0;

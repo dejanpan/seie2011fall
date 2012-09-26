@@ -36,7 +36,6 @@ void RansacTransformation::computeInliersAndError(const std::vector<cv::DMatch>&
                                   std::vector<double>& errors,
                                   double squaredMaxInlierDistInM) { //output var
 
-  struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);
 
   inliers.clear();
   errors.clear();
@@ -85,7 +84,6 @@ void RansacTransformation::computeInliersAndError(const std::vector<cv::DMatch>&
   }
   if(!(mean_error>0)) ROS_DEBUG_STREAM("Transformation for mean error !> 0: " << transformation);
   if(!(mean_error>0)) ROS_DEBUG_STREAM(mean_error << " " << inliers_temp.size());
-  clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
 
 }
 
@@ -120,7 +118,7 @@ Eigen::Matrix4f RansacTransformation::getTransformFromMatches(
   }
 
 
-  // find smalles distance between a point and its neighbour in the same cloud
+  // find smallest distance between a point and its neighbour in the same cloud
   // je groesser das dreieck aufgespannt ist, desto weniger fallen kleine positionsfehler der einzelnen
   // Punkte ist Gewicht!
 
@@ -158,7 +156,6 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
                                        std::vector<cv::DMatch>& matches,
                                        uint min_matches)
 {
-  struct timespec starttime, finish; double elapsed; clock_gettime(CLOCK_MONOTONIC, &starttime);
 
   assert(initial_matches != NULL);
   matches.clear();
@@ -302,6 +299,5 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
   ROS_INFO("%i good iterations (from %i), inlier pct %i, inlier cnt: %i, error: %.2f cm",valid_iterations, ransac_iterations, (int) (matches.size()*1.0/initial_matches->size()*100),(int) matches.size(),rmse*100);
   ROS_DEBUG("best overall: inlier: %i, error: %.2f",best_inlier_invalid, best_error_invalid*100);
 
-  clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
   return matches.size() >= min_inlier_threshold;
 }

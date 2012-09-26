@@ -21,7 +21,7 @@ class RGBFeatureDetection
 
     cv::Mat restoreCVMatFromPointCloud (PointCloudConstPtr cloud_in);
 
-    void projectFeaturesTo3D (const std::vector<cv::KeyPoint>& feature_locations_2d,
+    void projectFeaturesTo3D (std::vector<cv::KeyPoint>& feature_locations_2d,
         std::vector<Eigen::Vector4f> & feature_locations_3d,
         PointCloudConstPtr point_cloud);
 

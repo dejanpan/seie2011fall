@@ -26,6 +26,9 @@ void ParameterServer::defaultConfig() {
     config["feature_extractor_descripter"]    = std::string("SURF");            //SIFT, SURF
     config["descriptor_matcher"]              = std::string("FLANN");      //Bruteforce, FLANN
 	  config["max_keypoints"]                   = static_cast<int> (1000);
+	  config["minimum_inliers"]                 = static_cast<int> (50);
+    config["max_dist_for_inliers"]            = static_cast<double> (0.03);
+    config["ransac_iterations"]               = static_cast<int> (1000); //1000
 }
 
 void ParameterServer::getValues() {
