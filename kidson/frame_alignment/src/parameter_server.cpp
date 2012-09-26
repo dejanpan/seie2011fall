@@ -30,7 +30,7 @@ void ParameterServer::defaultConfig() {
     config["max_dist_for_inliers"]            = static_cast<double> (0.03);
     config["ransac_iterations"]               = static_cast<int> (1000); //1000
     config["save_features_image"]             = static_cast<bool> (true); //saves an image of the keypoints from the image to disk
-    config["show_feature_matching"]           = static_cast<bool> (true); // displays a window showing matches before and after outlier removal
+    config["show_feature_matching"]           = static_cast<bool> (false); // displays a window showing matches before and after outlier removal
 }
 
 void ParameterServer::getValues() {

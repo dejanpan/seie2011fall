@@ -12,6 +12,8 @@
 
 #include "opencv2/highgui/highgui.hpp"
 
+#include <pcl/kdtree/kdtree_flann.h>
+
 RGBFeatureMatcher::RGBFeatureMatcher (PointCloudPtr source_cloud_ptr,
     PointCloudPtr target_cloud_ptr) :
   source_cloud_ptr_ (source_cloud_ptr), target_cloud_ptr_ (target_cloud_ptr)
@@ -48,39 +50,43 @@ PointCloudConstPtr RGBFeatureMatcher::getTargetCloud ()
   return target_cloud_ptr_;
 }
 
-std::vector<Eigen::Vector4f> RGBFeatureMatcher::getSourceFeature3DLocations ()
-{
-  return source_feature_3d_locations_;
-}
-
-std::vector<Eigen::Vector4f> RGBFeatureMatcher::getTargetFeature3DLocations ()
-{
-  return target_feature_3d_locations_;
-}
-
 bool RGBFeatureMatcher::getMatches (std::vector<int>& source_indices_,
-    std::vector<int>& target_indices_, Eigen::Matrix4f& trafo)
+    std::vector<int>& target_indices_, Eigen::Matrix4f& ransac_trafo)
 {
   // Extract RGB features and project into 3d
   RGBFeatureDetection RGB_feature_detector;
   std::vector<cv::KeyPoint> source_keypoints, target_keypoints;
   cv::Mat source_descriptors, target_descriptors;
+  std::vector<Eigen::Vector4f> source_feature_3d_locations, target_feature_3d_locations;
 
   RGB_feature_detector.extractVisualFeaturesFromPointCloud (source_cloud_ptr_, source_keypoints,
-      source_descriptors, source_feature_3d_locations_);
+      source_descriptors, source_feature_3d_locations);
   RGB_feature_detector.extractVisualFeaturesFromPointCloud (target_cloud_ptr_, target_keypoints,
-      target_descriptors, target_feature_3d_locations_);
+      target_descriptors, target_feature_3d_locations);
 
   // Match features using opencv (doesn't consider depth info)
   std::vector<cv::DMatch> matches, good_matches;
   this->findMatches (source_descriptors, target_descriptors, matches);
 
+  // Run Ransac to remove outliers and obtain a transformation between clouds
   RansacTransformation ransac_transformer;
-  Eigen::Matrix4f ransac_trafo;
   float rmse = 0.0;
-  ransac_transformer.getRelativeTransformationTo (source_feature_3d_locations_,
-      target_feature_3d_locations_, &matches, ransac_trafo, rmse, good_matches,
-      ParameterServer::instance ()->get<int> ("minimum_inliers"));
+  if (!ransac_transformer.getRelativeTransformationTo (source_feature_3d_locations,
+      target_feature_3d_locations, &matches, ransac_trafo, rmse, good_matches,
+      ParameterServer::instance ()->get<int> ("minimum_inliers")))
+    return false;
+
+  // Copy just the inliers to new vectors
+  std::vector<Eigen::Vector4f> source_inlier_3d_locations, target_inlier_3d_locations;
+  for (std::vector<cv::DMatch>::iterator itr = good_matches.begin (); itr != good_matches.end (); ++itr)
+  {
+    source_inlier_3d_locations.push_back (source_feature_3d_locations.at (itr->queryIdx));
+    target_inlier_3d_locations.push_back (target_feature_3d_locations.at (itr->trainIdx));
+  }
+
+  // Convert 3d locations to indices of the point cloud
+  getIndicesFromMatches (source_cloud_ptr_, source_inlier_3d_locations, source_indices_);
+  getIndicesFromMatches (target_cloud_ptr_, target_inlier_3d_locations, target_indices_);
 
   if (ParameterServer::instance ()->get<bool> ("show_feature_matching"))
   {
@@ -101,12 +107,26 @@ bool RGBFeatureMatcher::getMatches (std::vector<int>& source_indices_,
     cv::waitKey (0);
     cv::destroyAllWindows ();
   }
+  return true;
 }
 
-void RGBFeatureMatcher::getIndicesFromMatches ()
+void RGBFeatureMatcher::getIndicesFromMatches (PointCloudConstPtr cloud_ptr, const std::vector<
+    Eigen::Vector4f>& point_locations, std::vector<int>& indices)
 {
-
-
+  pcl::KdTreeFLANN<PointType> kdtreeNN;
+  std::vector<int> pointIdxNKNSearch (1);
+  std::vector<float> pointNKNSquaredDistance (1);
+  kdtreeNN.setInputCloud (cloud_ptr);
+  indices.clear ();
+  for (size_t idx = 0; idx < point_locations.size (); idx++)
+  {
+    PointType test_point;
+    test_point.x = point_locations[idx][0];
+    test_point.y = point_locations[idx][1];
+    test_point.z = point_locations[idx][2];
+    kdtreeNN.nearestKSearch (test_point, 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+    indices.push_back (pointIdxNKNSearch[0]);
+  }
 }
 
 void RGBFeatureMatcher::findMatches (const cv::Mat& source_descriptors,

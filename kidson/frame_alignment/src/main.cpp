@@ -32,12 +32,18 @@ int main (int argc, char** argv)
   RGBFeatureMatcher point_cloud_matcher (source_cloud_ptr, target_cloud_ptr);
   std::vector<int> source_feature_indices, target_feature_indices;
   Eigen::Matrix4f ransac_trafo, joint_opt_trafo;
-  point_cloud_matcher.getMatches (source_feature_indices, target_feature_indices, ransac_trafo);
+  if (!point_cloud_matcher.getMatches (source_feature_indices, target_feature_indices, ransac_trafo))
+  {
+    ROS_ERROR("Not enough feature matches between frames.  Adjust 'minimum inliers parameter'");
+    exit (0);
+  }
 
-  joint_opt_trafo = performJointOptimization (source_cloud_ptr, target_cloud_ptr,
-      source_feature_indices, target_feature_indices, ransac_trafo);
+  //  joint_opt_trafo = performJointOptimization (source_cloud_ptr, target_cloud_ptr,
+  //      source_feature_indices, target_feature_indices, ransac_trafo);
 
-  transformAndWriteToFile (source_cloud_ptr, joint_opt_trafo);
+  transformAndWriteToFile (source_cloud_ptr, ransac_trafo);
+  writeFeaturePointCloudsToFile (source_cloud_ptr, source_feature_indices, target_cloud_ptr,
+      target_feature_indices, ransac_trafo);
 
   return 0;
 }
