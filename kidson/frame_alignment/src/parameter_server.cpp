@@ -24,7 +24,7 @@ ParameterServer* ParameterServer::instance() {
 }
 void ParameterServer::defaultConfig() {
 
-    //RGB feature extraction
+    // ----------RGB feature extraction------------
     config["feature_extractor"]               = std::string("SURF");            //SIFT, SURF
     config["feature_descriptor"]              = std::string("SURF");            //SIFT, SURF
     config["descriptor_matcher"]              = std::string("FLANN");      //Bruteforce, FLANN
