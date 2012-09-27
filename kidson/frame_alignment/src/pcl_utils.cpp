@@ -12,6 +12,7 @@
 #include <pcl/point_types.h>
 #include <pcl/common/transforms.h>
 #include <pcl/features/normal_3d_omp.h>
+#include <pcl/features/normal_3d.h>
 #include <pcl/filters/filter.h>
 
 #include <ros/console.h>
