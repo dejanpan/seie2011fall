@@ -12,6 +12,6 @@
 
 Eigen::Matrix4f performJointOptimization (PointCloudConstPtr source_cloud_ptr,
     PointCloudConstPtr target_cloud_ptr, std::vector<int>& source_indices,
-    std::vector<int>& target_indices, Eigen::Matrix4f& inital_transformation);
+    std::vector<int>& target_indices, Eigen::Matrix4f& initial_transformation);
 
 #endif /* JOINT_OPTIMIZE_WRAPPER_CPP_ */

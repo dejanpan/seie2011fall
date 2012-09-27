@@ -6,10 +6,13 @@
  */
 
 #include "frame_alignment/pcl_utils.h"
+#include "frame_alignment/parameter_server.h"
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/common/transforms.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/filters/filter.h>
 
 #include <ros/console.h>
 
@@ -47,4 +50,24 @@ void writePCDToFile (const std::string& fileName, const PointCloudConstPtr cloud
   pcl::PCDWriter writer;
   ROS_INFO_STREAM("Writing point cloud " << fileName << " to file");
   writer.write (fileName, *cloud_ptr, indices, false);
+}
+
+void calculatePointCloudNormals (const PointCloudConstPtr input_cloud_ptr,
+    PointCloudNormalsPtr output_cloud_ptr)
+{
+  PointCloudPtr filtered (new PointCloud);
+  pcl::NormalEstimation<PointType, PointNormal>::Ptr normal_estimator_ptr;
+  if(ParameterServer::instance()->get<bool>("use_openmp_normal_calculation"))
+    normal_estimator_ptr.reset(new pcl::NormalEstimationOMP<PointType, PointNormal>);
+  else
+    normal_estimator_ptr.reset (new pcl::NormalEstimation<PointType, PointNormal>);
+
+//  std::vector<int> indices;
+//  pcl::removeNaNFromPointCloud(*input_cloud_ptr, *filtered, indices);
+  normal_estimator_ptr->setInputCloud (input_cloud_ptr);
+  pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType> ());
+  normal_estimator_ptr->setSearchMethod (tree);
+  normal_estimator_ptr->setRadiusSearch (0.05);
+  normal_estimator_ptr->compute (*output_cloud_ptr);
+  pcl::copyPointCloud (*input_cloud_ptr, *output_cloud_ptr);
 }

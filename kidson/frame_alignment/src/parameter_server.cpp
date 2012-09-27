@@ -29,8 +29,10 @@ void ParameterServer::defaultConfig() {
 	  config["minimum_inliers"]                 = static_cast<int> (50);
     config["max_dist_for_inliers"]            = static_cast<double> (0.03);
     config["ransac_iterations"]               = static_cast<int> (1000); //1000
-    config["save_features_image"]             = static_cast<bool> (true); //saves an image of the keypoints from the image to disk
+    config["save_features_image"]             = static_cast<bool> (false); //saves an image of the keypoints from the image to disk
     config["show_feature_matching"]           = static_cast<bool> (false); // displays a window showing matches before and after outlier removal
+    config["use_openmp_normal_calculation"]   = static_cast<bool> (true);  // utilizes all cores for calculating normals.  I had problems once with this once so here it can be turned off
+    config["use_ransac_to_initialize_icp"]    = static_cast<bool> (false);  // setting this to true uses the transformation from ransac as the starting point for the icp
 }
 
 void ParameterServer::getValues() {
