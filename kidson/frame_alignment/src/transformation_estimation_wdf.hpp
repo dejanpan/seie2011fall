@@ -170,9 +170,9 @@ TransformationEstimationWDF<PointSource, PointTarget>::estimateRigidTransformati
 //	PCL_DEBUG ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation]");
 //	PCL_DEBUG ("LM solver finished with exit code %i, having a residual norm of %g. \n", info, lm.fvec.norm ());
 //	PCL_DEBUG ("Final solution: [%f", x[0]);
-	std::cout << "[pcl::registration::TransformationEstimationWDF::estimateRigidTransformation]" << std::endl;
-	std::cout << "LM solver finished with exit code " << info <<", having a residual norm of " << lm.fvec.norm () << std::endl;
-	std::cout << "Final solution: " << x[0] << std::endl;
+	//std::cout << "[pcl::registration::TransformationEstimationWDF::estimateRigidTransformation]" << std::endl;
+	//std::cout << "LM solver finished with exit code " << info <<", having a residual norm of " << lm.fvec.norm () << std::endl;
+	//std::cout << "Final solution: " << x[0] << std::endl;
 	for (int i = 1; i < n_unknowns; ++i)
 		PCL_DEBUG (" %f", x[i]);
 	PCL_DEBUG ("]\n");
@@ -248,12 +248,12 @@ TransformationEstimationWDF<PointSource, PointTarget>::estimateRigidTransformati
 	tmp_idx_src_dfp_ = &indices_src_dfp_;
 	tmp_idx_tgt_dfp_ = &indices_tgt_dfp_;
 
-	std::cerr << "indices_src_dfp_ size " << indices_src_dfp_.size() << " \n ";
-	std::cerr << "indices_tgt_dfp_ size " << indices_tgt_dfp_.size() << " \n ";
+	//std::cerr << "indices_src_dfp_ size " << indices_src_dfp_.size() << " \n ";
+	//std::cerr << "indices_tgt_dfp_ size " << indices_tgt_dfp_.size() << " \n ";
 
 	int info;
 	double lm_norm;
-	int iter;
+	//int iter;
 	if (weights_dfp_set_) {
 		// DF Weights are set
 		tmp_dfp_weights_ = &weights_dfp_;
@@ -267,7 +267,7 @@ TransformationEstimationWDF<PointSource, PointTarget>::estimateRigidTransformati
 		} */
 		info = lm.minimize (x); // Minimize cost
 		lm_norm = lm.fvec.norm ();
-		iter = lm.iter;
+		//iter = lm.iter;
 	} else {
 		// DF Weights are not set
 		OptimizationFunctor functor (n_unknowns, num_p+num_dfp, num_p, num_dfp, this); // Initialize functor
@@ -276,26 +276,22 @@ TransformationEstimationWDF<PointSource, PointTarget>::estimateRigidTransformati
 		Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctor> > lm (num_diff);
 		info = lm.minimize (x); // Minimize cost
 		lm_norm = lm.fvec.norm ();
-		iter = lm.iter;
+		//iter = lm.iter;
 	}
 
-	// Compute the norm of the residuals
-//	PCL_DEBUG ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation]");
-//	PCL_DEBUG ("LM solver finished with exit code %i, having a residual norm of %g. \n", info, lm_norm ());
-//	PCL_DEBUG ("Final solution: [%f", x[0]);
-//	for (int i = 1; i < n_unknowns; ++i)
-//		PCL_DEBUG (" %f", x[i]);
-//	PCL_DEBUG ("]\n");
-
-	std::cout << "[pcl::registration::TransformationEstimationWDF::estimateRigidTransformation]" << std::endl;
-	std::cout << "LM solver finished with exit code " << info <<", having a residual norm of " << lm_norm
-			<< ", in iteration "<< iter << std::endl;
+  // Compute the norm of the residuals
+  PCL_DEBUG ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation]");
+  PCL_DEBUG ("LM solver finished with exit code %i, having a residual norm of %g. \n", info, lm_norm);
+  PCL_DEBUG ("Final solution: [%f", x[0]);
+  for (int i = 1; i < n_unknowns; ++i)
+    PCL_DEBUG (" %f", x[i]);
+  PCL_DEBUG ("]\n");
 
 	// Return the correct transformation
 	Eigen::VectorXf params = x.cast<float> ();
 	warp_point_->setParam (params);
 	transformation_matrix = warp_point_->getTransform ();
-	std::cout << "	Obtained transform = " << std::endl << transformation_matrix << std::endl;
+	//std::cout << "	Obtained transform = " << std::endl << transformation_matrix << std::endl;
 
 	tmp_src_ = NULL;
 	tmp_tgt_ = NULL;
@@ -351,7 +347,7 @@ TransformationEstimationWDF<PointSource, PointTarget>::OptimizationFunctor::oper
 	Eigen::VectorXf params = x.cast<float> ();
 	estimator_->warp_point_->setParam (params);
 
-	Eigen::Matrix4f curr_transformation_matrix = estimator_->warp_point_->getTransform ();
+	//Eigen::Matrix4f curr_transformation_matrix = estimator_->warp_point_->getTransform ();
 	//std::cout << "[OptimizationFunctor::operator()] current transform = " << std::endl << curr_transformation_matrix << std::endl;
 
 	// Sum of squared distances of distinctive feature points

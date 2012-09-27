@@ -41,6 +41,8 @@ Eigen::Matrix4f performJointOptimization (PointCloudConstPtr source_cloud_ptr,
   getIndicesFromMatches<PointNormal> (target_cloud_normals_ptr, target_feature_3d_locations,
       target_indices);
 
+  pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
+
   boost::shared_ptr<TransformationEstimationWDF<PointNormal, PointNormal> > initial_transform_WDF (
       new TransformationEstimationWDF<PointNormal, PointNormal> ());
 
@@ -69,7 +71,9 @@ Eigen::Matrix4f performJointOptimization (PointCloudConstPtr source_cloud_ptr,
     icp_wdf.align (*cloud_transformed);
 
   ROS_INFO_STREAM(
-      "[SIIMCloudMatch::runICPMatch] Has converged? = " << icp_wdf.hasConverged () << std::endl << " fitness score (SSD): " << icp_wdf.getFitnessScore (1000));
+      "[SIIMCloudMatch::runICPMatch] Has converged? = " << icp_wdf.hasConverged ()
+      << std::endl << " fitness score (SSD): " << icp_wdf.getFitnessScore (1000) <<
+      " \n Final Transformation: \n" << icp_wdf.getFinalTransformation());
 
   return icp_wdf.getFinalTransformation ();
 }
