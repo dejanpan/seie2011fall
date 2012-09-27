@@ -1,15 +1,15 @@
 create meshset3D file from the bag:
-http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_registration/mesh_registration/tools/bag_to_meshset3d.cpp
+N  http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_registration/mesh_registration/tools/bag_to_meshset3d.cpp
 
 visualize meshset3D:
-http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_surface_reconstruction/view_meshset3d/
+N  http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_surface_reconstruction/view_meshset3d/
 
 if clous is unorganized, one would use:
-http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_surface_reconstruction/mesh_generator/
+Y  http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_surface_reconstruction/mesh_generator/
 
 For texture reconstruction use the following stack:
-http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_texture_reconstruction/
-http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_texture_reconstruction/README
+N http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_texture_reconstruction/
+N http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_texture_reconstruction/README
 
 tools you would need if you run Poission-based reconstruction:
 http://svn.code.sf.net/p/bosch-ros-pkg/code/trunk/stacks/bosch_surface_reconstruction/mesh_generator/tools/
