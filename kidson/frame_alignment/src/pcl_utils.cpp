@@ -85,4 +85,22 @@ void removePointNormalsWithNaNs (const PointCloudNormalsPtr input_cloud_ptr)
       itr--;
     }
     input_cloud_ptr->resize(input_cloud_ptr->points.size());
+    input_cloud_ptr->width = input_cloud_ptr->points.size();
+    input_cloud_ptr->height = 1;
+}
+
+void checkforNaNs (const PointCloudNormalsConstPtr input_cloud_ptr)
+{
+  for (uint i = 0; i < input_cloud_ptr->points.size (); i++)
+    if ( (input_cloud_ptr->points[i].x != input_cloud_ptr->points[i].x)
+        || (input_cloud_ptr->points[i].y != input_cloud_ptr->points[i].y)
+        || (input_cloud_ptr->points[i].z != input_cloud_ptr->points[i].z)
+        || (input_cloud_ptr->points[i].normal_x != input_cloud_ptr->points[i].normal_x)
+        || (input_cloud_ptr->points[i].normal_y != input_cloud_ptr->points[i].normal_y)
+        || (input_cloud_ptr->points[i].normal_z != input_cloud_ptr->points[i].normal_z))
+    {
+      ROS_ERROR_STREAM("point has a NaN! idx" << i);
+      ROS_ERROR_STREAM("x[" << input_cloud_ptr->points[i].x << "] y[" << input_cloud_ptr->points[i].y<< "] z[" << input_cloud_ptr->points[i].z<<
+          "] xn[" << input_cloud_ptr->points[i].normal_x<< "] yn[" << input_cloud_ptr->points[i].normal_y<< "] zn[" << input_cloud_ptr->points[i].normal_z<< "]");
+    }
 }

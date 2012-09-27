@@ -27,6 +27,8 @@ void calculatePointCloudNormals (const PointCloudConstPtr input_cloud_ptr,
 
 void removePointNormalsWithNaNs (const PointCloudNormalsPtr input_cloud_ptr);
 
+void checkforNaNs (const PointCloudNormalsConstPtr input_cloud_ptr);
+
 template <class pointT>
 inline void getIndicesFromMatches (typename pcl::PointCloud<pointT>::Ptr cloud_ptr, const std::vector<
     Eigen::Vector4f>& point_locations, std::vector<int>& indices)

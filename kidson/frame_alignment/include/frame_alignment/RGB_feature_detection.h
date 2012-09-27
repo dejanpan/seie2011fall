@@ -23,14 +23,13 @@ class RGBFeatureDetection
 
     void projectFeaturesTo3D (std::vector<cv::KeyPoint>& feature_locations_2d,
         std::vector<Eigen::Vector4f> & feature_locations_3d,
-        PointCloudConstPtr point_cloud);
+        const PointCloudConstPtr point_cloud);
 
-    void extractVisualFeaturesFromPointCloud (PointCloudConstPtr input_cloud, std::vector<
-        cv::KeyPoint>& keypoints, cv::Mat& descriptors_2d,
-        std::vector<Eigen::Vector4f>& features_3d);
+    void detectFeatures(const cv::Mat& input_image,
+        std::vector<cv::KeyPoint>& keypoints);
 
-    void extractVisualFeaturesFromPointCloud (PointCloudConstPtr input_cloud, std::vector<
-        Eigen::Vector4f>& features_3d);
+    void extractFeatures(const cv::Mat& input_image,
+        std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors);
 
     void findMatches (const cv::Mat& source_descriptors,
         const cv::Mat& target_descriptors, std::vector<cv::DMatch>& good_matches);

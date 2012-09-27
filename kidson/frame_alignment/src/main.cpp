@@ -30,19 +30,21 @@ int main (int argc, char** argv)
   reader.read (argv[1], *source_cloud_ptr);
   reader.read (argv[2], *target_cloud_ptr);
 
-  RGBFeatureMatcher point_cloud_matcher (source_cloud_ptr, target_cloud_ptr);
+  // Extract 2d RGB features and project them into 3d.  Use Ransac to filter out outliers and
+  // obtain a transformation between the 2 point clouds
   std::vector<Eigen::Vector4f> source_feature_3d_locations, target_feature_3d_locations;
   Eigen::Matrix4f ransac_trafo, joint_opt_trafo;
+  RGBFeatureMatcher point_cloud_matcher (source_cloud_ptr, target_cloud_ptr);
   if (!point_cloud_matcher.getMatches (source_feature_3d_locations, target_feature_3d_locations,
       ransac_trafo))
-  {
-    ROS_ERROR( "Not enough feature matches between frames.  Adjust 'minimum inliers parameter'");
     exit (0);
-  }
 
+  // use the feature points as distinct correspondences in a joint optimization over dense
+  // clouds and sparse feature points
   joint_opt_trafo = performJointOptimization (source_cloud_ptr, target_cloud_ptr,
       source_feature_3d_locations, target_feature_3d_locations, ransac_trafo);
 
+  // write the resulting transformed pointcloud to disk
   transformAndWriteToFile (source_cloud_ptr, ransac_trafo);
 
   return 0;

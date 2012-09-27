@@ -12,9 +12,22 @@
 
 #include "opencv2/highgui/highgui.hpp"
 
+// converts rgb point clouds to images
+
 RGBFeatureMatcher::RGBFeatureMatcher (PointCloudPtr source_cloud_ptr,
     PointCloudPtr target_cloud_ptr) :
   source_cloud_ptr_ (source_cloud_ptr), target_cloud_ptr_ (target_cloud_ptr)
+{
+  source_image_ = this->restoreCVMatFromPointCloud (source_cloud_ptr_);
+  target_image_ = this->restoreCVMatFromPointCloud (target_cloud_ptr_);
+}
+
+// if the point cloud and images are separated
+
+RGBFeatureMatcher::RGBFeatureMatcher (PointCloudPtr source_cloud_ptr,
+    PointCloudPtr target_cloud_ptr, const cv::Mat& source_image, const cv::Mat& target_image) :
+  source_cloud_ptr_ (source_cloud_ptr), target_cloud_ptr_ (target_cloud_ptr), source_image_ (
+      source_image), target_image_ (target_image)
 {
 }
 
@@ -48,19 +61,63 @@ PointCloudConstPtr RGBFeatureMatcher::getTargetCloud ()
   return target_cloud_ptr_;
 }
 
+void RGBFeatureMatcher::setSourceImage (const cv::Mat& source_image)
+{
+  source_image_ = source_image;
+}
+cv::Mat RGBFeatureMatcher::getSourceImage ()
+{
+  return source_image_;
+}
+void RGBFeatureMatcher::setTargetImage (const cv::Mat& target_image)
+{
+  target_image_ = target_image;
+}
+cv::Mat RGBFeatureMatcher::getTargetImage ()
+{
+  return target_image_;
+}
+
+cv::Mat RGBFeatureMatcher::restoreCVMatFromPointCloud (PointCloudConstPtr cloud_in)
+{
+  cv::Mat restored_image = cv::Mat (cloud_in->height, cloud_in->width, CV_8UC3);
+  for (uint rows = 0; rows < cloud_in->height; rows++)
+  {
+    for (uint cols = 0; cols < cloud_in->width; ++cols)
+    {
+      //      restored_image.at<uint8_t>(rows, cols) = cloud_in->at(cols, rows).r;
+      restored_image.at<cv::Vec3b> (rows, cols)[0] = cloud_in->at (cols, rows).b;
+      restored_image.at<cv::Vec3b> (rows, cols)[1] = cloud_in->at (cols, rows).g;
+      restored_image.at<cv::Vec3b> (rows, cols)[2] = cloud_in->at (cols, rows).r;
+    }
+  }
+  return restored_image;
+}
+
 bool RGBFeatureMatcher::getMatches (std::vector<Eigen::Vector4f>& source_inlier_3d_locations,
     std::vector<Eigen::Vector4f>& target_inlier_3d_locations, Eigen::Matrix4f& ransac_trafo)
 {
+  if (source_image_.empty () || target_image_.empty ())
+  {
+    ROS_ERROR("Image not set for RGBFeatureMatcher");
+    return 0;
+  }
   // Extract RGB features and project into 3d
   RGBFeatureDetection RGB_feature_detector;
   std::vector<cv::KeyPoint> source_keypoints, target_keypoints;
   cv::Mat source_descriptors, target_descriptors;
   std::vector<Eigen::Vector4f> source_feature_3d_locations, target_feature_3d_locations;
 
-  RGB_feature_detector.extractVisualFeaturesFromPointCloud (source_cloud_ptr_, source_keypoints,
-      source_descriptors, source_feature_3d_locations);
-  RGB_feature_detector.extractVisualFeaturesFromPointCloud (target_cloud_ptr_, target_keypoints,
-      target_descriptors, target_feature_3d_locations);
+  RGB_feature_detector.detectFeatures (source_image_, source_keypoints);
+  RGB_feature_detector.detectFeatures (target_image_, target_keypoints);
+
+  RGB_feature_detector.projectFeaturesTo3D (source_keypoints, source_feature_3d_locations,
+      source_cloud_ptr_);
+  RGB_feature_detector.projectFeaturesTo3D (target_keypoints, target_feature_3d_locations,
+      target_cloud_ptr_);
+
+  RGB_feature_detector.extractFeatures (source_image_, source_keypoints, source_descriptors);
+  RGB_feature_detector.extractFeatures (target_image_, target_keypoints, target_descriptors);
 
   // Match features using opencv (doesn't consider depth info)
   std::vector<cv::DMatch> matches, good_matches;
@@ -72,7 +129,10 @@ bool RGBFeatureMatcher::getMatches (std::vector<Eigen::Vector4f>& source_inlier_
   if (!ransac_transformer.getRelativeTransformationTo (source_feature_3d_locations,
       target_feature_3d_locations, &matches, ransac_trafo, rmse, good_matches,
       ParameterServer::instance ()->get<int> ("minimum_inliers")))
+  {
+    ROS_ERROR( "Not enough feature matches between frames.  Adjust 'minimum inliers parameter'");
     return false;
+  }
 
   // Copy just the inliers to the output vectors
   for (std::vector<cv::DMatch>::iterator itr = good_matches.begin (); itr != good_matches.end (); ++itr)
@@ -84,16 +144,14 @@ bool RGBFeatureMatcher::getMatches (std::vector<Eigen::Vector4f>& source_inlier_
   if (ParameterServer::instance ()->get<bool> ("show_feature_matching"))
   {
     cv::Mat img_matches;
-    cv::drawMatches (RGB_feature_detector.restoreCVMatFromPointCloud (source_cloud_ptr_),
-        source_keypoints, RGB_feature_detector.restoreCVMatFromPointCloud (target_cloud_ptr_),
-        target_keypoints, matches, img_matches, cv::Scalar::all (-1), cv::Scalar::all (-1),
-        std::vector<char> (), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+    cv::drawMatches (source_image_, source_keypoints, target_image_, target_keypoints, matches,
+        img_matches, cv::Scalar::all (-1), cv::Scalar::all (-1), std::vector<char> (),
+        cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
     cv::imshow ("Matches", img_matches);
     cv::moveWindow ("Matches", -10, 0);
 
-    cv::drawMatches (RGB_feature_detector.restoreCVMatFromPointCloud (source_cloud_ptr_),
-        source_keypoints, RGB_feature_detector.restoreCVMatFromPointCloud (target_cloud_ptr_),
-        target_keypoints, good_matches, img_matches, cv::Scalar::all (-1), cv::Scalar::all (-1),
+    cv::drawMatches (source_image_, source_keypoints, target_image_, target_keypoints,
+        good_matches, img_matches, cv::Scalar::all (-1), cv::Scalar::all (-1),
         std::vector<char> (), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
     cv::imshow ("Good Matches", img_matches);
     cv::moveWindow ("Good Matches", -10, 500);

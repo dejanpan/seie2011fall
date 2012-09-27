@@ -15,22 +15,6 @@
 #include <pcl/registration/icp.h>
 #include <pcl/filters/filter.h>
 
-void checkforNaNs (const PointCloudNormalsConstPtr input_cloud_ptr)
-{
-  for (uint i = 0; i < input_cloud_ptr->points.size (); i++)
-    if ( (input_cloud_ptr->points[i].x != input_cloud_ptr->points[i].x)
-        || (input_cloud_ptr->points[i].y != input_cloud_ptr->points[i].y)
-        || (input_cloud_ptr->points[i].z != input_cloud_ptr->points[i].z)
-        || (input_cloud_ptr->points[i].normal_x != input_cloud_ptr->points[i].normal_x)
-        || (input_cloud_ptr->points[i].normal_y != input_cloud_ptr->points[i].normal_y)
-        || (input_cloud_ptr->points[i].normal_z != input_cloud_ptr->points[i].normal_z))
-    {
-      ROS_ERROR_STREAM("point has a NaN! idx" << i);
-      ROS_ERROR_STREAM("x[" << input_cloud_ptr->points[i].x << "] y[" << input_cloud_ptr->points[i].y<< "] z[" << input_cloud_ptr->points[i].z<<
-          "] xn[" << input_cloud_ptr->points[i].normal_x<< "] yn[" << input_cloud_ptr->points[i].normal_y<< "] zn[" << input_cloud_ptr->points[i].normal_z<< "]");
-    }
-}
-
 Eigen::Matrix4f performJointOptimization (PointCloudConstPtr source_cloud_ptr,
     PointCloudConstPtr target_cloud_ptr, std::vector<Eigen::Vector4f>& source_feature_3d_locations,
     std::vector<Eigen::Vector4f>& target_feature_3d_locations,
@@ -50,9 +34,6 @@ Eigen::Matrix4f performJointOptimization (PointCloudConstPtr source_cloud_ptr,
   calculatePointCloudNormals (source_cloud_noNaN_ptr, source_cloud_normals_ptr);
   calculatePointCloudNormals (target_cloud_noNaN_ptr, target_cloud_normals_ptr);
 
-  checkforNaNs (source_cloud_normals_ptr);
-  checkforNaNs (target_cloud_normals_ptr);
-
   // the indices of features are required by icp joint optimization
   std::vector<int> source_indices, target_indices;
   getIndicesFromMatches<PointNormal> (source_cloud_normals_ptr, source_feature_3d_locations,
@@ -63,27 +44,25 @@ Eigen::Matrix4f performJointOptimization (PointCloudConstPtr source_cloud_ptr,
   boost::shared_ptr<TransformationEstimationWDF<PointNormal, PointNormal> > initial_transform_WDF (
       new TransformationEstimationWDF<PointNormal, PointNormal> ());
 
-  initial_transform_WDF->setAlpha (0.0);
+  // Please see parameter_server.cpp for an explanation of the following parameters
+  ParameterServer* ps = ParameterServer::instance();
+  initial_transform_WDF->setAlpha (ps->get<double>("alpha"));
   initial_transform_WDF->setCorrespondecesDFP (source_indices, target_indices);
 
   pcl::IterativeClosestPoint<PointNormal, PointNormal> icp_wdf;
-  // Set the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
-  icp_wdf.setMaxCorrespondenceDistance (0.05);
-  // Set the maximum number of iterations (criterion 1)
-  icp_wdf.setMaximumIterations (75);
-  // Set the transformation epsilon (criterion 2)
-  icp_wdf.setTransformationEpsilon (1e-8);
-  // Set the euclidean distance difference epsilon (criterion 3)
-  icp_wdf.setEuclideanFitnessEpsilon (0);  //1
+  icp_wdf.setMaxCorrespondenceDistance (ps->get<double>("max_correspondence_dist"));
+  icp_wdf.setMaximumIterations (ps->get<int>("max_iterations"));
+  icp_wdf.setTransformationEpsilon (ps->get<double>("transformation_epsilon"));
+  icp_wdf.setEuclideanFitnessEpsilon (ps->get<double>("euclidean_fitness_epsilon"));  //1
   // Set TransformationEstimationWDF as ICP transform estimator
   icp_wdf.setTransformationEstimation (initial_transform_WDF);
 
+  checkforNaNs (source_cloud_normals_ptr);
+  checkforNaNs (target_cloud_normals_ptr);
   icp_wdf.setInputCloud (source_cloud_normals_ptr);
   icp_wdf.setInputTarget (target_cloud_normals_ptr);
 
   PointCloudNormalsPtr cloud_transformed (new PointCloudNormals);
-  ROS_INFO_STREAM(
-      "---------------------------------------------------------      indices size: " << source_indices.size ());
   if (ParameterServer::instance ()->get<bool> ("use_ransac_to_initialize_icp"))
     icp_wdf.align (*cloud_transformed, initial_transformation);
   else
