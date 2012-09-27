@@ -41,13 +41,15 @@ Eigen::Matrix4f performJointOptimization (PointCloudConstPtr source_cloud_ptr,
   getIndicesFromMatches<PointNormal> (target_cloud_normals_ptr, target_feature_3d_locations,
       target_indices);
 
-  pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
 
   boost::shared_ptr<TransformationEstimationWDF<PointNormal, PointNormal> > initial_transform_WDF (
       new TransformationEstimationWDF<PointNormal, PointNormal> ());
 
   // Please see parameter_server.cpp for an explanation of the following parameters
   ParameterServer* ps = ParameterServer::instance();
+  if(ps->get<bool>("enable_pcl_debug_verbosity"))
+    pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
+
   initial_transform_WDF->setAlpha (ps->get<double>("alpha"));
   initial_transform_WDF->setCorrespondecesDFP (source_indices, target_indices);
 

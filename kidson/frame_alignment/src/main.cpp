@@ -24,6 +24,11 @@ int main (int argc, char** argv)
     exit (0);
   }
   ros::init (argc, argv, "frame_alignment");
+  if(!ros::master::check())
+  {
+    ROS_ERROR("roscore not running. stop.");
+    exit(0);
+  }
   PointCloudPtr source_cloud_ptr (new PointCloud);
   PointCloudPtr target_cloud_ptr (new PointCloud);
   pcl::PCDReader reader;
