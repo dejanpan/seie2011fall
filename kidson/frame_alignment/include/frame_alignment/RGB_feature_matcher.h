@@ -31,11 +31,8 @@ class RGBFeatureMatcher
     void OutlierRemoval (const std::vector<cv::DMatch>& matches,
         std::vector<cv::DMatch>& good_matches);
 
-    bool getMatches (std::vector<int>& source_indices_, std::vector<int>& target_indices_,
-        Eigen::Matrix4f& ransac_trafo);
-
-    void getIndicesFromMatches (PointCloudConstPtr cloud_ptr, const std::vector<
-        Eigen::Vector4f>& point_locations, std::vector<int>& indices);
+    bool getMatches (std::vector<Eigen::Vector4f>& source_inlier_3d_locations,
+        std::vector<Eigen::Vector4f>& target_inlier_3d_locations, Eigen::Matrix4f& ransac_trafo);
 
   private:
     PointCloudConstPtr source_cloud_ptr_, target_cloud_ptr_;

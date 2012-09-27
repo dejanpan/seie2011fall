@@ -57,17 +57,32 @@ void calculatePointCloudNormals (const PointCloudConstPtr input_cloud_ptr,
 {
   PointCloudPtr filtered (new PointCloud);
   pcl::NormalEstimation<PointType, PointNormal>::Ptr normal_estimator_ptr;
-  if(ParameterServer::instance()->get<bool>("use_openmp_normal_calculation"))
-    normal_estimator_ptr.reset(new pcl::NormalEstimationOMP<PointType, PointNormal>);
+  if (ParameterServer::instance ()->get<bool> ("use_openmp_normal_calculation"))
+    normal_estimator_ptr.reset (new pcl::NormalEstimationOMP<PointType, PointNormal>);
   else
     normal_estimator_ptr.reset (new pcl::NormalEstimation<PointType, PointNormal>);
-
-//  std::vector<int> indices;
-//  pcl::removeNaNFromPointCloud(*input_cloud_ptr, *filtered, indices);
   normal_estimator_ptr->setInputCloud (input_cloud_ptr);
   pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType> ());
   normal_estimator_ptr->setSearchMethod (tree);
-  normal_estimator_ptr->setRadiusSearch (0.05);
+  normal_estimator_ptr->setRadiusSearch (0.1);
   normal_estimator_ptr->compute (*output_cloud_ptr);
   pcl::copyPointCloud (*input_cloud_ptr, *output_cloud_ptr);
+  removePointNormalsWithNaNs(output_cloud_ptr);
+}
+
+void removePointNormalsWithNaNs (const PointCloudNormalsPtr input_cloud_ptr)
+{
+  for (std::vector<PointNormal, Eigen::aligned_allocator<PointNormal> >::iterator itr =
+      input_cloud_ptr->points.begin (); itr != input_cloud_ptr->points.end (); itr++)
+    if ( (itr->x != itr->x) || (itr->y != itr->y) || (itr->z != itr->z)
+        || (itr->normal_x != itr->normal_x) || (itr->normal_y != itr->normal_y)
+        || (itr->normal_z != itr->normal_z))
+    {
+      ROS_DEBUG_STREAM("point has a NaN! idx" << itr - input_cloud_ptr->points.begin());
+      ROS_DEBUG_STREAM(
+          "x[" << itr->x << "] y[" << itr->y << "] z[" << itr->z<< "] xn[" << itr->normal_x << "] yn[" << itr->normal_y<< "] zn[" << itr->normal_z<< "]");
+      input_cloud_ptr->points.erase (itr);
+      itr--;
+    }
+    input_cloud_ptr->resize(input_cloud_ptr->points.size());
 }

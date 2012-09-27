@@ -31,9 +31,9 @@ int main (int argc, char** argv)
   reader.read (argv[2], *target_cloud_ptr);
 
   RGBFeatureMatcher point_cloud_matcher (source_cloud_ptr, target_cloud_ptr);
-  std::vector<int> source_feature_indices, target_feature_indices;
+  std::vector<Eigen::Vector4f> source_feature_3d_locations, target_feature_3d_locations;
   Eigen::Matrix4f ransac_trafo, joint_opt_trafo;
-  if (!point_cloud_matcher.getMatches (source_feature_indices, target_feature_indices,
+  if (!point_cloud_matcher.getMatches (source_feature_3d_locations, target_feature_3d_locations,
       ransac_trafo))
   {
     ROS_ERROR( "Not enough feature matches between frames.  Adjust 'minimum inliers parameter'");
@@ -41,7 +41,7 @@ int main (int argc, char** argv)
   }
 
   joint_opt_trafo = performJointOptimization (source_cloud_ptr, target_cloud_ptr,
-      source_feature_indices, target_feature_indices, ransac_trafo);
+      source_feature_3d_locations, target_feature_3d_locations, ransac_trafo);
 
   transformAndWriteToFile (source_cloud_ptr, ransac_trafo);
 
