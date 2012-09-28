@@ -4,8 +4,10 @@ Road map for the next months:
 2. Prepare the tutorial and update the webside of the package.
 3. Migrate to fuerte and move electric package to brunch.
 4. Make a debian package for interactive segmentation. 
-5. Talk to the guys from Berlin and agree on the framework where we can combine our code.
-6. Talk to Michael and see if the interactive perception can be useful in one of the demos.
-7. Keep in touch with Sarah and see if interactive perception can be useful for her.
-8. Get deeper into Man in the loop problem that Sarah is working on. 
+5. Make a robot version for interactive_segmentation_textureless.
+6. Incorporate motion planner into both interactive segmentation packages.
+7. Talk to the guys from Berlin and agree on the framework where we can combine our code.
+8. Talk to Michael and see if the interactive perception can be useful in one of the demos.
+9. Keep in touch with Sarah and see if interactive perception can be useful for her.
+10. Get deeper into Man in the loop problem that Sarah is working on. 
 

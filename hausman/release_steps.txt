@@ -2,6 +2,7 @@ Steps to get the interactive_segmentation_package released:
 
 1. Clean up the code.
 2. Work on the better architecture and split the code into 5 classes properly.
+(5 classes being: PrimitivesExtract, PushPointEstimation, TrajectoryClustering, DenseReconstruction and OpenNISegmentTracking)
 3. Test the code for robustness and make it better.
 4. Document the code.
 5. Get Ferko to release his package and put it as the dependency.
