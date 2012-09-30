@@ -59,6 +59,7 @@ IF (${USE_SIFT_GPU})
 	
 	add_definitions(-DUSE_SIFT_GPU)
 	add_definitions(-DSIFT_GPU_MODE=$ENV{SIFT_GPU_MODE})
+	set(SIFT_GPU_LIB siftgpu)
 ENDIF (${USE_SIFT_GPU})
 
 ############# Eigen #####################
@@ -88,4 +89,4 @@ src/joint_optimize_wrapper.cpp
 rosbuild_add_executable(joint_optimization src/main.cpp ${ADDITIONAL_SOURCES})
 
 
-target_link_libraries(joint_optimization siftgpu ${OpenCV_LIBS})
+target_link_libraries(joint_optimization ${SIFT_GPU_LIB} ${OpenCV_LIBS})
