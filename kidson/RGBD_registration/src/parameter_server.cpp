@@ -26,7 +26,7 @@ ParameterServer* ParameterServer::instance() {
 }
 
 //        Default config for Frame Alignment
-// #####Please see launch/frame_align_launch.launch for a description of these parameters ######
+// #####Please see launch/RGBD_registration.launch for a description of these parameters ######
 // it is recommended to change the parameters in the launchfile rather than the source!
 void ParameterServer::defaultConfig() {
 

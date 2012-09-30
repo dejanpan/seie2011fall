@@ -44,7 +44,7 @@ Eigen::Matrix4f performJointOptimization (PointCloudConstPtr source_cloud_ptr,
   boost::shared_ptr<TransformationEstimationWDF<PointNormal, PointNormal> > initial_transform_WDF (
       new TransformationEstimationWDF<PointNormal, PointNormal> ());
 
-  // Please see frame_align_launch.launch for an explanation of the following parameters
+  // Please see RGBD_registration.launch for an explanation of the following parameters
   ParameterServer* ps = ParameterServer::instance ();
 
   initial_transform_WDF->setAlpha (ps->get<double> ("alpha"));
