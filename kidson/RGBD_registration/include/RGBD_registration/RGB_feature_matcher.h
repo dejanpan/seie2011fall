@@ -8,7 +8,7 @@
 #ifndef RGB_FEATURE_MATCHER_H_
 #define RGB_FEATURE_MATCHER_H_
 
-#include "frame_alignment/typedefs.h"
+#include "RGBD_registration/typedefs.h"
 #include <cv.h>
 
 class RGBFeatureMatcher

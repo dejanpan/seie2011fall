@@ -8,7 +8,7 @@
 #ifndef PCL_UTILS_H_
 #define PCL_UTILS_H_
 
-#include "frame_alignment/typedefs.h"
+#include "RGBD_registration/typedefs.h"
 #include <pcl/kdtree/kdtree_flann.h>
 
 

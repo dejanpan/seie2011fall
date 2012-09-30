@@ -10,15 +10,15 @@
 #include <ros/ros.h>
 
 //local files
-#include "frame_alignment/typedefs.h"
-#include "frame_alignment/RGB_feature_matcher.h"
-#include "frame_alignment/pcl_utils.h"
-#include "frame_alignment/joint_optimize_wrapper.h"
-#include "frame_alignment/parameter_server.h"
+#include "RGBD_registration/typedefs.h"
+#include "RGBD_registration/RGB_feature_matcher.h"
+#include "RGBD_registration/pcl_utils.h"
+#include "RGBD_registration/joint_optimize_wrapper.h"
+#include "RGBD_registration/parameter_server.h"
 
 int main (int argc, char** argv)
 {
-  ros::init (argc, argv, "frame_alignment");
+  ros::init (argc, argv, "RGBD_registration");
   if(!ros::master::check())
   {
     ROS_ERROR("roscore not running. stop.");

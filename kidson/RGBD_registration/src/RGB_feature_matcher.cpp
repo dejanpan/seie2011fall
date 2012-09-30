@@ -5,10 +5,10 @@
  *      Author: kidson
  */
 
-#include "frame_alignment/RGB_feature_matcher.h"
-#include "frame_alignment/RGB_feature_detection.h"
-#include "frame_alignment/ransac_transformation.h"
-#include "frame_alignment/parameter_server.h"
+#include "RGBD_registration/RGB_feature_matcher.h"
+#include "RGBD_registration/RGB_feature_detection.h"
+#include "RGBD_registration/ransac_transformation.h"
+#include "RGBD_registration/parameter_server.h"
 
 #include "opencv2/highgui/highgui.hpp"
 

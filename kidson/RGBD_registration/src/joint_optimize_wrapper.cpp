@@ -5,10 +5,10 @@
  *      Author: kidson
  */
 
-#include "frame_alignment/joint_optimize_wrapper.h"
-#include "frame_alignment/transformation_estimation_wdf.h"
-#include "frame_alignment/pcl_utils.h"
-#include "frame_alignment/parameter_server.h"
+#include "RGBD_registration/joint_optimize_wrapper.h"
+#include "RGBD_registration/transformation_estimation_wdf.h"
+#include "RGBD_registration/pcl_utils.h"
+#include "RGBD_registration/parameter_server.h"
 
 #include <ros/console.h>
 

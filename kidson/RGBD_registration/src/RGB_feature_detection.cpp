@@ -5,9 +5,9 @@
  *      Author: Ross kidson
  */
 
-#include "frame_alignment/RGB_feature_detection.h"
-//#include "frame_alignment/sift_gpu_wrapper.h"
-#include "frame_alignment/parameter_server.h"
+#include "RGBD_registration/RGB_feature_detection.h"
+//#include "RGBD_registration/sift_gpu_wrapper.h"
+#include "RGBD_registration/parameter_server.h"
 
 //opencv
 #include "opencv2/core/core.hpp"

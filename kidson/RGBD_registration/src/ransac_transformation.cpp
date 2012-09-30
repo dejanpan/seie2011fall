@@ -5,8 +5,8 @@
  *      Author: ross
  */
 
-#include "frame_alignment/ransac_transformation.h"
-#include "frame_alignment/parameter_server.h"
+#include "RGBD_registration/ransac_transformation.h"
+#include "RGBD_registration/parameter_server.h"
 
 #include <ros/console.h>
 

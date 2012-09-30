@@ -11,7 +11,7 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/nonfree/features2d.hpp"
 
-#include "frame_alignment/typedefs.h"
+#include "RGBD_registration/typedefs.h"
 
 class RGBFeatureDetection
 {

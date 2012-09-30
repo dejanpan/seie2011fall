@@ -8,7 +8,7 @@
 #ifndef JOINT_OPTIMIZE_WRAPPER_CPP_
 #define JOINT_OPTIMIZE_WRAPPER_CPP_
 
-#include "frame_alignment/typedefs.h"
+#include "RGBD_registration/typedefs.h"
 
 Eigen::Matrix4f performJointOptimization (PointCloudConstPtr source_cloud_ptr,
     PointCloudConstPtr target_cloud_ptr, std::vector<Eigen::Vector4f>& source_feature_3d_locations,

@@ -5,8 +5,8 @@
  *      Author: kidson
  */
 
-#include "frame_alignment/pcl_utils.h"
-#include "frame_alignment/parameter_server.h"
+#include "RGBD_registration/pcl_utils.h"
+#include "RGBD_registration/parameter_server.h"
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>

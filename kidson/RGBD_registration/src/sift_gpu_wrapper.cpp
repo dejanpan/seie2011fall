@@ -2,12 +2,12 @@
   */
 
 //#ifdef USE_SIFT_GPU
-#include "frame_alignment/sift_gpu_wrapper.h"
+#include "RGBD_registration/sift_gpu_wrapper.h"
 #include <GL/gl.h>
 #include <iostream>
 #include <ros/ros.h>
 #include <stdio.h>
-#include "frame_alignment/parameter_server.h"
+#include "RGBD_registration/parameter_server.h"
 
 using namespace cv;
 

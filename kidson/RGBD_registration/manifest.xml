@@ -1,7 +1,7 @@
 <package>
-  <description brief="frame_alignment">
+  <description brief="RGBD_registration">
 
-     frame_alignment
+     RGBD_registration
 
   </description>
   <author>Ross Kidson</author>
@@ -13,7 +13,7 @@
   <depend package="roscpp"/>
 
   <!-- <rosdep name="eigen"/> -->
-  <!-- <depend package="opencv2"/> -->  
+  <depend package="opencv2"/> 
 
 </package>
 
