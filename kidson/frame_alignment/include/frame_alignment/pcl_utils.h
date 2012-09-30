@@ -11,16 +11,6 @@
 #include "frame_alignment/typedefs.h"
 #include <pcl/kdtree/kdtree_flann.h>
 
-void transformAndWriteToFile (const PointCloudConstPtr cloud_in, const Eigen::Matrix4f& trafo);
-
-void writeFeaturePointCloudsToFile (const PointCloudConstPtr source_cloud,
-    const std::vector<int>& source_indices, const PointCloudConstPtr target_cloud,
-    const std::vector<int> target_indices, const Eigen::Matrix4f& trafo);
-
-void writePCDToFile (const std::string& fileName, const PointCloudConstPtr cloud_ptr);
-
-void writePCDToFile (const std::string& fileName, const PointCloudConstPtr cloud_ptr,
-    const std::vector<int>& indices);
 
 void calculatePointCloudNormals (const PointCloudConstPtr input_cloud_ptr,
     PointCloudNormalsPtr output_cloud_ptr);
@@ -28,6 +18,26 @@ void calculatePointCloudNormals (const PointCloudConstPtr input_cloud_ptr,
 void removePointNormalsWithNaNs (const PointCloudNormalsPtr input_cloud_ptr);
 
 void checkforNaNs (const PointCloudNormalsConstPtr input_cloud_ptr);
+
+void writePCDToFile (const std::string& fileName, const PointCloudConstPtr cloud_ptr);
+
+void writePCDToFile (const std::string& fileName, const PointCloudConstPtr cloud_ptr,
+    const std::vector<int>& indices);
+void transformAndWriteToFile (const PointCloudConstPtr cloud_in, const Eigen::Matrix4f& trafo);
+
+void transformAndWriteToFile (const PointCloudConstPtr cloud_in, const std::vector<int>& indices,
+    const Eigen::Matrix4f& trafo);
+
+
+// ----------- TODO: Template ---------------------------------
+void writePCDToFile (const std::string& fileName, const PointCloudNormalsConstPtr cloud_ptr);
+
+void writePCDToFile (const std::string& fileName, const PointCloudNormalsConstPtr cloud_ptr,
+    const std::vector<int>& indices);
+void transformAndWriteToFile (const PointCloudNormalsConstPtr cloud_in, const Eigen::Matrix4f& trafo);
+
+void transformAndWriteToFile (const PointCloudNormalsConstPtr cloud_in, const std::vector<int>& indices,
+    const Eigen::Matrix4f& trafo);
 
 template <class pointT>
 inline void getIndicesFromMatches (typename pcl::PointCloud<pointT>::Ptr cloud_ptr, const std::vector<

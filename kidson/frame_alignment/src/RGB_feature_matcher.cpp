@@ -113,8 +113,10 @@ bool RGBFeatureMatcher::getMatches (std::vector<Eigen::Vector4f>& source_inlier_
 
   RGB_feature_detector.projectFeaturesTo3D (source_keypoints, source_feature_3d_locations,
       source_cloud_ptr_);
+  ROS_INFO_STREAM("[RGBFeatureMatcher] Found " << source_keypoints.size() << " valid keypoints in source frame");
   RGB_feature_detector.projectFeaturesTo3D (target_keypoints, target_feature_3d_locations,
       target_cloud_ptr_);
+  ROS_INFO_STREAM("[RGBFeatureMatcher] Found " << target_keypoints.size() << " valid keypoints in target frame");
 
   RGB_feature_detector.extractFeatures (source_image_, source_keypoints, source_descriptors);
   RGB_feature_detector.extractFeatures (target_image_, target_keypoints, target_descriptors);

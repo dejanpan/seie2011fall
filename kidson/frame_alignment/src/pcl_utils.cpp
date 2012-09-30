@@ -10,12 +10,27 @@
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
-#include <pcl/common/transforms.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/filters/filter.h>
+#include <pcl/common/transforms.h>
 
 #include <ros/console.h>
+
+void writePCDToFile (const std::string& fileName, const PointCloudConstPtr cloud_ptr)
+{
+  pcl::PCDWriter writer;
+  ROS_INFO_STREAM("[pcl_utils] Writing point cloud " << fileName << " to file");
+  writer.write (fileName, *cloud_ptr, false);
+}
+
+void writePCDToFile (const std::string& fileName, const PointCloudConstPtr cloud_ptr,
+    const std::vector<int>& indices)
+{
+  pcl::PCDWriter writer;
+  ROS_INFO_STREAM("[pcl_utils] Writing point cloud " << fileName << " to file");
+  writer.write (fileName, *cloud_ptr, indices, false);
+}
 
 void transformAndWriteToFile (const PointCloudConstPtr cloud_in, const Eigen::Matrix4f& trafo)
 {
@@ -24,33 +39,43 @@ void transformAndWriteToFile (const PointCloudConstPtr cloud_in, const Eigen::Ma
   writePCDToFile ("transformed_cloud.pcd", cloud_out);
 }
 
-void writeFeaturePointCloudsToFile (const PointCloudConstPtr source_cloud,
-    const std::vector<int>& source_indices, const PointCloudConstPtr target_cloud,
-    const std::vector<int> target_indices, const Eigen::Matrix4f& trafo)
+void transformAndWriteToFile (const PointCloudConstPtr cloud_in, const std::vector<int>& indices,
+    const Eigen::Matrix4f& trafo)
 {
-  PointCloudPtr transformed_cloud (new PointCloud);
-  pcl::transformPointCloud (*source_cloud, *transformed_cloud, trafo);
-
-  writePCDToFile ("source_feature_cloud.pcd", source_cloud, source_indices);
-  writePCDToFile ("source_cloud.pcd", source_cloud);
-  writePCDToFile ("target_feature_cloud.pcd", target_cloud, target_indices);
-  writePCDToFile ("target_cloud.pcd", target_cloud);
-  writePCDToFile ("transformed_feature_cloud.pcd", transformed_cloud, source_indices);
+  PointCloudPtr cloud_out (new PointCloud);
+  pcl::transformPointCloud (*cloud_in, *cloud_out, trafo);
+  writePCDToFile ("transformed_cloud_features.pcd", cloud_out, indices);
 }
 
-void writePCDToFile (const std::string& fileName, const PointCloudConstPtr cloud_ptr)
+// ----------- TODO: Template ----------------------
+void writePCDToFile (const std::string& fileName, const PointCloudNormalsConstPtr cloud_ptr)
 {
   pcl::PCDWriter writer;
-  ROS_INFO_STREAM("Writing point cloud " << fileName << " to file");
+  ROS_INFO_STREAM("[pcl_utils] Writing point cloud " << fileName << " to file");
   writer.write (fileName, *cloud_ptr, false);
 }
 
-void writePCDToFile (const std::string& fileName, const PointCloudConstPtr cloud_ptr,
+void writePCDToFile (const std::string& fileName, const PointCloudNormalsConstPtr cloud_ptr,
     const std::vector<int>& indices)
 {
   pcl::PCDWriter writer;
-  ROS_INFO_STREAM("Writing point cloud " << fileName << " to file");
+  ROS_INFO_STREAM("[pcl_utils] Writing point cloud " << fileName << " to file");
   writer.write (fileName, *cloud_ptr, indices, false);
+}
+
+void transformAndWriteToFile (const PointCloudNormalsConstPtr cloud_in, const Eigen::Matrix4f& trafo)
+{
+  PointCloudNormalsPtr cloud_out (new PointCloudNormals);
+  pcl::transformPointCloud (*cloud_in, *cloud_out, trafo);
+  writePCDToFile ("transformed_cloud.pcd", cloud_out);
+}
+
+void transformAndWriteToFile (const PointCloudNormalsConstPtr cloud_in, const std::vector<int>& indices,
+    const Eigen::Matrix4f& trafo)
+{
+  PointCloudNormalsPtr cloud_out (new PointCloudNormals);
+  pcl::transformPointCloud (*cloud_in, *cloud_out, trafo);
+  writePCDToFile ("transformed_cloud_features.pcd", cloud_out, indices);
 }
 
 void calculatePointCloudNormals (const PointCloudConstPtr input_cloud_ptr,
@@ -68,7 +93,7 @@ void calculatePointCloudNormals (const PointCloudConstPtr input_cloud_ptr,
   normal_estimator_ptr->setRadiusSearch (0.1);
   normal_estimator_ptr->compute (*output_cloud_ptr);
   pcl::copyPointCloud (*input_cloud_ptr, *output_cloud_ptr);
-  removePointNormalsWithNaNs(output_cloud_ptr);
+  removePointNormalsWithNaNs (output_cloud_ptr);
 }
 
 void removePointNormalsWithNaNs (const PointCloudNormalsPtr input_cloud_ptr)
@@ -85,9 +110,9 @@ void removePointNormalsWithNaNs (const PointCloudNormalsPtr input_cloud_ptr)
       input_cloud_ptr->points.erase (itr);
       itr--;
     }
-    input_cloud_ptr->resize(input_cloud_ptr->points.size());
-    input_cloud_ptr->width = input_cloud_ptr->points.size();
-    input_cloud_ptr->height = 1;
+  input_cloud_ptr->resize (input_cloud_ptr->points.size ());
+  input_cloud_ptr->width = input_cloud_ptr->points.size ();
+  input_cloud_ptr->height = 1;
 }
 
 void checkforNaNs (const PointCloudNormalsConstPtr input_cloud_ptr)
@@ -101,7 +126,7 @@ void checkforNaNs (const PointCloudNormalsConstPtr input_cloud_ptr)
         || (input_cloud_ptr->points[i].normal_z != input_cloud_ptr->points[i].normal_z))
     {
       ROS_ERROR_STREAM("point has a NaN! idx" << i);
-      ROS_ERROR_STREAM("x[" << input_cloud_ptr->points[i].x << "] y[" << input_cloud_ptr->points[i].y<< "] z[" << input_cloud_ptr->points[i].z<<
-          "] xn[" << input_cloud_ptr->points[i].normal_x<< "] yn[" << input_cloud_ptr->points[i].normal_y<< "] zn[" << input_cloud_ptr->points[i].normal_z<< "]");
+      ROS_ERROR_STREAM(
+          "x[" << input_cloud_ptr->points[i].x << "] y[" << input_cloud_ptr->points[i].y<< "] z[" << input_cloud_ptr->points[i].z<< "] xn[" << input_cloud_ptr->points[i].normal_x<< "] yn[" << input_cloud_ptr->points[i].normal_y<< "] zn[" << input_cloud_ptr->points[i].normal_z<< "]");
     }
 }

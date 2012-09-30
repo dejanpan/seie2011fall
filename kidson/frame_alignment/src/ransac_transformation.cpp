@@ -161,12 +161,12 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
   matches.clear();
 
   if(initial_matches->size() <= min_matches) {
-	  ROS_INFO("Only %d feature matches between source and target (minimal: %i)",(int)initial_matches->size() , min_matches);
+	  ROS_INFO("[RansacTransformation] Only %d feature matches between source and target (minimal: %i)",(int)initial_matches->size() , min_matches);
     return false;
   }
   else
   {
-	  ROS_INFO("%d feature matches between source and target (minimal: %i)",(int)initial_matches->size() , min_matches);
+	  ROS_INFO("[RansacTransformation] %d feature matches between source and target (minimal: %i)",(int)initial_matches->size() , min_matches);
   }
 
   //unsigned int min_inlier_threshold = int(initial_matches->size()*0.2);
@@ -225,7 +225,7 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
       ROS_DEBUG("Skipped iteration: inliers: %i (min %i), inlier_error: %.2f (max %.2f)", (int)inlier.size(), (int) min_inlier_threshold,  inlier_error*100, max_dist_m*100);
       continue;
     }
-    // ROS_INFO("Refining iteration from %i samples: all matches: %i, inliers: %i, inlier_error: %f", (int)sample_size, (int)initial_matches->size(), (int)inlier.size(), inlier_error);
+    // ROS_INFO("[RansacTransformation] Refining iteration from %i samples: all matches: %i, inliers: %i, inlier_error: %f", (int)sample_size, (int)initial_matches->size(), (int)inlier.size(), inlier_error);
     valid_iterations++;
     //if (inlier_error > 0) ROS_ERROR("size: %i", (int)dummy.size());
     assert(inlier_error>=0);
@@ -246,11 +246,11 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
       //assert(matches.size()>= ((float)initial_matches->size())*min_inlier_ratio);
       rmse = inlier_error;
       best_error = inlier_error;
-      // ROS_INFO("  new best iteration %d  cnt: %d, best_inlier: %d,  error: %.4f, bestError: %.4f",n_iter, inlier.size(), best_inlier_cnt, inlier_error, best_error);
+      // ROS_INFO("[RansacTransformation]   new best iteration %d  cnt: %d, best_inlier: %d,  error: %.4f, bestError: %.4f",n_iter, inlier.size(), best_inlier_cnt, inlier_error, best_error);
 
     }else
     {
-      // ROS_INFO("NO new best iteration %d  cnt: %d, best_inlier: %d,  error: %.4f, bestError: %.4f",n_iter, inlier.size(), best_inlier_cnt, inlier_error, best_error);
+      // ROS_INFO("[RansacTransformation] NO new best iteration %d  cnt: %d, best_inlier: %d,  error: %.4f, bestError: %.4f",n_iter, inlier.size(), best_inlier_cnt, inlier_error, best_error);
     }
 
     //int max_ndx = min((int) min_inlier_threshold,30); //? What is this 30?
@@ -263,7 +263,7 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
                            source_feature_locations_3d, target_feature_locations_3d,
                            inlier, new_inlier_error, dummy, max_dist_m*max_dist_m);
     ROS_DEBUG("Refined Transformation from all matches (%i) results in an error of %f and %i inliers for all matches.", (int)initial_matches->size(), inlier_error, (int)inlier.size());
-    // ROS_INFO("asd recomputed: inliersize: %i, inlier error: %f", (int) inlier.size(),100*new_inlier_error);
+    // ROS_INFO("[RansacTransformation] asd recomputed: inliersize: %i, inlier error: %f", (int) inlier.size(),100*new_inlier_error);
 
 
     // check also invalid iterations
@@ -275,10 +275,10 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
 
     if(inlier.size() < min_inlier_threshold || new_inlier_error > max_dist_m){
       //inlier.size() < ((float)initial_matches->size())*min_inlier_ratio ||
-      // ROS_INFO("Skipped iteration: inliers: %i (min %i), inlier_error: %.2f (max %.2f)", (int)inlier.size(), (int) min_inlier_threshold,  inlier_error*100, max_dist_m*100);
+      // ROS_INFO("[RansacTransformation] Skipped iteration: inliers: %i (min %i), inlier_error: %.2f (max %.2f)", (int)inlier.size(), (int) min_inlier_threshold,  inlier_error*100, max_dist_m*100);
       continue;
     }
-    // ROS_INFO("Refined iteration from %i samples: all matches %i, inliers: %i, new_inlier_error: %f", (int)sample_size, (int)initial_matches->size(), (int)inlier.size(), new_inlier_error);
+    // ROS_INFO("[RansacTransformation] Refined iteration from %i samples: all matches %i, inliers: %i, new_inlier_error: %f", (int)sample_size, (int)initial_matches->size(), (int)inlier.size(), new_inlier_error);
 
     assert(new_inlier_error>=0);
 
@@ -290,13 +290,13 @@ bool RansacTransformation::getRelativeTransformationTo(const std::vector<Eigen::
       //assert(matches.size()>= ((float)initial_matches->size())*min_inlier_ratio);
       rmse = new_inlier_error;
       best_error = new_inlier_error;
-      // ROS_INFO("  improved: new best iteration %d  cnt: %d, best_inlier: %d,  error: %.2f, bestError: %.2f",n_iter, inlier.size(), best_inlier_cnt, inlier_error*100, best_error*100);
+      // ROS_INFO("[RansacTransformation]   improved: new best iteration %d  cnt: %d, best_inlier: %d,  error: %.2f, bestError: %.2f",n_iter, inlier.size(), best_inlier_cnt, inlier_error*100, best_error*100);
     }else
     {
-      // ROS_INFO("improved: NO new best iteration %d  cnt: %d, best_inlier: %d,  error: %.2f, bestError: %.2f",n_iter, inlier.size(), best_inlier_cnt, inlier_error*100, best_error*100);
+      // ROS_INFO("[RansacTransformation] improved: NO new best iteration %d  cnt: %d, best_inlier: %d,  error: %.2f, bestError: %.2f",n_iter, inlier.size(), best_inlier_cnt, inlier_error*100, best_error*100);
     }
   } //iterations
-  ROS_INFO("%i good iterations (from %i), inlier pct %i, inlier cnt: %i, error: %.2f cm",valid_iterations, ransac_iterations, (int) (matches.size()*1.0/initial_matches->size()*100),(int) matches.size(),rmse*100);
+  ROS_INFO("[RansacTransformation] %i good iterations (from %i), inlier pct %i, inlier cnt: %i, error: %.2f cm",valid_iterations, ransac_iterations, (int) (matches.size()*1.0/initial_matches->size()*100),(int) matches.size(),rmse*100);
   ROS_DEBUG("best overall: inlier: %i, error: %.2f",best_inlier_invalid, best_error_invalid*100);
 
   return matches.size() >= min_inlier_threshold;

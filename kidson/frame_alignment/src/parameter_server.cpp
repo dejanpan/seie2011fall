@@ -9,7 +9,9 @@ using namespace std;
 ParameterServer* ParameterServer::_instance = NULL;
 
 ParameterServer::ParameterServer() {
-	pre = "/frame_alignment/config/";
+  std::stringstream node_pre;
+  node_pre << "/" << ros::this_node::getName() << "/config/";
+  pre = node_pre.str();
 
     defaultConfig();
     getValues();
@@ -19,48 +21,38 @@ ParameterServer* ParameterServer::instance() {
     if (_instance == NULL) {
         _instance = new ParameterServer();
     }
-
+    //_instance->getValues();
     return _instance;
 }
+
+//        Default config for Frame Alignment
+// #####Please see launch/frame_align_launch.launch for a description of these parameters ######
+// it is recommended to change the parameters in the launchfile rather than the source!
 void ParameterServer::defaultConfig() {
 
+    config["source_cloud_filename"]           = std::string("../pcds/node_0.pcd");
+    config["target_cloud_filename"]           = std::string("../pcds/node_4.pcd");
+
     // ----------RGB feature extraction------------
-    config["feature_extractor"]               = std::string("SURF");            //SIFT, SURF
-    config["feature_descriptor"]              = std::string("SURF");            //SIFT, SURF
-    config["descriptor_matcher"]              = std::string("FLANN");      //Bruteforce, FLANN
-	  config["max_keypoints"]                   = static_cast<int> (1000);
+    config["feature_extractor"]               = std::string("SURF");
+    config["feature_descriptor"]              = std::string("SURF");
+    config["descriptor_matcher"]              = std::string("FLANN");
 	  config["minimum_inliers"]                 = static_cast<int> (50);
     config["max_dist_for_inliers"]            = static_cast<double> (0.03);
-    config["ransac_iterations"]               = static_cast<int> (1000); //1000
-    config["save_features_image"]             = static_cast<bool> (false); //saves an image of the keypoints from the image to disk
-    config["show_feature_matching"]           = static_cast<bool> (false); // displays a window showing matches before and after outlier removal
-
+    config["ransac_iterations"]               = static_cast<int> (1000);
+    config["save_features_image"]             = static_cast<bool> (false);
+    config["show_feature_matching"]           = static_cast<bool> (false);
+    config["save_all_pointclouds"]            = static_cast<bool> (true);
 
     // --------------ICP settings------------------
-
-    // utilizes all cores for calculating normals.
     config["use_openmp_normal_calculation"]   = static_cast<bool> (true);
-
-    // weight between icp and visual features.  1.0 = features, 0.0 = ICP
     config["alpha"]                           = static_cast<double> (0.5);
-
-    // the max correspondence distance to 5cm (e.g., correspondences with higher distances will be ignored)
     config["max_correspondence_dist"]         = static_cast<double> (0.05);
-
-    // The maximum number of iterations (criterion 1)
     config["max_iterations"]                  = static_cast<int> (75);
-
-    // The transformation epsilon (criterion 2)
     config["transformation_epsilon"]          = static_cast<double> (1e-8);
-
-    // The euclidean distance difference epsilon (criterion 3)
     config["euclidean_fitness_epsilon"]       = static_cast<double> (0);
-
-    // setting this to true uses the transformation from ransac as the starting point for the icp
     config["use_ransac_to_initialize_icp"]    = static_cast<bool> (false);
-
-    // PCL DEBUG level prints a lot of info during icp
-    config["enable_pcl_debug_verbosity"]     = static_cast<bool> (true);
+    config["enable_pcl_debug_verbosity"]      = static_cast<bool> (true);
 }
 
 void ParameterServer::getValues() {

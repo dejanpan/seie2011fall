@@ -14,26 +14,28 @@
 #include "frame_alignment/RGB_feature_matcher.h"
 #include "frame_alignment/pcl_utils.h"
 #include "frame_alignment/joint_optimize_wrapper.h"
+#include "frame_alignment/parameter_server.h"
 
 int main (int argc, char** argv)
 {
-  if (argc < 3)
-  {
-    ROS_WARN(
-        "Please provide 2 .pcd files: rosrun frame_matcher joint_optimization source.pcd target.pcd");
-    exit (0);
-  }
   ros::init (argc, argv, "frame_alignment");
   if(!ros::master::check())
   {
     ROS_ERROR("roscore not running. stop.");
     exit(0);
   }
+
+  std::string source_filename, target_filename;
+  source_filename = ParameterServer::instance()->get<std::string>("source_cloud_filename");
+  target_filename = ParameterServer::instance()->get<std::string>("target_cloud_filename");
+  ROS_INFO_STREAM("[main] Source pointcloud file: " << source_filename);
+  ROS_INFO_STREAM("[main] Target pointclout file: " << target_filename);
+
   PointCloudPtr source_cloud_ptr (new PointCloud);
   PointCloudPtr target_cloud_ptr (new PointCloud);
   pcl::PCDReader reader;
-  reader.read (argv[1], *source_cloud_ptr);
-  reader.read (argv[2], *target_cloud_ptr);
+  reader.read (source_filename, *source_cloud_ptr);
+  reader.read (target_filename, *target_cloud_ptr);
 
   // Extract 2d RGB features and project them into 3d.  Use Ransac to filter out outliers and
   // obtain a transformation between the 2 point clouds
