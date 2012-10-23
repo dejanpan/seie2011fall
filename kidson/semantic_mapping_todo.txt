@@ -1,55 +1,9 @@
 
-1. Create releasable code
--------------------------------
--RGBDSLAM release version
-	checkout stock rgbdslam version, add required mods
-	-cache/delete point clouds
-	-point cloud skip step
-	-bagfile creater (for dejans code)
-	-parameters (min matches etc)
-	-euclidean distance check for adding edges
-	-sensor model
+- http://www.123dapp.com/catch#catchApps
+create maps with video only
 
--Frame to frame registration
-	-copy/test ransac
-	-icp/feature joint optimization
+- Test RGBDLSAM with new data and feedback to juergen
 
+- Semantic Mapping
 
-2. Test RGBDSLAM on multiple kitchens
--------------------------------------
--4 datasets
-	-IAS labs (gorden, 5th floor)
-	-My kitchen
-	-Dejans kitchen
-
-3. Test RGBDLSAM with new data and feedback to juergen
-
-4. Semantic Mapping
-
-5. Building models with vlads code
-
-Semantic Mapping Notes
----------------------------------------------
- 1. Segment Planes
- 2. Segment Fixtures
- 3. Segment Drawers
-     - Use kinect video to obtain motion model
-     - Do this with the robot or without the robot
-     --> Juergens code to articulate the robot
- 4. Reconstruction - generate mesh from kitchen
- 5. Association - between point cloud and mesh
-GUI can select mesh or point cloud for visualization
-
-GUI
------
-
-- 1, 2 or 3 are selectable to segment
-- 3 Requires taking a kinect to the environment to show the drawer motion.
-     -requires registration from kinect video to known model
-     -be able to show drawer articulation and motion model
-- Merging and splitting of sections possible
-- Deal with over/under segmentation
-- Manual Segmentation
-     - Doors --> specular or see through
-     - Non visible handles (e.g. washing mashines with recessed handles)
-
+- Building models with vlads code
