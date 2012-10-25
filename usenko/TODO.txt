@@ -1,6 +1,21 @@
-Ideas:
+==========================VLAD===================================================
+- continue with the fern-based classification 
+ - features (detector and descriptor), matchers and pose fitters =>  would be great if it is general
+ - big and small objects
+ - textured and textureless objects
+ - transparent objects
+ - cluttered vs non-cluttered objects
+ - occlusions
 
-- add icp alignment of the model before visibility scores
-- implement feature and model scaling 
-- implement model learning from real objects
+- hough voting
+ - problem with the generation of scans
+ - run the algorithm on RCE
+ - rim clustering as FFI => see if it runs on octave
+ - test icp fitting (Dejan)
+ - more initial rotations for ICP
 
+- read paper by Wohlkinger and Drost
+
+- models from KinFu => see of Ross can improve the model generation
+
+- ECTO: http://ecto.willowgarage.com/, http://ecto.willowgarage.com/recognition
