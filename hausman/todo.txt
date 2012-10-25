@@ -6,20 +6,12 @@ Open questions:
 Urgent:
 making the launch file- improve
 document the things in the code- clean up
-tutorials
-
-Icra workshops:
-write the one page abstract for the project
-prepare demonstration with one kinect(without the robot)
-https://ias.cs.tum.edu/events/spmk-icra2012
 
 Self-development:
 gdb tutorials or debugging in eclipse
 udacity courses about programming
 checking the code with someone else- check the groups in the web
 learn gtest
-udacity
-learn CUDA programming
 learn OPENMP
 
 More fun:
@@ -28,25 +20,22 @@ go to Tangelmann and make the pictures of the objects there, push them and try i
 Improve what we have:
 GUI in Qt
 correct the pose estimation
-compare with normal segmentation: http://www.cs.brown.edu/~pff/segment/
 
 Ideas and cooperating:
 new approaches for occlusions: multiple views(another camera in the hand) or modelling of unknown spaces
 simulating of clustering hypothesis- Sid
 Improve the math - Zoltan
-Textureless objects tracking- Antonis Agyros from FORTH - practical students?
-Reconstruction of the full object model - not sparse anymore
 Prior knowledge from Luci from 3d static segmentation- Dejan pushes
+Berlin guys
 
 3d-tracking:
+refactor the code
+commit to the pcl
 check the stability of tracking in matlab/octave
-improve corners and lines-> check number of planes in the neighborhood
+test the pipeline
+do the tutorial
 
-make a patch for checkout from pcl
-improve the code
-estimate convex corners in the Chris' way
-
-combine work with Ferenc
+~more in release steps and road map txt files
 
 To try out maybe:
 idea with the planes tracking until they are not separated
